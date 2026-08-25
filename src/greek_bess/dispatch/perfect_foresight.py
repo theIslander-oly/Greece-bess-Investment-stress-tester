@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import asdict, dataclass
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 import pandas as pd
@@ -193,8 +193,9 @@ def optimize_perfect_foresight(
     lower[energy_index[-1]] = upper[energy_index[-1]] = terminal_energy
     upper[mode_index] = 1
 
+    daily_cycle_limit = config.max_daily_equivalent_cycles
     daily_groups: list[np.ndarray] = []
-    if config.max_daily_equivalent_cycles is not None:
+    if daily_cycle_limit is not None:
         market_days = data["delivery_start_market"].dt.date.to_numpy()
         daily_groups = [np.flatnonzero(market_days == day) for day in pd.unique(market_days)]
 
@@ -226,11 +227,10 @@ def optimize_perfect_foresight(
         row += 1
 
     for group in daily_groups:
+        assert daily_cycle_limit is not None
         for interval in group:
             matrix[row, discharge_index[interval]] = durations[interval]
-        constraint_upper[row] = (
-            config.max_daily_equivalent_cycles * config.energy_capacity_mwh
-        )
+        constraint_upper[row] = daily_cycle_limit * config.energy_capacity_mwh
         row += 1
 
     integrality = np.zeros(variable_count, dtype=np.uint8)
@@ -373,7 +373,7 @@ def _availability_array(
     availability: float | Sequence[float] | pd.Series, interval_count: int
 ) -> np.ndarray:
     if np.isscalar(availability):
-        values = np.full(interval_count, float(availability))
+        values = np.full(interval_count, float(cast(Any, availability)))
     else:
         values = np.asarray(availability, dtype=float)
         if values.ndim != 1 or len(values) != interval_count:

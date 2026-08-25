@@ -243,40 +243,40 @@ def main(argv: list[str] | None = None) -> int:
             return 0 if set(counts) <= {"match"} else 2
         elif args.command == "optimize-perfect-foresight":
             config = _read_battery_config(args.config)
-            result = optimize_perfect_foresight(
+            dispatch_result = optimize_perfect_foresight(
                 _read_canonical_csv(args.prices),
                 config,
                 availability=args.availability,
             )
             summary_path = args.summary or args.output.with_suffix(".summary.json")
             _write_dispatch_outputs(
-                result.schedule, result.summary, args.output, summary_path
+                dispatch_result.schedule, dispatch_result.summary, args.output, summary_path
             )
-            print(json.dumps(result.summary, indent=2))
+            print(json.dumps(dispatch_result.summary, indent=2))
             return 0
         elif args.command == "forecast-naive":
-            result = generate_naive_forecasts(
+            forecast_result = generate_naive_forecasts(
                 _read_canonical_csv(args.prices),
                 methods=args.methods,
                 rolling_window_days=args.rolling_window_days,
                 start_day=args.start_day,
             )
             metrics_path = args.metrics or args.output.with_suffix(".metrics.json")
-            _write_plain_csv(result.forecasts, args.output)
-            _write_json(result.metrics, metrics_path)
-            print(json.dumps(result.metrics, indent=2))
+            _write_plain_csv(forecast_result.forecasts, args.output)
+            _write_json(forecast_result.metrics, metrics_path)
+            print(json.dumps(forecast_result.metrics, indent=2))
             return 0
         elif args.command == "forecast-ml":
-            result = generate_ml_forecasts(
+            ml_forecast_result = generate_ml_forecasts(
                 _read_canonical_csv(args.prices), _ml_config_from_args(args)
             )
             summary_path = args.summary or args.output.with_suffix(".summary.json")
-            _write_plain_csv(result.forecasts, args.output)
-            _write_json(result.summary, summary_path)
-            print(json.dumps(result.summary, indent=2))
+            _write_plain_csv(ml_forecast_result.forecasts, args.output)
+            _write_json(ml_forecast_result.summary, summary_path)
+            print(json.dumps(ml_forecast_result.summary, indent=2))
             return 0
         elif args.command == "backtest-forecast-dispatch":
-            result = backtest_forecast_dispatch(
+            forecast_backtest_result = backtest_forecast_dispatch(
                 _read_canonical_csv(args.prices),
                 _read_battery_config(args.config),
                 method=args.method,
@@ -285,15 +285,15 @@ def main(argv: list[str] | None = None) -> int:
             )
             daily_path = args.daily_output or args.output.with_suffix(".daily.csv")
             summary_path = args.summary or args.output.with_suffix(".summary.json")
-            _write_dispatch_csv(result.interval_schedule, args.output)
-            _write_plain_csv(result.daily_results, daily_path)
-            _write_json(result.summary, summary_path)
-            print(json.dumps(result.summary, indent=2))
+            _write_dispatch_csv(forecast_backtest_result.interval_schedule, args.output)
+            _write_plain_csv(forecast_backtest_result.daily_results, daily_path)
+            _write_json(forecast_backtest_result.summary, summary_path)
+            print(json.dumps(forecast_backtest_result.summary, indent=2))
             return 0
         elif args.command == "backtest-ml-dispatch":
             prices = _read_canonical_csv(args.prices)
             ml_result = generate_ml_forecasts(prices, _ml_config_from_args(args))
-            result = backtest_ml_dispatch_benchmark(
+            ml_dispatch_result = backtest_ml_dispatch_benchmark(
                 prices, _read_battery_config(args.config), ml_result
             )
             forecasts_path = args.forecasts_output or _sibling_path(
@@ -306,15 +306,17 @@ def main(argv: list[str] | None = None) -> int:
                 args.output, ".forecast.summary.json"
             )
             summary_path = args.summary or args.output.with_suffix(".summary.json")
-            _write_dispatch_csv(result.selected_model_interval_schedule, args.output)
+            _write_dispatch_csv(
+                ml_dispatch_result.selected_model_interval_schedule, args.output
+            )
             _write_plain_csv(ml_result.forecasts, forecasts_path)
-            _write_plain_csv(result.daily_results, daily_path)
+            _write_plain_csv(ml_dispatch_result.daily_results, daily_path)
             _write_json(ml_result.summary, forecast_summary_path)
-            _write_json(result.summary, summary_path)
-            print(json.dumps(result.summary, indent=2))
+            _write_json(ml_dispatch_result.summary, summary_path)
+            print(json.dumps(ml_dispatch_result.summary, indent=2))
             return 0
         elif args.command == "simulate-degradation-dispatch":
-            result = simulate_degradation_dispatch(
+            degradation_result = simulate_degradation_dispatch(
                 _read_canonical_csv(args.prices),
                 _read_battery_config(args.config),
                 _read_degradation_config(args.degradation_config),
@@ -326,14 +328,14 @@ def main(argv: list[str] | None = None) -> int:
                 args.output, ".cohorts.csv"
             )
             summary_path = args.summary or args.output.with_suffix(".summary.json")
-            _write_dispatch_csv(result.interval_schedule, args.output)
-            _write_plain_csv(result.daily_results, daily_path)
-            _write_plain_csv(result.cohort_states, cohort_path)
-            _write_json(result.summary, summary_path)
-            print(json.dumps(result.summary, indent=2))
+            _write_dispatch_csv(degradation_result.interval_schedule, args.output)
+            _write_plain_csv(degradation_result.daily_results, daily_path)
+            _write_plain_csv(degradation_result.cohort_states, cohort_path)
+            _write_json(degradation_result.summary, summary_path)
+            print(json.dumps(degradation_result.summary, indent=2))
             return 0
         elif args.command == "evaluate-project-finance":
-            result = evaluate_project_finance(
+            finance_result = evaluate_project_finance(
                 pd.read_csv(args.daily_results),
                 _read_finance_config(args.finance_config),
             )
@@ -341,10 +343,10 @@ def main(argv: list[str] | None = None) -> int:
                 args.output, ".daily.csv"
             )
             summary_path = args.summary or args.output.with_suffix(".summary.json")
-            _write_plain_csv(result.annual_cash_flows, args.output)
-            _write_plain_csv(result.daily_cash_flows, daily_path)
-            _write_json(result.summary, summary_path)
-            print(json.dumps(result.summary, indent=2))
+            _write_plain_csv(finance_result.annual_cash_flows, args.output)
+            _write_plain_csv(finance_result.daily_cash_flows, daily_path)
+            _write_json(finance_result.summary, summary_path)
+            print(json.dumps(finance_result.summary, indent=2))
             return 0
         else:  # pragma: no cover - argparse makes this unreachable.
             raise AssertionError(f"Unhandled command: {args.command}")

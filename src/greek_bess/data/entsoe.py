@@ -165,8 +165,8 @@ def parse_entsoe_price_xml(
 
     rows: list[dict[str, object]] = []
     for series in time_series:
-        currency = _first_text(series, "currency_Unit.name", default="EUR")
-        measure = _first_text(series, "price_Measure_Unit.name", default="MWH")
+        currency = _first_text(series, "currency_Unit.name", default="EUR") or "EUR"
+        measure = _first_text(series, "price_Measure_Unit.name", default="MWH") or "MWH"
         if currency.upper() != "EUR":
             raise EntsoeResponseError(f"Expected EUR prices, received {currency}")
         if measure.upper() not in {"MWH", "MAW"}:

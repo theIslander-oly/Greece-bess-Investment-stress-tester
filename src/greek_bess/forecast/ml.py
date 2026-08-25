@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 from datetime import date, timedelta
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 import pandas as pd
@@ -189,7 +189,9 @@ def generate_ml_forecasts(
 
     selected_model = min(
         config.models,
-        key=lambda name: float(metrics["validation"][name]["rmse_eur_per_mwh"]),
+        key=lambda name: float(
+            cast(Any, metrics["validation"][name]["rmse_eur_per_mwh"])
+        ),
     )
     output_columns = [
         "delivery_start_utc",
@@ -401,7 +403,7 @@ def _metric_ranking(metrics: dict[str, dict[str, object]]) -> list[dict[str, Any
         metrics,
         key=lambda name: (
             metrics[name]["rmse_eur_per_mwh"] is None,
-            float(metrics[name]["rmse_eur_per_mwh"] or np.inf),
+            float(cast(Any, metrics[name]["rmse_eur_per_mwh"]) or np.inf),
         ),
     )
     return [
