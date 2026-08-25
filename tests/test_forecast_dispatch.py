@@ -3,13 +3,12 @@ from __future__ import annotations
 import unittest
 from datetime import date
 
-from test_forecast import repeating_prices
-
 from greek_bess.backtest import (
     ForecastDispatchInputError,
     backtest_forecast_dispatch,
 )
 from greek_bess.dispatch import BatteryDispatchConfig
+from tests.test_forecast import repeating_prices
 
 
 def battery(**overrides) -> BatteryDispatchConfig:
