@@ -37,6 +37,7 @@ from .forecast import (
     generate_naive_forecasts,
 )
 
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="greek-bess",

@@ -11,6 +11,7 @@ import pandas as pd
 
 from greek_bess.cli import main
 
+
 class CliTests(unittest.TestCase):
     def test_synthetic_command_writes_data_and_quality_report(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
