@@ -12,7 +12,6 @@ import pandas as pd
 from ..data.quality import assess_quality
 from ..data.schema import ensure_canonical
 
-
 FORECAST_METHODS = (
     "daily_persistence",
     "weekly_persistence",

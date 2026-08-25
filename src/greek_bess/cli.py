@@ -10,18 +10,25 @@ from pathlib import Path
 
 import pandas as pd
 
+from .backtest import (
+    backtest_forecast_dispatch,
+    backtest_ml_dispatch_benchmark,
+    simulate_degradation_dispatch,
+)
 from .data.entsoe import EntsoeClient, EntsoeError
 from .data.henex import HenexParseError, parse_henex_results
 from .data.quality import QualityReport, assess_quality, compare_sources
 from .data.schema import ensure_canonical
 from .data.synthetic import generate_synthetic_prices
 from .data.timezones import GREECE_TZ, MARKET_TZ
+from .degradation import DegradationConfig
 from .dispatch import (
     BatteryDispatchConfig,
     DispatchInputError,
     DispatchSolveError,
     optimize_perfect_foresight,
 )
+from .finance import FinanceConfig, evaluate_project_finance
 from .forecast import (
     FORECAST_METHODS,
     ML_MODELS,
@@ -29,14 +36,6 @@ from .forecast import (
     generate_ml_forecasts,
     generate_naive_forecasts,
 )
-from .backtest import (
-    backtest_forecast_dispatch,
-    backtest_ml_dispatch_benchmark,
-    simulate_degradation_dispatch,
-)
-from .degradation import DegradationConfig
-from .finance import FinanceConfig, evaluate_project_finance
-
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
@@ -65,7 +64,9 @@ def build_parser() -> argparse.ArgumentParser:
     entsoe = subparsers.add_parser(
         "fetch-entsoe", help="Fetch official Greek DAM prices using a personal token"
     )
-    entsoe.add_argument("--start", required=True, help="Timezone-aware start, e.g. 2026-01-01T00:00Z")
+    entsoe.add_argument(
+        "--start", required=True, help="Timezone-aware start, e.g. 2026-01-01T00:00Z"
+    )
     entsoe.add_argument("--end", required=True, help="Timezone-aware exclusive end")
     entsoe.add_argument("--chunk-days", type=int, default=31)
     entsoe.add_argument("--raw-cache-dir", type=Path, default=Path("data/raw/entsoe"))

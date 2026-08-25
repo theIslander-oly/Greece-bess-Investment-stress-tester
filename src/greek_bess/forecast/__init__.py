@@ -1,12 +1,5 @@
 """Leakage-safe price forecast baselines."""
 
-from .naive import (
-    FORECAST_METHODS,
-    ForecastInputError,
-    ForecastResult,
-    calculate_forecast_metrics,
-    generate_naive_forecasts,
-)
 from .ml import (
     FEATURE_COLUMNS,
     FEATURE_PROVENANCE,
@@ -17,6 +10,13 @@ from .ml import (
     MLForecastResult,
     build_causal_feature_table,
     generate_ml_forecasts,
+)
+from .naive import (
+    FORECAST_METHODS,
+    ForecastInputError,
+    ForecastResult,
+    calculate_forecast_metrics,
+    generate_naive_forecasts,
 )
 
 __all__ = [

@@ -12,7 +12,6 @@ import pandas as pd
 from .schema import ensure_canonical
 from .timezones import GREECE_TZ, UTC, as_utc_timestamp, market_day_starts
 
-
 REQUIRED_COLUMNS = {"DDAY", "SORT", "DELIVERY_DURATION", "MCP", "VER"}
 
 

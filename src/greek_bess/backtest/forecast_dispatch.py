@@ -17,7 +17,6 @@ from ..forecast import (
     generate_naive_forecasts,
 )
 
-
 FORECAST_BACKTEST_LABEL = (
     "Walk-forward forecast-planned Greek DAM dispatch settled at realized prices; "
     "research backtest, not expected investment revenue."

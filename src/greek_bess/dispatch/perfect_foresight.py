@@ -18,7 +18,6 @@ from scipy.sparse import lil_matrix
 from ..data.quality import assess_quality
 from ..data.schema import ensure_canonical
 
-
 UPPER_BOUND_LABEL = (
     "Perfect-foresight Greek DAM gross-margin upper bound; not expected or "
     "forecast investment revenue."
@@ -80,7 +79,9 @@ class BatteryDispatchConfig:
             value = getattr(self, name)
             if not np.isfinite(value) or not 0 < value <= 1:
                 raise DispatchInputError(f"{name} must be greater than 0 and at most 1")
-        if not np.isfinite(self.self_discharge_per_hour) or not 0 <= self.self_discharge_per_hour < 1:
+        if not np.isfinite(self.self_discharge_per_hour) or not (
+            0 <= self.self_discharge_per_hour < 1
+        ):
             raise DispatchInputError("self_discharge_per_hour must be at least 0 and below 1")
         for name in ("grid_import_limit_mw", "grid_export_limit_mw"):
             value = getattr(self, name)

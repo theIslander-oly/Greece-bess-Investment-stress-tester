@@ -6,7 +6,6 @@ from collections.abc import Iterable
 
 import pandas as pd
 
-
 CANONICAL_COLUMNS = [
     "delivery_start_utc",
     "delivery_end_utc",
@@ -105,4 +104,3 @@ def _normalize_flags(value: object) -> list[str]:
     if isinstance(value, Iterable):
         return sorted({str(item) for item in value if str(item)})
     return [str(value)]
-

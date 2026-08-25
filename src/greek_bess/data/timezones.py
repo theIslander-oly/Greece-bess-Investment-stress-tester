@@ -12,7 +12,6 @@ from zoneinfo import ZoneInfo
 
 import pandas as pd
 
-
 UTC = ZoneInfo("UTC")
 MARKET_TZ = ZoneInfo("Europe/Brussels")
 GREECE_TZ = ZoneInfo("Europe/Athens")
@@ -67,4 +66,3 @@ def local_views(starts_utc: pd.Series) -> tuple[pd.Series, pd.Series]:
 
     utc = pd.to_datetime(starts_utc, utc=True)
     return utc.dt.tz_convert(MARKET_TZ), utc.dt.tz_convert(GREECE_TZ)
-

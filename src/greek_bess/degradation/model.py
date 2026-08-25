@@ -15,7 +15,6 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-
 DEGRADATION_MODEL_LABEL = (
     "Illustrative cohort-based calendar and cycle degradation state model; "
     "assumptions require project-specific OEM validation and are not warranty advice."
@@ -63,7 +62,7 @@ class AugmentationEvent:
         object.__setattr__(self, "retired_cohort_ids", retired)
 
     @classmethod
-    def from_dict(cls, payload: dict[str, Any]) -> "AugmentationEvent":
+    def from_dict(cls, payload: dict[str, Any]) -> AugmentationEvent:
         if not isinstance(payload, dict):
             raise DegradationInputError("Each augmentation event must be an object")
         values = dict(payload)
@@ -161,7 +160,7 @@ class DegradationConfig:
         )
 
     @classmethod
-    def from_dict(cls, payload: dict[str, Any]) -> "DegradationConfig":
+    def from_dict(cls, payload: dict[str, Any]) -> DegradationConfig:
         if not isinstance(payload, dict):
             raise DegradationInputError("Degradation config JSON must contain one object")
         values = dict(payload)

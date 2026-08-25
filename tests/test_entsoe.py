@@ -4,7 +4,6 @@ import unittest
 
 from greek_bess.data.entsoe import EntsoeResponseError, parse_entsoe_price_xml
 
-
 SAMPLE_XML = b"""<?xml version="1.0" encoding="UTF-8"?>
 <Publication_MarketDocument xmlns="urn:iec62325.351:tc57wg16:451-3:publicationdocument:7:0">
   <mRID>sample-document</mRID>
@@ -38,11 +37,13 @@ class EntsoeParserTests(unittest.TestCase):
         self.assertEqual(str(frame.iloc[0]["delivery_start_utc"]), "2026-01-01 00:00:00+00:00")
 
     def test_rejection_document_is_reported(self) -> None:
-        rejection = b"<Acknowledgement_MarketDocument><Reason><text>Bad request</text></Reason></Acknowledgement_MarketDocument>"
+        rejection = (
+            b"<Acknowledgement_MarketDocument><Reason><text>Bad request</text></Reason>"
+            b"</Acknowledgement_MarketDocument>"
+        )
         with self.assertRaisesRegex(EntsoeResponseError, "Bad request"):
             parse_entsoe_price_xml(rejection)
 
 
 if __name__ == "__main__":
     unittest.main()
-

@@ -15,7 +15,6 @@ import numpy as np
 import pandas as pd
 from scipy.optimize import brentq
 
-
 FINANCE_RESULT_LABEL = (
     "Unlevered pre-tax, pre-subsidy Greek DAM project-finance research calculation "
     "based on the supplied operating path; not a bankable forecast or financial advice."
@@ -112,7 +111,7 @@ class FinanceConfig:
         )
 
     @classmethod
-    def from_dict(cls, payload: dict[str, Any]) -> "FinanceConfig":
+    def from_dict(cls, payload: dict[str, Any]) -> FinanceConfig:
         if not isinstance(payload, dict):
             raise FinanceInputError("Finance config JSON must contain one object")
         try:

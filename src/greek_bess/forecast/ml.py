@@ -19,7 +19,6 @@ from ..data.quality import assess_quality
 from ..data.schema import ensure_canonical
 from .naive import FORECAST_METHODS, calculate_forecast_metrics, generate_naive_forecasts
 
-
 ML_MODELS = ("ridge", "hist_gradient_boosting")
 ML_FORECAST_LABEL = (
     "Leakage-safe walk-forward Greek DAM ML benchmark; research forecast, not "

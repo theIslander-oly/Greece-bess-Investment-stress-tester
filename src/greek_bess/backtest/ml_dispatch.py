@@ -18,7 +18,6 @@ from .forecast_dispatch import (
     _settle_day,
 )
 
-
 ML_DISPATCH_BENCHMARK_LABEL = (
     "Held-out like-for-like Greek DAM ML forecast-dispatch benchmark settled at "
     "realized prices; research result, not expected investment revenue."

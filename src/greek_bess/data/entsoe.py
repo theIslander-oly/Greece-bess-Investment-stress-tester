@@ -8,7 +8,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
@@ -16,7 +16,6 @@ import pandas as pd
 from .. import __version__
 from .schema import empty_canonical_frame, ensure_canonical
 from .timezones import GREECE_TZ, MARKET_TZ, UTC, as_utc_timestamp, parse_iso_duration
-
 
 ENTSOE_API_ENDPOINT = "https://web-api.tp.entsoe.eu/api"
 GREECE_BIDDING_ZONE_EIC = "10YGR-HTSO-----Y"

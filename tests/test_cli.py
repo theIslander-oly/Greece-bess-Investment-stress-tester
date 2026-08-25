@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import json
 import io
+import json
 import tempfile
 import unittest
 from contextlib import redirect_stdout
@@ -10,7 +10,6 @@ from pathlib import Path
 import pandas as pd
 
 from greek_bess.cli import main
-
 
 class CliTests(unittest.TestCase):
     def test_synthetic_command_writes_data_and_quality_report(self) -> None:

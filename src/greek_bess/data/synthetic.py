@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 
 from .schema import ensure_canonical
-from .timezones import GREECE_TZ, MARKET_TZ, UTC, market_day_starts
+from .timezones import GREECE_TZ, UTC, market_day_starts
 
 
 def generate_synthetic_prices(

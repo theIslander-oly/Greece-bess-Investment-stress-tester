@@ -20,7 +20,6 @@ from ..degradation import (
 )
 from ..dispatch import BatteryDispatchConfig, optimize_perfect_foresight
 
-
 DEGRADED_DISPATCH_LABEL = (
     "Daily perfect-foresight Greek DAM gross-margin upper bound with endogenous "
     "illustrative degradation and augmentation; not expected investment revenue."

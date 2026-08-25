@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import unittest
-from datetime import date, timedelta
+from datetime import date
 
 from greek_bess.data.quality import assess_quality, compare_sources
 from greek_bess.data.synthetic import generate_synthetic_prices
@@ -37,4 +37,3 @@ class QualityTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-
