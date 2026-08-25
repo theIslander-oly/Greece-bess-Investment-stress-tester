@@ -1,0 +1,68 @@
+name: Fetch official ENTSO-E prices
+
+on:
+  workflow_dispatch:
+    inputs:
+      start_utc:
+        description: Inclusive UTC start (timezone-aware ISO 8601)
+        required: true
+        default: "2026-08-23T22:00Z"
+        type: string
+      end_utc:
+        description: Exclusive UTC end (timezone-aware ISO 8601)
+        required: true
+        default: "2026-08-25T22:00Z"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      ENTSOE_SECURITY_TOKEN: ${{ secrets.ENTSOE_SECURITY_TOKEN }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Verify the repository secret exists
+        shell: bash
+        run: |
+          if [[ -z "$ENTSOE_SECURITY_TOKEN" ]]; then
+            echo "ENTSOE_SECURITY_TOKEN is not configured as a repository secret."
+            exit 1
+          fi
+
+      - name: Install the project
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install .
+
+      - name: Fetch official Greek DAM prices
+        run: |
+          mkdir -p acceptance/entsoe
+          greek-bess fetch-entsoe \
+            --start "${{ inputs.start_utc }}" \
+            --end "${{ inputs.end_utc }}" \
+            --raw-cache-dir data/raw/entsoe \
+            --output acceptance/entsoe/entsoe_prices.csv
+
+      - name: Upload normalized acceptance files
+        uses: actions/upload-artifact@v4
+        with:
+          name: entsoe-greek-dam-acceptance
+          path: |
+            acceptance/entsoe/entsoe_prices.csv
+            acceptance/entsoe/entsoe_prices.quality.json
+          if-no-files-found: error
+          retention-days: 7
+

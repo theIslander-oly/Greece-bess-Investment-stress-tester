@@ -1,0 +1,405 @@
+"""Perfect-foresight Greek DAM battery arbitrage optimization.
+
+The result is a deterministic gross-margin upper bound under the supplied
+prices and assumptions. It is not a forecast of achievable project revenue.
+"""
+
+from __future__ import annotations
+
+from collections.abc import Sequence
+from dataclasses import asdict, dataclass
+from typing import Any
+
+import numpy as np
+import pandas as pd
+from scipy.optimize import Bounds, LinearConstraint, milp
+from scipy.sparse import lil_matrix
+
+from ..data.quality import assess_quality
+from ..data.schema import ensure_canonical
+
+
+UPPER_BOUND_LABEL = (
+    "Perfect-foresight Greek DAM gross-margin upper bound; not expected or "
+    "forecast investment revenue."
+)
+NUMERICAL_THROUGHPUT_TIEBREAK_EUR_PER_MWH = 1e-7
+
+
+class DispatchInputError(ValueError):
+    """Raised when prices or battery assumptions are unsuitable for dispatch."""
+
+
+class DispatchSolveError(RuntimeError):
+    """Raised when the mathematical optimizer does not return a solution."""
+
+
+@dataclass(frozen=True)
+class BatteryDispatchConfig:
+    """Editable battery and commercial assumptions.
+
+    Charge/discharge power is measured at the grid meter. Stored energy is
+    measured inside the battery after charge efficiency and before discharge
+    efficiency. Defaults are illustrative and must be replaced for a project.
+    """
+
+    charge_power_mw: float
+    discharge_power_mw: float
+    energy_capacity_mwh: float
+    soc_min_fraction: float = 0.05
+    soc_max_fraction: float = 0.95
+    initial_soc_fraction: float = 0.50
+    terminal_soc_fraction: float | None = None
+    charge_efficiency: float = 0.94
+    discharge_efficiency: float = 0.94
+    self_discharge_per_hour: float = 0.0
+    grid_import_limit_mw: float | None = None
+    grid_export_limit_mw: float | None = None
+    max_daily_equivalent_cycles: float | None = None
+    buy_fee_eur_per_mwh: float = 0.0
+    sell_fee_eur_per_mwh: float = 0.0
+    degradation_cost_eur_per_mwh_discharged: float = 0.0
+    require_complete_market_days: bool = True
+    mip_relative_gap: float = 1e-7
+    solver_time_limit_seconds: float | None = None
+
+    def __post_init__(self) -> None:
+        for name in ("charge_power_mw", "discharge_power_mw", "energy_capacity_mwh"):
+            _require_finite_positive(name, getattr(self, name))
+        for name in ("soc_min_fraction", "soc_max_fraction", "initial_soc_fraction"):
+            _require_fraction(name, getattr(self, name))
+        if self.soc_min_fraction >= self.soc_max_fraction:
+            raise DispatchInputError("soc_min_fraction must be below soc_max_fraction")
+        if not self.soc_min_fraction <= self.initial_soc_fraction <= self.soc_max_fraction:
+            raise DispatchInputError("initial_soc_fraction must lie within SOC limits")
+        terminal = self.effective_terminal_soc_fraction
+        _require_fraction("terminal_soc_fraction", terminal)
+        if not self.soc_min_fraction <= terminal <= self.soc_max_fraction:
+            raise DispatchInputError("terminal_soc_fraction must lie within SOC limits")
+        for name in ("charge_efficiency", "discharge_efficiency"):
+            value = getattr(self, name)
+            if not np.isfinite(value) or not 0 < value <= 1:
+                raise DispatchInputError(f"{name} must be greater than 0 and at most 1")
+        if not np.isfinite(self.self_discharge_per_hour) or not 0 <= self.self_discharge_per_hour < 1:
+            raise DispatchInputError("self_discharge_per_hour must be at least 0 and below 1")
+        for name in ("grid_import_limit_mw", "grid_export_limit_mw"):
+            value = getattr(self, name)
+            if value is not None:
+                _require_finite_nonnegative(name, value)
+        if self.max_daily_equivalent_cycles is not None:
+            _require_finite_nonnegative(
+                "max_daily_equivalent_cycles", self.max_daily_equivalent_cycles
+            )
+        for name in (
+            "buy_fee_eur_per_mwh",
+            "sell_fee_eur_per_mwh",
+            "degradation_cost_eur_per_mwh_discharged",
+        ):
+            _require_finite_nonnegative(name, getattr(self, name))
+        if not np.isfinite(self.mip_relative_gap) or self.mip_relative_gap < 0:
+            raise DispatchInputError("mip_relative_gap must be finite and nonnegative")
+        if self.solver_time_limit_seconds is not None:
+            _require_finite_positive(
+                "solver_time_limit_seconds", self.solver_time_limit_seconds
+            )
+
+    @property
+    def effective_terminal_soc_fraction(self) -> float:
+        return (
+            self.initial_soc_fraction
+            if self.terminal_soc_fraction is None
+            else self.terminal_soc_fraction
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass(frozen=True)
+class DispatchResult:
+    schedule: pd.DataFrame
+    summary: dict[str, Any]
+    config: BatteryDispatchConfig
+
+
+def optimize_perfect_foresight(
+    prices: pd.DataFrame,
+    config: BatteryDispatchConfig,
+    *,
+    availability: float | Sequence[float] | pd.Series = 1.0,
+) -> DispatchResult:
+    """Maximize settled DAM margin across the full supplied price horizon."""
+
+    input_availability = _availability_array(availability, len(prices))
+    original_starts = pd.to_datetime(
+        prices["delivery_start_utc"], utc=True, errors="coerce"
+    )
+    data = ensure_canonical(prices, allow_empty=False)
+    quality = assess_quality(
+        data, require_complete_days=config.require_complete_market_days
+    )
+    if not quality.is_valid:
+        errors = "; ".join(
+            f"{issue.code}: {issue.message}"
+            for issue in quality.issues
+            if issue.severity == "error"
+        )
+        raise DispatchInputError(f"Price data failed dispatch quality checks: {errors}")
+
+    interval_count = len(data)
+    sort_order = np.argsort(original_starts.astype("int64").to_numpy(), kind="stable")
+    availability_values = input_availability[sort_order]
+    durations = data["duration_hours"].to_numpy(dtype=float)
+    prices_eur = data["price_eur_per_mwh"].to_numpy(dtype=float)
+
+    charge_caps = config.charge_power_mw * availability_values
+    discharge_caps = config.discharge_power_mw * availability_values
+    if config.grid_import_limit_mw is not None:
+        charge_caps = np.minimum(charge_caps, config.grid_import_limit_mw)
+    if config.grid_export_limit_mw is not None:
+        discharge_caps = np.minimum(discharge_caps, config.grid_export_limit_mw)
+
+    charge_index = np.arange(interval_count)
+    discharge_index = np.arange(interval_count, 2 * interval_count)
+    energy_index = np.arange(2 * interval_count, 3 * interval_count + 1)
+    mode_index = np.arange(3 * interval_count + 1, 4 * interval_count + 1)
+    variable_count = 4 * interval_count + 1
+
+    objective = np.zeros(variable_count)
+    objective[charge_index] = (
+        prices_eur
+        + config.buy_fee_eur_per_mwh
+        + NUMERICAL_THROUGHPUT_TIEBREAK_EUR_PER_MWH
+    ) * durations
+    objective[discharge_index] = (
+        -prices_eur
+        + config.sell_fee_eur_per_mwh
+        + config.degradation_cost_eur_per_mwh_discharged
+        + NUMERICAL_THROUGHPUT_TIEBREAK_EUR_PER_MWH
+    ) * durations
+
+    lower = np.zeros(variable_count)
+    upper = np.full(variable_count, np.inf)
+    upper[charge_index] = charge_caps
+    upper[discharge_index] = discharge_caps
+    lower[energy_index] = config.soc_min_fraction * config.energy_capacity_mwh
+    upper[energy_index] = config.soc_max_fraction * config.energy_capacity_mwh
+    initial_energy = config.initial_soc_fraction * config.energy_capacity_mwh
+    terminal_energy = (
+        config.effective_terminal_soc_fraction * config.energy_capacity_mwh
+    )
+    lower[energy_index[0]] = upper[energy_index[0]] = initial_energy
+    lower[energy_index[-1]] = upper[energy_index[-1]] = terminal_energy
+    upper[mode_index] = 1
+
+    daily_groups: list[np.ndarray] = []
+    if config.max_daily_equivalent_cycles is not None:
+        market_days = data["delivery_start_market"].dt.date.to_numpy()
+        daily_groups = [np.flatnonzero(market_days == day) for day in pd.unique(market_days)]
+
+    row_count = 3 * interval_count + len(daily_groups)
+    matrix = lil_matrix((row_count, variable_count), dtype=float)
+    constraint_lower = np.full(row_count, -np.inf)
+    constraint_upper = np.full(row_count, np.inf)
+    row = 0
+
+    for interval in range(interval_count):
+        duration = durations[interval]
+        retention = (1 - config.self_discharge_per_hour) ** duration
+        matrix[row, charge_index[interval]] = -config.charge_efficiency * duration
+        matrix[row, discharge_index[interval]] = duration / config.discharge_efficiency
+        matrix[row, energy_index[interval]] = -retention
+        matrix[row, energy_index[interval + 1]] = 1
+        constraint_lower[row] = constraint_upper[row] = 0
+        row += 1
+
+    for interval in range(interval_count):
+        matrix[row, charge_index[interval]] = 1
+        matrix[row, mode_index[interval]] = -charge_caps[interval]
+        constraint_upper[row] = 0
+        row += 1
+
+        matrix[row, discharge_index[interval]] = 1
+        matrix[row, mode_index[interval]] = discharge_caps[interval]
+        constraint_upper[row] = discharge_caps[interval]
+        row += 1
+
+    for group in daily_groups:
+        for interval in group:
+            matrix[row, discharge_index[interval]] = durations[interval]
+        constraint_upper[row] = (
+            config.max_daily_equivalent_cycles * config.energy_capacity_mwh
+        )
+        row += 1
+
+    integrality = np.zeros(variable_count, dtype=np.uint8)
+    integrality[mode_index] = 1
+    options: dict[str, Any] = {
+        "disp": False,
+        "mip_rel_gap": config.mip_relative_gap,
+    }
+    if config.solver_time_limit_seconds is not None:
+        options["time_limit"] = config.solver_time_limit_seconds
+
+    result = milp(
+        c=objective,
+        integrality=integrality,
+        bounds=Bounds(lower, upper),
+        constraints=LinearConstraint(
+            matrix.tocsr(), constraint_lower, constraint_upper
+        ),
+        options=options,
+    )
+    if not result.success or result.x is None:
+        raise DispatchSolveError(
+            f"Dispatch solve failed with status {result.status}: {result.message}"
+        )
+
+    charge_mw = _clean(result.x[charge_index])
+    discharge_mw = _clean(result.x[discharge_index])
+    energy_mwh = _clean(result.x[energy_index])
+    schedule = _build_schedule(
+        data,
+        config,
+        availability_values,
+        charge_mw,
+        discharge_mw,
+        energy_mwh,
+    )
+    summary = _build_summary(schedule, config, result)
+    return DispatchResult(schedule=schedule, summary=summary, config=config)
+
+
+def _build_schedule(
+    data: pd.DataFrame,
+    config: BatteryDispatchConfig,
+    availability: np.ndarray,
+    charge_mw: np.ndarray,
+    discharge_mw: np.ndarray,
+    energy_mwh: np.ndarray,
+) -> pd.DataFrame:
+    schedule = data.copy()
+    duration = schedule["duration_hours"].to_numpy(dtype=float)
+    price = schedule["price_eur_per_mwh"].to_numpy(dtype=float)
+    charge_grid_mwh = charge_mw * duration
+    discharge_grid_mwh = discharge_mw * duration
+    charge_cost = price * charge_grid_mwh
+    discharge_revenue = price * discharge_grid_mwh
+    buy_fee = config.buy_fee_eur_per_mwh * charge_grid_mwh
+    sell_fee = config.sell_fee_eur_per_mwh * discharge_grid_mwh
+    degradation = (
+        config.degradation_cost_eur_per_mwh_discharged * discharge_grid_mwh
+    )
+
+    schedule["availability_fraction"] = availability
+    schedule["charge_mw"] = charge_mw
+    schedule["discharge_mw"] = discharge_mw
+    schedule["net_export_mw"] = discharge_mw - charge_mw
+    schedule["energy_start_mwh"] = energy_mwh[:-1]
+    schedule["energy_end_mwh"] = energy_mwh[1:]
+    schedule["soc_start_fraction"] = energy_mwh[:-1] / config.energy_capacity_mwh
+    schedule["soc_end_fraction"] = energy_mwh[1:] / config.energy_capacity_mwh
+    schedule["charge_grid_mwh"] = charge_grid_mwh
+    schedule["discharge_grid_mwh"] = discharge_grid_mwh
+    schedule["charging_energy_cost_eur"] = charge_cost
+    schedule["discharge_energy_revenue_eur"] = discharge_revenue
+    schedule["buy_fee_eur"] = buy_fee
+    schedule["sell_fee_eur"] = sell_fee
+    schedule["degradation_cost_eur"] = degradation
+    schedule["net_market_margin_eur"] = (
+        discharge_revenue - charge_cost - buy_fee - sell_fee - degradation
+    )
+    schedule["operating_mode"] = np.select(
+        [charge_mw > 1e-7, discharge_mw > 1e-7],
+        ["charge", "discharge"],
+        default="idle",
+    )
+    return schedule
+
+
+def _build_summary(
+    schedule: pd.DataFrame,
+    config: BatteryDispatchConfig,
+    solver_result: Any,
+) -> dict[str, Any]:
+    charge_mwh = float(schedule["charge_grid_mwh"].sum())
+    discharge_mwh = float(schedule["discharge_grid_mwh"].sum())
+    charge_cost = float(schedule["charging_energy_cost_eur"].sum())
+    discharge_revenue = float(schedule["discharge_energy_revenue_eur"].sum())
+    buy_fees = float(schedule["buy_fee_eur"].sum())
+    sell_fees = float(schedule["sell_fee_eur"].sum())
+    degradation = float(schedule["degradation_cost_eur"].sum())
+    net_margin = float(schedule["net_market_margin_eur"].sum())
+    return {
+        "result_label": UPPER_BOUND_LABEL,
+        "interval_count": int(len(schedule)),
+        "horizon_start_utc": str(schedule["delivery_start_utc"].min()),
+        "horizon_end_utc_exclusive": str(schedule["delivery_end_utc"].max()),
+        "gross_discharge_revenue_eur": discharge_revenue,
+        "charging_energy_cost_eur": charge_cost,
+        "buy_fees_eur": buy_fees,
+        "sell_fees_eur": sell_fees,
+        "degradation_cost_eur": degradation,
+        "net_market_margin_eur": net_margin,
+        "grid_charge_mwh": charge_mwh,
+        "grid_discharge_mwh": discharge_mwh,
+        "equivalent_full_cycles": discharge_mwh / config.energy_capacity_mwh,
+        "average_charge_price_eur_per_mwh": (
+            charge_cost / charge_mwh if charge_mwh > 1e-9 else None
+        ),
+        "average_discharge_price_eur_per_mwh": (
+            discharge_revenue / discharge_mwh if discharge_mwh > 1e-9 else None
+        ),
+        "initial_energy_mwh": float(schedule["energy_start_mwh"].iloc[0]),
+        "terminal_energy_mwh": float(schedule["energy_end_mwh"].iloc[-1]),
+        "one_way_charge_efficiency": config.charge_efficiency,
+        "one_way_discharge_efficiency": config.discharge_efficiency,
+        "nominal_round_trip_efficiency": (
+            config.charge_efficiency * config.discharge_efficiency
+        ),
+        "solver_status": int(solver_result.status),
+        "solver_message": str(solver_result.message),
+        "solver_objective_eur": float(solver_result.fun),
+        "economic_objective_eur": -net_margin,
+        "numerical_throughput_tiebreak_eur": (
+            NUMERICAL_THROUGHPUT_TIEBREAK_EUR_PER_MWH
+            * (charge_mwh + discharge_mwh)
+        ),
+    }
+
+
+def _availability_array(
+    availability: float | Sequence[float] | pd.Series, interval_count: int
+) -> np.ndarray:
+    if np.isscalar(availability):
+        values = np.full(interval_count, float(availability))
+    else:
+        values = np.asarray(availability, dtype=float)
+        if values.ndim != 1 or len(values) != interval_count:
+            raise DispatchInputError(
+                f"availability must contain exactly {interval_count} values"
+            )
+    if not np.isfinite(values).all() or ((values < 0) | (values > 1)).any():
+        raise DispatchInputError("availability values must be finite and between 0 and 1")
+    return values
+
+
+def _clean(values: np.ndarray, tolerance: float = 1e-8) -> np.ndarray:
+    cleaned = np.asarray(values, dtype=float).copy()
+    cleaned[np.abs(cleaned) < tolerance] = 0
+    return cleaned
+
+
+def _require_fraction(name: str, value: float) -> None:
+    if not np.isfinite(value) or not 0 <= value <= 1:
+        raise DispatchInputError(f"{name} must be finite and between 0 and 1")
+
+
+def _require_finite_positive(name: str, value: float) -> None:
+    if not np.isfinite(value) or value <= 0:
+        raise DispatchInputError(f"{name} must be finite and greater than 0")
+
+
+def _require_finite_nonnegative(name: str, value: float) -> None:
+    if not np.isfinite(value) or value < 0:
+        raise DispatchInputError(f"{name} must be finite and nonnegative")

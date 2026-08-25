@@ -1,0 +1,21 @@
+{
+  "charge_power_mw": 50.0,
+  "discharge_power_mw": 50.0,
+  "energy_capacity_mwh": 100.0,
+  "soc_min_fraction": 0.05,
+  "soc_max_fraction": 0.95,
+  "initial_soc_fraction": 0.5,
+  "terminal_soc_fraction": 0.5,
+  "charge_efficiency": 0.94,
+  "discharge_efficiency": 0.94,
+  "self_discharge_per_hour": 0.0,
+  "grid_import_limit_mw": 50.0,
+  "grid_export_limit_mw": 50.0,
+  "max_daily_equivalent_cycles": 1.5,
+  "buy_fee_eur_per_mwh": 0.0,
+  "sell_fee_eur_per_mwh": 0.0,
+  "degradation_cost_eur_per_mwh_discharged": 0.0,
+  "require_complete_market_days": true,
+  "mip_relative_gap": 1e-7,
+  "solver_time_limit_seconds": null
+}

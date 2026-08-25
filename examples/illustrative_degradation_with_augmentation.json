@@ -1,0 +1,22 @@
+{
+  "project_start_day": "2026-01-01",
+  "calendar_fade_fraction_per_year": 0.015,
+  "cycle_fade_fraction_per_equivalent_cycle": 0.00004,
+  "power_fade_exponent": 1.0,
+  "warranty_years": 10.0,
+  "warranty_retained_capacity_fraction": 0.7,
+  "warranty_max_equivalent_full_cycles": 4000.0,
+  "enforce_warranty_throughput_limit": false,
+  "retirement_capacity_fraction": 0.6,
+  "augmentation_events": [
+    {
+      "event_id": "illustrative-year-6-augmentation",
+      "day": "2031-01-01",
+      "added_energy_mwh": 20.0,
+      "added_charge_power_mw": 10.0,
+      "added_discharge_power_mw": 10.0,
+      "cost_eur": 0.0,
+      "retired_cohort_ids": []
+    }
+  ]
+}

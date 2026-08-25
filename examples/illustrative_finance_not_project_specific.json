@@ -1,0 +1,19 @@
+{
+  "project_start_day": "2026-01-01",
+  "project_end_day": "2045-12-31",
+  "operating_margin_case": "perfect_foresight_upper_bound",
+  "discount_rate_fraction": 0.08,
+  "battery_system_capex_eur": 30000000.0,
+  "power_conversion_system_capex_eur": 8000000.0,
+  "grid_connection_capex_eur": 5000000.0,
+  "development_and_construction_capex_eur": 4000000.0,
+  "other_initial_capex_eur": 3000000.0,
+  "market_margin_realization_fraction": 0.65,
+  "fixed_opex_eur_per_year": 600000.0,
+  "insurance_eur_per_year": 150000.0,
+  "asset_management_eur_per_year": 100000.0,
+  "variable_opex_eur_per_mwh_discharged": 0.5,
+  "opex_escalation_fraction_per_year": 0.02,
+  "decommissioning_cost_eur": 1000000.0,
+  "residual_value_eur": 2000000.0
+}
