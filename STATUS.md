@@ -2,15 +2,16 @@
 
 **Version:** 0.6.0  
 **Updated:** 26 August 2026  
-**Status:** v0.6 analytics complete; GitHub foundation/import in progress
+**Status:** v0.6 analytics complete; GitHub foundation/import ready for manual PR review
 
-## Repository foundation in progress
+## Repository foundation completed on feature branch
 
-- Preserve the completed v0.1-v0.6 implementation as the first honest GitHub snapshot.
-- Externalize the approved brief, decisions, methodology and limitations.
-- Enforce repository exclusions for official data, secrets, models and generated artifacts.
-- Add PR checks for Ruff, mypy, pytest and a clean wheel build.
-- Publish on `repository-foundation-v0.6-import` for manual review before merge.
+- Completed v0.1-v0.6 implementation preserved as the first honest GitHub snapshot.
+- Approved brief, decisions, methodology and limitations externalized.
+- Repository exclusions enforce no official data, secrets, models or generated artifacts.
+- PR checks run Ruff, mypy, pytest and a clean wheel build without private credentials.
+- GitHub Actions passed all four gates, including all 60 tests, on 26 August 2026.
+- Draft PR #1 is published from `repository-foundation-v0.6-import` for manual review.
 
 ## Completed
 
@@ -89,7 +90,7 @@ excluded from the repository.
 
 ## Immediate next milestone
 
-Complete and review the GitHub foundation/import pull request. After it is merged, implement
-reproducible probabilistic stress testing with seasonal price-path resampling, spread,
-negative-price, outage and cannibalisation shocks, P5/P50/P95, loss probability and worst-path
-outputs on a separate `stress-testing` branch.
+Manually review and merge GitHub PR #1. After it is merged, implement reproducible probabilistic
+stress testing with seasonal price-path resampling, spread, negative-price, outage and
+cannibalisation shocks, P5/P50/P95, loss probability and worst-path outputs on a separate
+`stress-testing` branch.

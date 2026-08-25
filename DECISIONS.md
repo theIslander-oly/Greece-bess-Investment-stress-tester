@@ -3,6 +3,16 @@
 This file records decisions that materially affect interpretation or reproducibility. Add a
 dated entry when a milestone changes scope, assumptions, data handling or validation.
 
+## 2026-08-26 — Make four clean-environment checks mandatory
+
+- **Decision:** Every pull request must pass Ruff, mypy, pytest and a clean wheel build on
+  Python 3.12 without private API keys or official datasets.
+- **Reason:** Style, type consistency, behavior and packaging fail in different ways; one check
+  cannot substitute for the others.
+- **Consequence:** The initial foundation PR was corrected until all four checks passed. The
+  typed-package marker is included in built distributions, and tests use package-qualified
+  imports that work under both unittest and pytest discovery.
+
 ## 2026-08-26 — Import the completed v0.6 project honestly
 
 - **Decision:** Treat the first GitHub contribution as a repository-foundation/import
