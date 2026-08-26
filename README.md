@@ -86,6 +86,12 @@ checks without code changes. See
 for hashes, boundaries and acceptance results. The workbooks themselves are not
 redistributed by this repository.
 
+The repository also includes reproducible acquisition commands for the verified 2020-2025
+HEnEx annual archives, incremental daily HEnEx publications, and ADMIE's public Operation &
+Market Files API. Every retrieval writes a manifest with source URL, coverage, retrieval time,
+SHA-256 and publication metadata where the provider exposes it. Raw and normalized official
+data remain ignored by Git.
+
 Review the source terms before any deployment or redistribution:
 
 - [HEnEx Terms of Use](https://www.enexgroup.gr/web/guest/terms-of-use)
@@ -154,6 +160,70 @@ The parser:
 5. writes normalized data and a quality report.
 
 Use `--allow-partial-days` only when a deliberately incomplete workbook is being inspected. Incomplete days are rejected by default.
+
+### Retrieve the complete archived HEnEx history
+
+The verified annual-results register currently covers the beginning of the current Greek DAM
+on 1 November 2020 through the end of 2025:
+
+```bash
+greek-bess fetch-henex-archives \
+  --start-year 2020 \
+  --end-year 2025 \
+  --raw-dir data/raw/henex \
+  --manifest data/raw/henex/archive_manifest.json \
+  --output data/processed/henex_archived_prices.csv
+```
+
+The command downloads the official ZIPs, rejects unsafe archive paths, extracts only English
+`EL-DAM_Results` workbooks, retains the latest publication revision per interval, normalizes
+DST-safe timestamps and writes a quality report. The annual URLs are pinned in source code and
+recorded in `config/official_sources.json`.
+
+For the current unarchived year, use the incremental catalog command:
+
+```bash
+greek-bess fetch-henex-daily \
+  --start-day 2026-01-01 \
+  --end-day 2026-08-26 \
+  --raw-dir data/raw/henex \
+  --manifest data/raw/henex/daily_manifest.json \
+  --output data/processed/henex_2026_prices.csv
+```
+
+HEnEx's daily catalog is a website interface rather than a documented data API. The command
+therefore fails visibly if the catalog or document-link layout changes. A successful download
+still requires the normal parser and quality checks; discovery alone is not acceptance evidence.
+
+The manual `Fetch official Greek market history` GitHub Actions workflow runs the same commands
+without credentials and publishes normalized data, manifests and quality reports as a private
+seven-day artifact. It never commits the data.
+
+### Retrieve ADMIE/IPTO source files
+
+First snapshot the provider's live filetype catalog:
+
+```bash
+greek-bess list-admie-filetypes \
+  --output data/raw/admie/filetypes.json
+```
+
+Then retrieve candidate day-ahead load and RES forecast publications:
+
+```bash
+greek-bess fetch-admie-files \
+  --filetypes DayAheadLoadForecast DayAheadRESForecast \
+  --start-day 2020-11-01 \
+  --end-day 2026-08-26 \
+  --raw-dir data/raw/admie \
+  --manifest data/raw/admie/retrieval_manifest.json
+```
+
+The default selects the latest publication for each filetype and coverage period. Add
+`--all-revisions` only for a revision-history audit. The manifest retains both delivery coverage
+and publication time. These files are quarantined from forecasting until their pre-auction
+availability and changing historical formats are validated; retrieval does not make a variable
+leakage-safe.
 
 ## 3. Fetch ENTSO-E prices
 
@@ -499,8 +569,9 @@ resampling, spread and negative-price shocks, availability/outage blocks, degrad
 CAPEX sensitivities, battery-market cannibalisation, P5/P50/P95 outcomes, loss
 probability and worst paths. Tax, subsidy and leveraged financing remain excluded until
 their jurisdiction-specific assumptions are independently validated. HEnEx workbook
-acceptance has passed; private-token ENTSO-E reconciliation and a complete official
-multi-year benchmark remain parallel acceptance tasks.
+acceptance has passed; the new retrieval pipeline must now be run against the complete official
+history. Private-token ENTSO-E reconciliation and publication-time acceptance for ADMIE
+exogenous variables remain parallel acceptance tasks.
 
 ## Project records
 
@@ -517,6 +588,8 @@ multi-year benchmark remain parallel acceptance tasks.
 - [Implementation report v0.5](docs/implementation_report_v0.5.md)
 - [Release notes v0.6.0](docs/release_notes_v0.6.md)
 - [Implementation report v0.6](docs/implementation_report_v0.6.md)
+- [Release notes v0.6.1](docs/release_notes_v0.6.1.md)
+- [Implementation report v0.6.1](docs/implementation_report_v0.6.1.md)
 - [Current status](STATUS.md)
 - [Implementation plan](PLAN.md)
 - [Contributing guidance](CONTRIBUTING.md)

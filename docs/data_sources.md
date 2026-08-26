@@ -5,9 +5,9 @@ Review each provider's current terms before use or redistribution.
 
 | Source | Intended use | Current status | Repository evidence |
 | --- | --- | --- | --- |
-| HEnEx Day-Ahead Market results | Primary official Greek DAM prices and publication metadata | Parser implemented; 24 and 25 August 2026 English v01 workbooks accepted | `docs/official_data_acceptance_2026-08-25.md` |
+| HEnEx Day-Ahead Market results | Primary official Greek DAM prices and publication metadata | Parser accepted on two files; verified 2020-2025 archive downloader and incremental daily discovery implemented | `docs/official_data_acceptance_2026-08-25.md`, `docs/official_data_retrieval.md` |
 | ENTSO-E Transparency Platform A44 | Independent official price retrieval and reconciliation | Client implemented; private-token acceptance pending | `docs/entsoe_github_retrieval.md` |
-| IPTO/ADMIE publications | Future demand, generation, renewable and system context | Candidate source; not integrated or publication-timing validated | Future data-ingestion decision |
+| IPTO/ADMIE publications | Future demand, generation, renewable and system context | Public catalog/download client implemented; feature parsing and publication-timing acceptance pending | `docs/official_data_retrieval.md` |
 | HEnEx market/rule publications | Market definitions, products and rule changes | Research input; not encoded as project-specific legal advice | Future legal/market-access review |
 
 ## Primary locations
@@ -17,6 +17,13 @@ Review each provider's current terms before use or redistribution.
 - ENTSO-E Transparency Platform: <https://transparency.entsoe.eu/>
 - ENTSO-E legal terms: <https://transparencyplatform.zendesk.com/hc/en-us/articles/40921911218961-Legal-Terms-and-Conditions>
 - IPTO/ADMIE: <https://www.admie.gr/en>
+- HEnEx DAM/IDM archive: <https://www.enexgroup.gr/dam-idm-archive>
+- ADMIE file API: <https://www.admie.gr/en/market/market-statistics/file-download-api>
+
+Machine-readable source roles and leakage classifications are versioned in
+`config/official_sources.json`. Annual HEnEx archive URLs are pinned in
+`src/greek_bess/data/henex_archive.py`; every execution records the exact URLs and hashes in a
+private retrieval manifest.
 
 ## Accepted HEnEx hashes
 
@@ -32,3 +39,7 @@ These hashes identify user-retrieved files; the workbooks are not redistributed.
 Record provider, landing-page URL, exact download URL or API request (without credentials),
 delivery period, publication/revision identifier, retrieval timestamp, raw SHA-256, parser
 version, normalized row count, UTC coverage, resolution and quality-check result.
+
+ADMIE manifests keep publication time separate from delivery coverage. Forecast candidate files
+remain classified `requires_pre_auction_timing_validation` until their historical publication
+sequence is proven to precede the relevant HEnEx bid deadline.
