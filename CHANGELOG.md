@@ -26,7 +26,8 @@ All notable project changes are documented here.
 ### Validation
 
 - All 68 source tests pass.
-- Live 2020-2026 provider retrieval and clean GitHub CI remain required before release acceptance.
+- Clean GitHub CI passed Ruff, mypy, all 68 tests and a wheel build.
+- Live 2020-2026 provider retrieval remains required before evidence acceptance.
 
 ## [0.6.0] — 2026-08-25
 

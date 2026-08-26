@@ -75,7 +75,8 @@ archives and workbooks are not uploaded or committed.
 
 ## Verification
 
-The source suite contains 68 passing tests, eight more than v0.6. Coverage includes:
+The clean GitHub Actions suite passed Ruff, mypy, all 68 tests and a wheel build. This is eight
+more tests than v0.6. Coverage includes:
 
 - annual ZIP extraction and parent/child manifest records;
 - path traversal rejection;
@@ -97,4 +98,3 @@ The source suite contains 68 passing tests, eight more than v0.6. Coverage inclu
 
 Until those steps finish, v0.6.1 is an implemented acquisition system, not evidence of historical
 profitability.
-
