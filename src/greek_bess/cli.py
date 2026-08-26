@@ -300,8 +300,8 @@ def main(argv: list[str] | None = None) -> int:
             frame = normalize_henex_workbooks(workbooks)
             report = assess_quality(frame, require_complete_days=not args.allow_partial_days)
         elif args.command == "fetch-henex-daily":
-            client = HenexDailyClient()
-            entries = client.discover(
+            henex_daily_client = HenexDailyClient()
+            entries = henex_daily_client.discover(
                 args.start_day,
                 args.end_day,
                 max_pages=args.max_catalog_pages,
@@ -309,7 +309,7 @@ def main(argv: list[str] | None = None) -> int:
             if not entries:
                 raise HenexDailyError("No HEnEx daily results found for the requested dates")
             manifest = args.manifest or args.raw_dir / "daily_retrieval_manifest.json"
-            workbooks, _ = client.download_results(
+            workbooks, _ = henex_daily_client.download_results(
                 entries,
                 raw_dir=args.raw_dir,
                 manifest_path=manifest,
@@ -317,8 +317,10 @@ def main(argv: list[str] | None = None) -> int:
             frame = normalize_henex_workbooks(workbooks)
             report = assess_quality(frame, require_complete_days=not args.allow_partial_days)
         elif args.command == "fetch-entsoe":
-            client = EntsoeClient(raw_cache_dir=args.raw_cache_dir)
-            frame = client.fetch_prices(args.start, args.end, chunk_days=args.chunk_days)
+            entsoe_client = EntsoeClient(raw_cache_dir=args.raw_cache_dir)
+            frame = entsoe_client.fetch_prices(
+                args.start, args.end, chunk_days=args.chunk_days
+            )
             report = assess_quality(frame, require_complete_days=not args.allow_partial_days)
         elif args.command == "list-admie-filetypes":
             filetypes = AdmieClient().list_filetypes()
@@ -326,17 +328,19 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps({"filetype_count": len(filetypes)}, indent=2))
             return 0
         elif args.command == "fetch-admie-files":
-            client = AdmieClient()
+            admie_client = AdmieClient()
             discovered = []
             for filetype in args.filetypes:
                 discovered.extend(
-                    client.find_files(filetype, args.start_day, args.end_day, overlap=True)
+                    admie_client.find_files(
+                        filetype, args.start_day, args.end_day, overlap=True
+                    )
                 )
             selected = discovered if args.all_revisions else select_latest_admie_revisions(
                 discovered
             )
             manifest = args.manifest or args.raw_dir / "retrieval_manifest.json"
-            records = client.download_files(
+            records = admie_client.download_files(
                 selected,
                 raw_dir=args.raw_dir,
                 manifest_path=manifest,
