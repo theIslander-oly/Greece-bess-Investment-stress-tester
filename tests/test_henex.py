@@ -8,6 +8,7 @@ from pathlib import Path
 import pandas as pd
 
 from greek_bess.data.henex import HenexParseError, parse_henex_results
+from greek_bess.data.quality import assess_quality
 
 
 class HenexParserTests(unittest.TestCase):
@@ -62,6 +63,55 @@ class HenexParserTests(unittest.TestCase):
         ]
         with tempfile.TemporaryDirectory() as directory:
             path = self._write_workbook(pd.DataFrame(rows), directory)
+            with self.assertRaisesRegex(HenexParseError, "Conflicting MCP"):
+                parse_henex_results(path)
+
+    def test_one_cent_rounding_consensus_is_flagged(self) -> None:
+        rows = pd.DataFrame(
+            [
+                {
+                    "DDAY": "2025-01-01",
+                    "SORT": 1,
+                    "DELIVERY_DURATION": 60,
+                    "MCP": price,
+                    "VER": 1,
+                }
+                for price in (70.05, 70.05, 70.04)
+            ]
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "20250101_EL-DAM_Results_EN_v01.xlsx"
+            with pd.ExcelWriter(path, engine="openpyxl") as writer:
+                rows.to_excel(writer, index=False)
+            frame = parse_henex_results(path)
+            report = assess_quality(frame, require_complete_days=False)
+
+        self.assertEqual(frame["price_eur_per_mwh"].tolist(), [70.05])
+        self.assertEqual(
+            frame["quality_flags"].tolist(), [["henex_mcp_rounding_consensus"]]
+        )
+        self.assertEqual(
+            [(issue.code, issue.count) for issue in report.issues],
+            [("henex_mcp_rounding_consensus", 1)],
+        )
+
+    def test_large_majority_price_disagreement_is_rejected(self) -> None:
+        rows = pd.DataFrame(
+            [
+                {
+                    "DDAY": "2025-01-01",
+                    "SORT": 1,
+                    "DELIVERY_DURATION": 60,
+                    "MCP": price,
+                    "VER": 1,
+                }
+                for price in (70.0, 70.0, 20.0)
+            ]
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "20250101_EL-DAM_Results_EN_v01.xlsx"
+            with pd.ExcelWriter(path, engine="openpyxl") as writer:
+                rows.to_excel(writer, index=False)
             with self.assertRaisesRegex(HenexParseError, "Conflicting MCP"):
                 parse_henex_results(path)
 

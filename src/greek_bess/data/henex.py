@@ -13,6 +13,8 @@ from .schema import ensure_canonical
 from .timezones import GREECE_TZ, UTC, as_utc_timestamp, market_day_starts
 
 REQUIRED_COLUMNS = {"DDAY", "SORT", "DELIVERY_DURATION", "MCP", "VER"}
+_MCP_ROUNDING_TOLERANCE_EUR_PER_MWH = 0.011
+_MAX_MCP_OUTLIER_ROWS = 2
 
 
 class HenexParseError(ValueError):
@@ -27,8 +29,10 @@ def parse_henex_results(
     """Parse a HEnEx DAM results workbook into one price per delivery MTU.
 
     HEnEx result workbooks contain repeated MCP values across asset and side
-    rows. The parser verifies that each `(delivery day, SORT)` interval has one
-    unique MCP before reducing the data to the canonical price series.
+    rows. The parser normally requires one unique MCP per interval. A unique
+    strict-majority value is accepted only when at most two provider rows differ
+    by no more than one cent per MWh. The interval is explicitly flagged; larger
+    disagreements, ties and non-majority values are rejected.
     """
 
     source_path = Path(path)
@@ -85,16 +89,33 @@ def parse_henex_results(
     data = data.loc[data["VER"].eq(latest)].copy()
 
     interval_keys = ["DDAY", "SORT", "DELIVERY_DURATION"]
-    conflicting = data.groupby(interval_keys, dropna=False)["MCP"].nunique(dropna=False)
-    if conflicting.gt(1).any():
-        sample = conflicting[conflicting.gt(1)].index[0]
-        raise HenexParseError(f"Conflicting MCP values for HEnEx interval {sample}")
-
-    reduced = (
-        data.groupby(interval_keys, as_index=False)
-        .agg(MCP=("MCP", "first"), VER=("VER", "max"))
-        .sort_values(interval_keys, kind="stable")
-    )
+    reduced_rows: list[dict[str, object]] = []
+    for key, interval in data.groupby(interval_keys, dropna=False, sort=True):
+        counts = interval["MCP"].value_counts(dropna=False)
+        highest_count = int(counts.max())
+        modes = counts[counts.eq(highest_count)].index.tolist()
+        spread = float(interval["MCP"].max() - interval["MCP"].min())
+        outlier_count = len(interval) - highest_count
+        has_safe_rounding_consensus = (
+            len(modes) == 1
+            and highest_count > len(interval) / 2
+            and spread <= _MCP_ROUNDING_TOLERANCE_EUR_PER_MWH
+            and outlier_count <= _MAX_MCP_OUTLIER_ROWS
+        )
+        if len(counts) > 1 and not has_safe_rounding_consensus:
+            raise HenexParseError(f"Conflicting MCP values for HEnEx interval {key}")
+        flags = ["henex_mcp_rounding_consensus"] if len(counts) > 1 else []
+        reduced_rows.append(
+            {
+                "DDAY": key[0],
+                "SORT": key[1],
+                "DELIVERY_DURATION": key[2],
+                "MCP": modes[0],
+                "VER": int(interval["VER"].max()),
+                "QUALITY_FLAGS": flags,
+            }
+        )
+    reduced = pd.DataFrame(reduced_rows).sort_values(interval_keys, kind="stable")
 
     rows: list[dict[str, object]] = []
     for record in reduced.itertuples(index=False):
@@ -119,7 +140,7 @@ def parse_henex_results(
                 "source_version": f"v{record.VER:02d}",
                 "retrieved_at_utc": retrieved,
                 "raw_sha256": digest,
-                "quality_flags": [],
+                "quality_flags": record.QUALITY_FLAGS,
             }
         )
 

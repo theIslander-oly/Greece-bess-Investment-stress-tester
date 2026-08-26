@@ -2,6 +2,25 @@
 
 All notable project changes are documented here.
 
+## [0.6.2] — 2026-08-26
+
+### Fixed
+
+- Select the latest HEnEx daily workbook revision before parsing superseded files.
+- Safely extract the official nested 2021 DAM archive and retain its parent/child hashes.
+- Accept only a tightly bounded one-cent MCP rounding consensus when one or two cross-border
+  asset rows differ from the dominant Greek-zone value; flag every affected interval.
+- Continue to reject ties, larger differences and non-majority MCP disagreements.
+
+### Validation
+
+- Live HEnEx archives for 1 November 2020 through 31 December 2025 produced 51,915 contiguous
+  intervals with no missing or duplicate UTC keys.
+- All six annual archive hashes, row counts, DST validation and provider-row rounding flags are
+  recorded in `docs/official_history_acceptance_2026-08-26.md`.
+- The failed first workflow run is retained as evidence of the acceptance defects that prompted
+  this patch.
+
 ## [0.6.1] — 2026-08-26
 
 ### Added

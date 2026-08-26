@@ -45,7 +45,7 @@ Suggested future branch sequence:
 ## Next milestones
 
 - [x] Repository foundation/import — governance, provenance, CI and v0.6 snapshot PR.
-- [ ] v0.6.1 — Official multi-year data acquisition hardening.
+- [x] v0.6.1/v0.6.2 — Official multi-year data acquisition and live acceptance hardening.
   - Verified HEnEx annual archive register and safe ZIP extraction.
   - Incremental daily HEnEx catalog discovery.
   - Multi-workbook latest-revision normalization.
@@ -67,5 +67,6 @@ Suggested future branch sequence:
 - [ ] Reconcile overlapping official sources.
 - [x] Record the accepted HEnEx source versions, retrieval date and raw hashes.
 - [ ] Record the ENTSO-E retrieval metadata and raw-response hashes.
-- [ ] Run the 2020-2025 HEnEx archive workflow and incremental 2026 retrieval live.
+- [x] Run and accept the 2020-2025 HEnEx annual archives live.
+- [ ] Run and accept the incremental 2026 HEnEx daily retrieval live.
 - [ ] Accept ADMIE load/RES file formats and prove pre-auction publication timing.

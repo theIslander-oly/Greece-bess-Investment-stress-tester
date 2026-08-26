@@ -52,8 +52,10 @@ HENEX_ANNUAL_RESULTS_ARCHIVES = {
 _RESULT_NAME = re.compile(
     r"^(?P<day>\d{8})_EL-DAM_Results_EN_v(?P<revision>\d+)\.xlsx$", re.IGNORECASE
 )
+_NESTED_DAM_ARCHIVE = re.compile(r"^(?P<year>\d{4})_EL-DAM_Results\.zip$", re.IGNORECASE)
 _VERSION = re.compile(r"^v(?P<revision>\d+)$", re.IGNORECASE)
 _MAX_WORKBOOK_SIZE_BYTES = 100 * 1024 * 1024
+_MAX_NESTED_ARCHIVE_SIZE_BYTES = 250 * 1024 * 1024
 
 
 class HenexArchiveError(RuntimeError):
@@ -108,7 +110,7 @@ def download_henex_annual_archives(
                 availability_classification="published_after_day_ahead_auction",
             )
         )
-        extracted = _extract_result_workbooks(
+        extracted_paths, extracted_records = _extract_result_workbooks(
             archive,
             destination=raw_dir / "results" / str(year),
             source_url=url,
@@ -116,8 +118,8 @@ def download_henex_annual_archives(
             parent_sha256=archive_sha,
             raw_dir=raw_dir,
         )
-        workbooks.extend(path for path, _ in extracted)
-        records.extend(record for _, record in extracted)
+        workbooks.extend(extracted_paths)
+        records.extend(extracted_records)
 
     if not workbooks:
         raise HenexArchiveError("Verified HEnEx archives contained no English DAM result files")
@@ -136,6 +138,7 @@ def normalize_henex_workbooks(
     paths = sorted(set(Path(path) for path in workbooks))
     if not paths:
         return empty_canonical_frame()
+    paths = _select_latest_workbook_revisions(paths)
     frames = [
         parse_henex_results(path, retrieved_at_utc=retrieved_at_utc) for path in paths
     ]
@@ -157,6 +160,32 @@ def normalize_henex_workbooks(
     return ensure_canonical(selected.drop(columns="_revision"))
 
 
+def _select_latest_workbook_revisions(paths: list[Path]) -> list[Path]:
+    """Select the latest published workbook for each delivery day before parsing.
+
+    Superseded HEnEx workbooks can contain the inconsistency that a later official
+    revision was published to correct. Parsing every revision first would reject the
+    superseded file before the corrected latest revision can be selected.
+    """
+
+    by_day: dict[str, list[tuple[int, Path]]] = {}
+    for path in paths:
+        match = _RESULT_NAME.fullmatch(path.name)
+        if match is None:
+            raise HenexParseError(f"Unrecognized HEnEx result filename: {path.name!r}")
+        by_day.setdefault(match.group("day"), []).append(
+            (int(match.group("revision")), path)
+        )
+
+    selected: list[Path] = []
+    for candidates in by_day.values():
+        latest_revision = max(revision for revision, _ in candidates)
+        selected.extend(
+            path for revision, path in candidates if revision == latest_revision
+        )
+    return sorted(selected)
+
+
 def find_henex_result_workbooks(root: Path) -> list[Path]:
     """Find result workbooks below a private raw-data directory."""
 
@@ -173,13 +202,15 @@ def _extract_result_workbooks(
     retrieved_at_utc: str,
     parent_sha256: str,
     raw_dir: Path,
-) -> list[tuple[Path, RetrievalRecord]]:
+    allow_nested_archive: bool = True,
+) -> tuple[list[Path], list[RetrievalRecord]]:
     try:
         zipped = zipfile.ZipFile(io.BytesIO(archive))
     except zipfile.BadZipFile as exc:
         raise HenexArchiveError("HEnEx annual archive is not a valid ZIP file") from exc
 
-    extracted: list[tuple[Path, RetrievalRecord]] = []
+    workbooks: list[Path] = []
+    records: list[RetrievalRecord] = []
     with zipped:
         for member in zipped.infolist():
             if member.is_dir():
@@ -188,6 +219,51 @@ def _extract_result_workbooks(
             if pure_path.is_absolute() or ".." in pure_path.parts:
                 raise HenexArchiveError(f"Unsafe archive member path: {member.filename!r}")
             match = _RESULT_NAME.fullmatch(pure_path.name)
+            nested_match = _NESTED_DAM_ARCHIVE.fullmatch(pure_path.name)
+            if nested_match is not None and not allow_nested_archive:
+                raise HenexArchiveError(
+                    f"Nested HEnEx DAM archive exceeds supported depth: {pure_path.name}"
+                )
+            if nested_match is not None and allow_nested_archive:
+                if member.file_size > _MAX_NESTED_ARCHIVE_SIZE_BYTES:
+                    raise HenexArchiveError(
+                        f"Nested HEnEx DAM archive is unexpectedly large: {pure_path.name}"
+                    )
+                nested_payload = zipped.read(member)
+                nested_sha = sha256_bytes(nested_payload)
+                nested_target = (
+                    raw_dir
+                    / "archives"
+                    / f"{pure_path.stem}_{nested_sha[:12]}.zip"
+                )
+                atomic_write_bytes(nested_target, nested_payload)
+                records.append(
+                    RetrievalRecord(
+                        source="henex",
+                        dataset="dam_results_nested_archive",
+                        source_url=source_url,
+                        local_path=nested_target.relative_to(raw_dir).as_posix(),
+                        retrieved_at_utc=retrieved_at_utc,
+                        sha256=nested_sha,
+                        size_bytes=len(nested_payload),
+                        coverage_start=f"{nested_match.group('year')}-01-01",
+                        coverage_end=f"{nested_match.group('year')}-12-31",
+                        parent_sha256=parent_sha256,
+                        availability_classification="published_after_day_ahead_auction",
+                    )
+                )
+                nested_workbooks, nested_records = _extract_result_workbooks(
+                    nested_payload,
+                    destination=destination,
+                    source_url=source_url,
+                    retrieved_at_utc=retrieved_at_utc,
+                    parent_sha256=nested_sha,
+                    raw_dir=raw_dir,
+                    allow_nested_archive=False,
+                )
+                workbooks.extend(nested_workbooks)
+                records.extend(nested_records)
+                continue
             if match is None:
                 continue
             if member.file_size > _MAX_WORKBOOK_SIZE_BYTES:
@@ -211,8 +287,9 @@ def _extract_result_workbooks(
                 parent_sha256=parent_sha256,
                 availability_classification="published_after_day_ahead_auction",
             )
-            extracted.append((target, record))
-    return extracted
+            workbooks.append(target)
+            records.append(record)
+    return workbooks, records
 
 
 def _revision_number(value: object) -> int:
