@@ -3,6 +3,34 @@
 This file records decisions that materially affect interpretation or reproducibility. Add a
 dated entry when a milestone changes scope, assumptions, data handling or validation.
 
+## 2026-08-26 — Quarantine ADMIE forecast candidates until timing acceptance
+
+- **Decision:** Retrieve and timestamp ADMIE load, RES and system files, but do not parse them
+  into forecast features until their publication sequence is proven to precede the target-day bid
+  decision for every applicable historical regime.
+- **Reason:** A useful-looking official variable can still create look-ahead leakage if it was
+  published after the decision point.
+- **Consequence:** Retrieval manifests label these files `requires_pre_auction_timing_validation`.
+
+## 2026-08-26 — Use annual HEnEx archives before daily catalog discovery
+
+- **Decision:** Treat reviewed 2020-2025 annual ZIPs as the primary history path and use the
+  current website catalog only for unarchived daily increments.
+- **Reason:** Annual archive URLs are stable and compact; the daily asset publisher is more likely
+  to change layout.
+- **Consequence:** Daily discovery fails visibly on layout changes and never bypasses the normal
+  parser, revision selection or quality checks.
+
+## 2026-08-26 — Preserve file-level retrieval provenance
+
+- **Decision:** Record exact source URL, delivery coverage, publication time when available,
+  retrieval time, revision, byte size and SHA-256 for every official file. Extracted HEnEx
+  workbooks also retain their parent archive hash.
+- **Reason:** Revisions and provider-side replacement can otherwise make a historical research
+  run impossible to reproduce or audit.
+- **Consequence:** Manifests are generated beside ignored data and may be retained as private
+  workflow artifacts; official file contents remain outside Git.
+
 ## 2026-08-26 — Make four clean-environment checks mandatory
 
 - **Decision:** Every pull request must pass Ruff, mypy, pytest and a clean wheel build on

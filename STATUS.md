@@ -1,17 +1,31 @@
 # Project status
 
-**Version:** 0.6.0  
+**Version:** 0.6.1
 **Updated:** 26 August 2026  
-**Status:** v0.6 analytics complete; GitHub foundation/import ready for manual PR review
+**Status:** v0.6.1 official-data acquisition complete; PR #2 ready for manual review
 
-## Repository foundation completed on feature branch
+## Repository foundation merged
 
 - Completed v0.1-v0.6 implementation preserved as the first honest GitHub snapshot.
 - Approved brief, decisions, methodology and limitations externalized.
 - Repository exclusions enforce no official data, secrets, models or generated artifacts.
 - PR checks run Ruff, mypy, pytest and a clean wheel build without private credentials.
 - GitHub Actions passed all four gates, including all 60 tests, on 26 August 2026.
-- Draft PR #1 is published from `repository-foundation-v0.6-import` for manual review.
+- PR #1 was merged into `main` on 26 August 2026.
+
+## v0.6.1 data-ingestion milestone
+
+- Verified HEnEx annual results archive URLs registered for 2020-2025.
+- Safe annual ZIP extraction limited to English DAM result workbooks.
+- Multi-workbook latest-revision selection with conflict rejection.
+- Incremental HEnEx daily catalog discovery for the unarchived current year.
+- ADMIE public filetype and date-range API client.
+- Delivery coverage, provider publication time, retrieval time and SHA-256 provenance manifests.
+- Strict HTTPS provider allowlists and atomic writes below ignored data directories.
+- Manual private GitHub workflow for short-lived normalized-history artifacts.
+- Eight new retrieval/security tests; complete suite currently 68 tests.
+- Clean GitHub Actions validation passed Ruff, mypy, all 68 tests and wheel build on
+  26 August 2026.
 
 ## Completed
 
@@ -90,7 +104,6 @@ excluded from the repository.
 
 ## Immediate next milestone
 
-Manually review and merge GitHub PR #1. After it is merged, implement reproducible probabilistic
-stress testing with seasonal price-path resampling, spread, negative-price, outage and
-cannibalisation shocks, P5/P50/P95, loss probability and worst-path outputs on a separate
-`stress-testing` branch.
+Manually review and merge PR #2. After merge, run the manual official-history workflow and record
+live 2020-2026 acceptance evidence. Then implement probabilistic stress testing on
+`stress-testing`.

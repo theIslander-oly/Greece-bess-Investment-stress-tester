@@ -1,0 +1,76 @@
+from __future__ import annotations
+
+import io
+import tempfile
+import unittest
+from datetime import date
+from pathlib import Path
+from urllib.parse import urlsplit
+
+import pandas as pd
+
+from greek_bess.data.henex_daily import HenexDailyClient
+
+
+def _xlsx_bytes() -> bytes:
+    frame = pd.DataFrame(
+        [
+            {
+                "DDAY": "2026-08-25",
+                "SORT": 1,
+                "DELIVERY_DURATION": 15,
+                "MCP": 72.5,
+                "VER": 2,
+            }
+        ]
+    )
+    buffer = io.BytesIO()
+    with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
+        frame.to_excel(writer, index=False)
+    return buffer.getvalue()
+
+
+class HenexDailyTests(unittest.TestCase):
+    def test_catalog_discovery_prefers_latest_revision_and_downloads_xlsx(self) -> None:
+        catalog = b"""
+        <html><body>
+          <a href="/markets-publications-el-day-ahead-market/-/asset_publisher/
+          6eBaUXF5VIb7/document/id/1">20260825_EL-DAM_Results_EN_v01.xlsx</a>
+          <a href="/markets-publications-el-day-ahead-market/-/asset_publisher/
+          6eBaUXF5VIb7/document/id/2">20260825_EL-DAM_Results_EN_v02.xlsx</a>
+        </body></html>
+        """
+        detail = b"""
+        <a href="/documents/20126/1/20260825_EL-DAM_Results_EN_v02.xlsx/uuid">
+        Download</a>
+        """
+
+        def fetcher(url: str) -> bytes:
+            path = urlsplit(url).path
+            if "asset_publisher" in path and path.endswith("/2"):
+                return detail
+            if "/documents/" in path:
+                return _xlsx_bytes()
+            return catalog
+
+        client = HenexDailyClient(fetcher=fetcher)
+        entries = client.discover(
+            date(2026, 8, 25), date(2026, 8, 25), max_pages=1
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            workbooks, records = client.download_results(
+                entries,
+                raw_dir=Path(directory),
+                retrieved_at_utc="2026-08-26T08:00:00+00:00",
+            )
+            downloaded = workbooks[0].read_bytes()
+
+        self.assertEqual(len(entries), 1)
+        self.assertEqual(entries[0].revision, 2)
+        self.assertEqual(len(records), 1)
+        self.assertTrue(downloaded.startswith(b"PK"))
+
+
+if __name__ == "__main__":
+    unittest.main()
+

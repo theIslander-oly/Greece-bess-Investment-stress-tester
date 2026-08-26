@@ -6,3 +6,7 @@ clearly illustrative example.
 
 Existing illustrative battery, degradation and finance configurations remain in `examples/` to
 avoid breaking documented commands. They are not project estimates.
+
+`official_sources.json` is the reviewed, non-secret source and leakage-classification register.
+It records provider roles and stable landing/API endpoints; execution-specific URLs, hashes and
+timestamps belong in ignored retrieval manifests.
