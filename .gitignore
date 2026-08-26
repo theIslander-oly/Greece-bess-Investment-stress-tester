@@ -1,0 +1,50 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.venv-*/
+.env
+.env.*
+!.env.example
+.DS_Store
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+build/
+dist/
+outputs/
+reports/generated/
+
+# Official and derived market data stay outside Git. Keep only directory markers.
+data/raw/*
+!data/raw/.gitkeep
+data/interim/*
+!data/interim/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+data/curated/*
+!data/curated/.gitkeep
+
+# Large/generated analytical products and credentials.
+models/
+artifacts/
+credentials/
+solver_artifacts/
+*.joblib
+*.pkl
+*.pickle
+*.onnx
+*.lp
+*.mps
+*.sol
+*.pem
+*.key
+
+# Common official-data formats. Small synthetic fixtures should use tests/fixtures
+# and be force-reviewed before any exception is added.
+*.parquet
+*.xlsx
+*.xls
+*.xml
