@@ -1,0 +1,83 @@
+name: Fetch official Greek market history
+
+on:
+  workflow_dispatch:
+    inputs:
+      archive_start_year:
+        description: First verified HEnEx annual archive year
+        required: true
+        default: "2020"
+        type: string
+      archive_end_year:
+        description: Last verified HEnEx annual archive year
+        required: true
+        default: "2025"
+        type: string
+      daily_start:
+        description: Optional unarchived HEnEx start day (YYYY-MM-DD)
+        required: false
+        default: ""
+        type: string
+      daily_end:
+        description: Optional unarchived HEnEx end day (YYYY-MM-DD)
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install project
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install .
+
+      - name: Fetch archived HEnEx DAM history
+        run: |
+          mkdir -p acceptance/henex
+          greek-bess fetch-henex-archives \
+            --start-year "${{ inputs.archive_start_year }}" \
+            --end-year "${{ inputs.archive_end_year }}" \
+            --raw-dir data/raw/henex \
+            --manifest acceptance/henex/archive_manifest.json \
+            --output acceptance/henex/henex_archived_prices.csv
+
+      - name: Validate optional daily range inputs
+        if: ${{ (inputs.daily_start == '') != (inputs.daily_end == '') }}
+        run: |
+          echo "daily_start and daily_end must either both be set or both be empty."
+          exit 1
+
+      - name: Fetch unarchived daily HEnEx results
+        if: ${{ inputs.daily_start != '' && inputs.daily_end != '' }}
+        run: |
+          greek-bess fetch-henex-daily \
+            --start-day "${{ inputs.daily_start }}" \
+            --end-day "${{ inputs.daily_end }}" \
+            --raw-dir data/raw/henex \
+            --manifest acceptance/henex/daily_manifest.json \
+            --output acceptance/henex/henex_daily_prices.csv
+
+      - name: Upload normalized data, manifests and quality reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: greek-dam-official-history
+          path: acceptance/henex/
+          if-no-files-found: error
+          retention-days: 7
+

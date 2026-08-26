@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "reviewed_on": "2026-08-26",
+  "sources": [
+    {
+      "source_id": "henex_dam_results",
+      "provider": "Hellenic Energy Exchange",
+      "landing_page": "https://www.enexgroup.gr/markets-publications-el-day-ahead-market",
+      "archive_page": "https://www.enexgroup.gr/dam-idm-archive",
+      "delivery_coverage": "2020-11-01 onward",
+      "role": "primary Greek Day-Ahead Market prices",
+      "availability_classification": "published_after_day_ahead_auction",
+      "forecast_feature_policy": "realized target-day prices prohibited; lagged use only"
+    },
+    {
+      "source_id": "admie_operation_market_files",
+      "provider": "Independent Power Transmission Operator (ADMIE/IPTO)",
+      "landing_page": "https://www.admie.gr/en/market/market-statistics/detail-data",
+      "api_documentation": "https://www.admie.gr/en/market/market-statistics/file-download-api",
+      "filetype_endpoint": "https://www.admie.gr/getFiletypeInfoEN",
+      "range_endpoint": "https://www.admie.gr/getOperationMarketFilewRange",
+      "role": "candidate load, RES, availability and system-context features",
+      "availability_classification": "requires dataset-by-dataset publication-time validation",
+      "forecast_feature_policy": "prohibited until pre-auction availability is proven"
+    },
+    {
+      "source_id": "entsoe_a44",
+      "provider": "ENTSO-E Transparency Platform",
+      "api_endpoint": "https://web-api.tp.entsoe.eu/api",
+      "role": "independent price reconciliation",
+      "availability_classification": "published market result",
+      "credential_policy": "personal token from ENTSOE_SECURITY_TOKEN; never commit or log"
+    }
+  ]
+}
+
