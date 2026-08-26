@@ -1,0 +1,65 @@
+# Codex project instructions
+
+## Mission
+
+Build a transparent research and pre-feasibility tool for a standalone utility-scale LFP
+battery participating only in the Greek Day-Ahead Market.
+
+## Non-negotiable interpretation
+
+- Never present output as financial advice, a bankable forecast or an investment-grade
+  commercial study.
+- Perfect foresight is a labelled gross-margin upper bound, never expected revenue.
+- Forecast backtests must use time-ordered information and prevent future leakage.
+- Synthetic prices are allowed only for tests and public demonstrations, never as evidence
+  supporting an investment conclusion.
+- Intraday, balancing, reserves, taxes, subsidies, grid feasibility and revenue stacking
+  remain excluded until independently validated.
+
+## Modeling invariants
+
+- Preserve zero and negative prices.
+- Never silently interpolate missing official prices.
+- Use timezone-aware UTC as the primary interval key and retain market/Greece views.
+- Handle 23/25-hour and 92/100-quarter-hour market days.
+- Prevent simultaneous charge and discharge.
+- Make power, energy, efficiency, SOC, grid, availability, terminal-SOC, fees and
+  degradation assumptions explicit.
+- Forecast-planned schedules must be settled against realized prices.
+- Compare strategies only under equivalent physical and terminal-energy constraints.
+
+## Development workflow
+
+1. Read `PROMPT.md`, `STATUS.md`, `PLAN.md`, `DECISIONS.md`, `METHODOLOGY.md`,
+   `LIMITATIONS.md`, the latest implementation report and relevant source.
+2. State what will be changed and any user input needed.
+3. Work on a milestone feature branch, not directly on `main`.
+4. Keep commits small and descriptive; one milestone should produce one reviewable PR.
+5. Add or update tests before considering a milestone complete.
+6. Run Ruff, mypy, pytest and a clean wheel build.
+7. Review the complete diff, including generated-file and secret checks.
+8. Update README, changelog, `STATUS.md`, `DECISIONS.md` and the implementation report.
+9. Never commit `.env`, tokens, official raw/processed downloads, generated research outputs,
+   workbooks, XML responses, virtual environments or build artifacts.
+10. Keep only small, clearly synthetic fixtures under `tests/fixtures`.
+
+## GitHub workflow
+
+- Default branch: `main`.
+- Foundation/import branch: `repository-foundation-v0.6-import`.
+- Subsequent branches follow the milestone name in `PLAN.md`.
+- Do not fabricate commits for v0.1-v0.6; their pre-GitHub history is documented in the
+  versioned implementation reports.
+- Do not merge a PR until CI succeeds and the user has reviewed the first milestones.
+- Official-data workflows may use encrypted GitHub secrets, but secrets and retrieved data must
+  not enter commits or ordinary logs.
+
+## Current commands
+
+```bash
+python -m pip install -e ".[dev]"
+ruff check .
+mypy
+pytest -v
+python -m build --wheel
+```
