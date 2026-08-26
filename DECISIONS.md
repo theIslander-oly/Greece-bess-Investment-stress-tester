@@ -3,6 +3,16 @@
 This file records decisions that materially affect interpretation or reproducibility. Add a
 dated entry when a milestone changes scope, assumptions, data handling or validation.
 
+## 2026-08-26 — Require complete daily-catalog coverage
+
+- **Decision:** Parse the live suffix-less HEnEx result labels, follow the current Liferay
+  pagination route and require one latest-revision publication for every requested delivery day.
+- **Reason:** Incremental workflow run 32969157951 found zero files because the synthetic fixture
+  included `.xlsx` while the live catalogue labels do not. Pagination must also never repeat or
+  stop merely because a page lies outside the requested range.
+- **Consequence:** Layout drift and incomplete ranges fail explicitly; daily data cannot enter an
+  official-history artifact unless catalogue coverage is complete.
+
 ## 2026-08-26 — Select publications before parsing and bound row-level MCP consensus
 
 - **Decision:** Select the greatest workbook filename revision for each HEnEx delivery day before
