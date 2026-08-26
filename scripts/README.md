@@ -12,4 +12,5 @@ Scripts must:
 - fail clearly rather than silently filling missing official observations.
 
 Current ingestion entry points are exposed through the `greek-bess` CLI and documented in the
-README. The manual ENTSO-E retrieval workflow is in `.github/workflows/fetch-entsoe.yml`.
+README. Manual GitHub retrieval workflows are in `.github/workflows/fetch-entsoe.yml` and
+`.github/workflows/fetch-official-history.yml`.

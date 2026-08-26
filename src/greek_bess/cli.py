@@ -15,8 +15,17 @@ from .backtest import (
     backtest_ml_dispatch_benchmark,
     simulate_degradation_dispatch,
 )
+from .data.admie import AdmieClient, AdmieError, select_latest_admie_revisions
 from .data.entsoe import EntsoeClient, EntsoeError
 from .data.henex import HenexParseError, parse_henex_results
+from .data.henex_archive import (
+    HenexArchiveError,
+    download_henex_annual_archives,
+    find_henex_result_workbooks,
+    normalize_henex_workbooks,
+)
+from .data.henex_daily import HenexDailyClient, HenexDailyError
+from .data.http import OfficialDataDownloadError
 from .data.quality import QualityReport, assess_quality, compare_sources
 from .data.schema import ensure_canonical
 from .data.synthetic import generate_synthetic_prices
@@ -62,6 +71,37 @@ def build_parser() -> argparse.ArgumentParser:
     henex.add_argument("--output", required=True, type=Path)
     henex.add_argument("--allow-partial-days", action="store_true")
 
+    henex_archives = subparsers.add_parser(
+        "fetch-henex-archives",
+        help="Download and normalize verified HEnEx annual DAM result archives",
+    )
+    henex_archives.add_argument("--start-year", required=True, type=int)
+    henex_archives.add_argument("--end-year", required=True, type=int)
+    henex_archives.add_argument("--raw-dir", type=Path, default=Path("data/raw/henex"))
+    henex_archives.add_argument("--manifest", type=Path)
+    henex_archives.add_argument("--output", required=True, type=Path)
+    henex_archives.add_argument("--allow-partial-days", action="store_true")
+
+    henex_directory = subparsers.add_parser(
+        "normalize-henex-directory",
+        help="Normalize all privately obtained HEnEx DAM result workbooks below a directory",
+    )
+    henex_directory.add_argument("directory", type=Path)
+    henex_directory.add_argument("--output", required=True, type=Path)
+    henex_directory.add_argument("--allow-partial-days", action="store_true")
+
+    henex_daily = subparsers.add_parser(
+        "fetch-henex-daily",
+        help="Incrementally discover and normalize unarchived HEnEx daily DAM results",
+    )
+    henex_daily.add_argument("--start-day", required=True, type=date.fromisoformat)
+    henex_daily.add_argument("--end-day", required=True, type=date.fromisoformat)
+    henex_daily.add_argument("--max-catalog-pages", type=int, default=100)
+    henex_daily.add_argument("--raw-dir", type=Path, default=Path("data/raw/henex"))
+    henex_daily.add_argument("--manifest", type=Path)
+    henex_daily.add_argument("--output", required=True, type=Path)
+    henex_daily.add_argument("--allow-partial-days", action="store_true")
+
     entsoe = subparsers.add_parser(
         "fetch-entsoe", help="Fetch official Greek DAM prices using a personal token"
     )
@@ -73,6 +113,22 @@ def build_parser() -> argparse.ArgumentParser:
     entsoe.add_argument("--raw-cache-dir", type=Path, default=Path("data/raw/entsoe"))
     entsoe.add_argument("--output", required=True, type=Path)
     entsoe.add_argument("--allow-partial-days", action="store_true")
+
+    admie_types = subparsers.add_parser(
+        "list-admie-filetypes", help="Save the current public ADMIE filetype catalog"
+    )
+    admie_types.add_argument("--output", required=True, type=Path)
+
+    admie_files = subparsers.add_parser(
+        "fetch-admie-files",
+        help="Discover and download official ADMIE files with publication-time provenance",
+    )
+    admie_files.add_argument("--filetypes", nargs="+", required=True)
+    admie_files.add_argument("--start-day", required=True, type=date.fromisoformat)
+    admie_files.add_argument("--end-day", required=True, type=date.fromisoformat)
+    admie_files.add_argument("--raw-dir", type=Path, default=Path("data/raw/admie"))
+    admie_files.add_argument("--manifest", type=Path)
+    admie_files.add_argument("--all-revisions", action="store_true")
 
     compare = subparsers.add_parser(
         "compare-sources", help="Compare two normalized official-source CSV files"
@@ -224,10 +280,83 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "parse-henex":
             frame = parse_henex_results(args.workbook)
             report = assess_quality(frame, require_complete_days=not args.allow_partial_days)
-        elif args.command == "fetch-entsoe":
-            client = EntsoeClient(raw_cache_dir=args.raw_cache_dir)
-            frame = client.fetch_prices(args.start, args.end, chunk_days=args.chunk_days)
+        elif args.command == "fetch-henex-archives":
+            if args.end_year < args.start_year:
+                raise ValueError("end-year must not precede start-year")
+            manifest = args.manifest or args.raw_dir / "retrieval_manifest.json"
+            workbooks, _ = download_henex_annual_archives(
+                range(args.start_year, args.end_year + 1),
+                raw_dir=args.raw_dir,
+                manifest_path=manifest,
+            )
+            frame = normalize_henex_workbooks(workbooks)
             report = assess_quality(frame, require_complete_days=not args.allow_partial_days)
+        elif args.command == "normalize-henex-directory":
+            workbooks = find_henex_result_workbooks(args.directory)
+            if not workbooks:
+                raise HenexParseError(
+                    f"No YYYYMMDD_EL-DAM_Results_EN_v##.xlsx files below {args.directory}"
+                )
+            frame = normalize_henex_workbooks(workbooks)
+            report = assess_quality(frame, require_complete_days=not args.allow_partial_days)
+        elif args.command == "fetch-henex-daily":
+            henex_daily_client = HenexDailyClient()
+            entries = henex_daily_client.discover(
+                args.start_day,
+                args.end_day,
+                max_pages=args.max_catalog_pages,
+            )
+            if not entries:
+                raise HenexDailyError("No HEnEx daily results found for the requested dates")
+            manifest = args.manifest or args.raw_dir / "daily_retrieval_manifest.json"
+            workbooks, _ = henex_daily_client.download_results(
+                entries,
+                raw_dir=args.raw_dir,
+                manifest_path=manifest,
+            )
+            frame = normalize_henex_workbooks(workbooks)
+            report = assess_quality(frame, require_complete_days=not args.allow_partial_days)
+        elif args.command == "fetch-entsoe":
+            entsoe_client = EntsoeClient(raw_cache_dir=args.raw_cache_dir)
+            frame = entsoe_client.fetch_prices(
+                args.start, args.end, chunk_days=args.chunk_days
+            )
+            report = assess_quality(frame, require_complete_days=not args.allow_partial_days)
+        elif args.command == "list-admie-filetypes":
+            filetypes = AdmieClient().list_filetypes()
+            _write_json(filetypes, args.output)
+            print(json.dumps({"filetype_count": len(filetypes)}, indent=2))
+            return 0
+        elif args.command == "fetch-admie-files":
+            admie_client = AdmieClient()
+            discovered = []
+            for filetype in args.filetypes:
+                discovered.extend(
+                    admie_client.find_files(
+                        filetype, args.start_day, args.end_day, overlap=True
+                    )
+                )
+            selected = discovered if args.all_revisions else select_latest_admie_revisions(
+                discovered
+            )
+            manifest = args.manifest or args.raw_dir / "retrieval_manifest.json"
+            records = admie_client.download_files(
+                selected,
+                raw_dir=args.raw_dir,
+                manifest_path=manifest,
+            )
+            print(
+                json.dumps(
+                    {
+                        "discovered_file_count": len(discovered),
+                        "downloaded_file_count": len(records),
+                        "latest_revision_selection": not args.all_revisions,
+                        "manifest": str(manifest),
+                    },
+                    indent=2,
+                )
+            )
+            return 0
         elif args.command == "compare-sources":
             comparison = compare_sources(
                 _read_canonical_csv(args.left),
@@ -360,6 +489,10 @@ def main(argv: list[str] | None = None) -> int:
         DispatchSolveError,
         EntsoeError,
         HenexParseError,
+        HenexArchiveError,
+        HenexDailyError,
+        AdmieError,
+        OfficialDataDownloadError,
         OSError,
     ) as exc:
         print(f"error: {exc}", file=sys.stderr)

@@ -2,6 +2,33 @@
 
 All notable project changes are documented here.
 
+## [0.6.1] — 2026-08-26
+
+### Added
+
+- Verified HEnEx annual DAM-results archive register for 2020-2025.
+- Safe ZIP extraction restricted to English `EL-DAM_Results` workbooks.
+- Multi-workbook latest-revision normalization and conflict rejection.
+- Incremental HEnEx daily results discovery for unarchived dates.
+- ADMIE filetype and range API client with latest-revision selection.
+- File-level retrieval manifests with coverage, publication/retrieval timestamps, hashes and
+  leakage classifications.
+- Exact HTTPS source-host allowlists and atomic raw-file writes.
+- Manual private GitHub Actions retrieval workflow.
+- Eight archive, ADMIE, daily-catalog and HTTP-security tests.
+
+### Changed
+
+- Package version increased from 0.6.0 to 0.6.1.
+- Official multi-year evidence acquisition now precedes v0.7 stress testing.
+- ADMIE forecast candidates are explicitly quarantined pending publication-time acceptance.
+
+### Validation
+
+- All 68 source tests pass.
+- Clean GitHub CI passed Ruff, mypy, all 68 tests and a wheel build.
+- Live 2020-2026 provider retrieval remains required before evidence acceptance.
+
 ## [0.6.0] — 2026-08-25
 
 ### Added
