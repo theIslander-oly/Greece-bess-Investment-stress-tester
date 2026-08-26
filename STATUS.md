@@ -2,7 +2,7 @@
 
 **Version:** 0.6.3
 **Updated:** 26 August 2026  
-**Status:** 2020-2025 official history accepted; v0.6.3 live daily-catalog fix in validation
+**Status:** 2020-2025 official history accepted; v0.6.3 fix ready for manual review
 
 ## Repository foundation merged
 
@@ -53,6 +53,7 @@
   pagination route and rejects repeated pages.
 - Requested daily ranges must contain every delivery day; partial catalogue retrieval is an
   explicit error rather than a silently shortened dataset.
+- Clean GitHub CI passed Ruff, mypy, all 77 tests and the wheel build.
 
 ## Completed
 
