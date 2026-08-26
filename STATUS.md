@@ -2,7 +2,7 @@
 
 **Version:** 0.6.3
 **Updated:** 26 August 2026  
-**Status:** 2020-2025 official history accepted; v0.6.3 fix ready for manual review
+**Status:** Official HEnEx history accepted through 25 August 2026; ready for v0.7
 
 ## Repository foundation merged
 
@@ -54,6 +54,13 @@
 - Requested daily ranges must contain every delivery day; partial catalogue retrieval is an
   explicit error rather than a silently shortened dataset.
 - Clean GitHub CI passed Ruff, mypy, all 77 tests and the wheel build.
+- Manual workflow run 32971677163 passed both the 2020-2025 annual-archive stage and the
+  1 January-25 August 2026 daily-retrieval stage.
+- The private `greek-dam-official-history` artifact contains 74,663 contiguous official
+  intervals from 1 November 2020 through 25 August 2026, including 22,748 daily-retrieved 2026
+  rows, with zero missing intervals.
+- The artifact SHA-256 is
+  `127915bc6e143a6bf2a4cb0a559b798e231062097bdaf9bf467a051260c4b198`.
 
 ## Completed
 
@@ -132,5 +139,5 @@ excluded from the repository.
 
 ## Immediate next milestone
 
-Complete the v0.6.3 daily-catalog fix PR, rerun the incremental 2026 daily range and record its
-acceptance evidence before probabilistic stress testing on `stress-testing`.
+Begin probabilistic stress testing on `stress-testing`. The official HEnEx acquisition baseline
+is accepted through 25 August 2026; ENTSO-E reconciliation remains a separate acceptance task.

@@ -3,6 +3,20 @@
 This file records decisions that materially affect interpretation or reproducibility. Add a
 dated entry when a milestone changes scope, assumptions, data handling or validation.
 
+## 2026-08-26 — Accept the complete official HEnEx acquisition baseline
+
+- **Decision:** Accept workflow run 32971677163 and its private
+  `greek-dam-official-history` artifact as the official acquisition baseline through 25 August
+  2026. The artifact contains 74,663 intervals, including 22,748 rows retrieved from the 2026
+  daily catalogue, and has SHA-256
+  `127915bc6e143a6bf2a4cb0a559b798e231062097bdaf9bf467a051260c4b198`.
+- **Reason:** Both annual archive retrieval and incremental daily retrieval passed, coverage is
+  continuous from 1 November 2020 through 25 August 2026, and the combined history has zero
+  missing intervals.
+- **Consequence:** v0.7 may use this privately retrieved history for research validation while
+  preserving all existing interpretation limits. The artifact and official data remain outside
+  Git, and acceptance is ingestion evidence rather than an investment conclusion.
+
 ## 2026-08-26 — Require complete daily-catalog coverage
 
 - **Decision:** Parse the live suffix-less HEnEx result labels, follow the current Liferay
