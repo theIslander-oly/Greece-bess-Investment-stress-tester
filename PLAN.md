@@ -9,11 +9,12 @@ v0.1-v0.6 implementation predates the connected repository and will enter throug
 Suggested future branch sequence:
 
 1. `repository-foundation-v0.6-import`
-2. `stress-testing` (v0.7)
-3. `market-cannibalisation` (if separated from v0.7 after design review)
-4. `streamlit-dashboard` (v0.8)
-5. `ai-explanations` (only after outputs and guardrails are validated)
-6. `final-audit`
+2. `data-ingestion` (v0.6.1 official multi-year acquisition hardening)
+3. `stress-testing` (v0.7)
+4. `market-cannibalisation` (if separated from v0.7 after design review)
+5. `streamlit-dashboard` (v0.8)
+6. `ai-explanations` (only after outputs and guardrails are validated)
+7. `final-audit`
 
 ## Completed milestones
 
@@ -43,7 +44,13 @@ Suggested future branch sequence:
 
 ## Next milestones
 
-- [ ] Repository foundation/import — governance, provenance, CI and v0.6 snapshot PR.
+- [x] Repository foundation/import — governance, provenance, CI and v0.6 snapshot PR.
+- [ ] v0.6.1 — Official multi-year data acquisition hardening.
+  - Verified HEnEx annual archive register and safe ZIP extraction.
+  - Incremental daily HEnEx catalog discovery.
+  - Multi-workbook latest-revision normalization.
+  - ADMIE filetype/range client with publication-time provenance.
+  - Private short-lived GitHub retrieval artifact.
 - [ ] v0.7 — Probabilistic stress testing.
   - Seasonal block bootstrap and reproducible seeds.
   - Price, spread, negative-price, outage and cannibalisation shocks.
@@ -60,3 +67,5 @@ Suggested future branch sequence:
 - [ ] Reconcile overlapping official sources.
 - [x] Record the accepted HEnEx source versions, retrieval date and raw hashes.
 - [ ] Record the ENTSO-E retrieval metadata and raw-response hashes.
+- [ ] Run the 2020-2025 HEnEx archive workflow and incremental 2026 retrieval live.
+- [ ] Accept ADMIE load/RES file formats and prove pre-auction publication timing.
