@@ -2,7 +2,7 @@
 
 **Version:** 0.6.2
 **Updated:** 26 August 2026  
-**Status:** PR #2 merged; v0.6.2 live annual-history acceptance fix in validation
+**Status:** v0.6.2 live annual-history acceptance fix validated; PR #3 ready for manual review
 
 ## Repository foundation merged
 
@@ -38,7 +38,7 @@
   explicitly flagged; material or ambiguous conflicts still fail.
 - The complete live 2020-2025 archives produce 51,915 contiguous intervals, no missing or
   duplicate UTC keys, and 196 preserved negative-price intervals.
-- All 72 source tests and the offline v0.6.2 wheel build pass locally; clean CI is pending.
+- All 72 tests pass locally and in clean GitHub CI; Ruff, mypy and the wheel build also pass.
 - Archive hashes and acceptance statistics are recorded in
   `docs/official_history_acceptance_2026-08-26.md`.
 
