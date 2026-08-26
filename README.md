@@ -195,9 +195,10 @@ HEnEx's daily catalog is a website interface rather than a documented data API. 
 therefore fails visibly if the catalog or document-link layout changes. A successful download
 still requires the normal parser and quality checks; discovery alone is not acceptance evidence.
 
-The manual `Fetch official Greek market history` GitHub Actions workflow runs the same commands
-without credentials and publishes normalized data, manifests and quality reports as a private
-seven-day artifact. It never commits the data.
+The `Fetch official Greek market history` GitHub Actions workflow runs automatically once when
+the workflow file first reaches `main` and is manually reusable afterward. It publishes
+normalized data, manifests and quality reports as a private seven-day artifact without
+credentials. It never commits the data, and ordinary code pushes do not trigger it.
 
 ### Retrieve ADMIE/IPTO source files
 

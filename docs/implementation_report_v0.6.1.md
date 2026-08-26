@@ -68,9 +68,10 @@ foreign hosts are rejected. Writes use sibling temporary files and atomic replac
 
 ## GitHub workflow
 
-The manual `fetch-official-history.yml` workflow installs the package in a clean Python 3.12
-runner, retrieves the selected annual range and optionally an incremental daily range, then
-uploads normalized CSVs, manifests and quality reports as a private seven-day artifact. Raw
+The `fetch-official-history.yml` workflow installs the package in a clean Python 3.12 runner,
+retrieves the selected annual range and optionally an incremental daily range, then uploads
+normalized CSVs, manifests and quality reports as a private seven-day artifact. It runs when its
+own file first reaches `main` and is manually reusable; unrelated pushes do not trigger it. Raw
 archives and workbooks are not uploaded or committed.
 
 ## Verification

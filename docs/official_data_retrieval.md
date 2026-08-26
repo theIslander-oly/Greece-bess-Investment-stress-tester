@@ -52,8 +52,9 @@ relevant bid decision. Until then, files are historical explanatory inputs or la
 - Normalized prices remain under ignored `data/processed/` or acceptance paths.
 - Git stores clients, parsers, source URLs, schemas, tests, aggregate evidence and manifests
   without official file contents.
-- The manual GitHub workflow uploads normalized data and provenance as a private artifact with a
-  seven-day retention period. It does not commit or publish those files.
+- The GitHub workflow runs when its own file first reaches `main` and may be rerun manually. It
+  uploads normalized data and provenance as a private artifact with a seven-day retention period.
+  Ordinary code pushes do not trigger it, and it does not commit or publish those files.
 - Provider terms must be reviewed before redistribution or public hosting.
 
 ## Remaining acceptance sequence

@@ -1,6 +1,10 @@
 name: Fetch official Greek market history
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/fetch-official-history.yml
   workflow_dispatch:
     inputs:
       archive_start_year:
@@ -31,6 +35,11 @@ jobs:
   fetch:
     runs-on: ubuntu-latest
     timeout-minutes: 90
+    env:
+      ARCHIVE_START_YEAR: ${{ inputs.archive_start_year || '2020' }}
+      ARCHIVE_END_YEAR: ${{ inputs.archive_end_year || '2025' }}
+      DAILY_START: ${{ inputs.daily_start || '' }}
+      DAILY_END: ${{ inputs.daily_end || '' }}
 
     steps:
       - name: Check out repository
@@ -51,24 +60,27 @@ jobs:
         run: |
           mkdir -p acceptance/henex
           greek-bess fetch-henex-archives \
-            --start-year "${{ inputs.archive_start_year }}" \
-            --end-year "${{ inputs.archive_end_year }}" \
+            --start-year "$ARCHIVE_START_YEAR" \
+            --end-year "$ARCHIVE_END_YEAR" \
             --raw-dir data/raw/henex \
             --manifest acceptance/henex/archive_manifest.json \
             --output acceptance/henex/henex_archived_prices.csv
 
       - name: Validate optional daily range inputs
-        if: ${{ (inputs.daily_start == '') != (inputs.daily_end == '') }}
+        shell: bash
         run: |
-          echo "daily_start and daily_end must either both be set or both be empty."
-          exit 1
+          if [[ -n "$DAILY_START" && -z "$DAILY_END" ]] || \
+             [[ -z "$DAILY_START" && -n "$DAILY_END" ]]; then
+            echo "daily_start and daily_end must either both be set or both be empty."
+            exit 1
+          fi
 
       - name: Fetch unarchived daily HEnEx results
-        if: ${{ inputs.daily_start != '' && inputs.daily_end != '' }}
+        if: ${{ env.DAILY_START != '' && env.DAILY_END != '' }}
         run: |
           greek-bess fetch-henex-daily \
-            --start-day "${{ inputs.daily_start }}" \
-            --end-day "${{ inputs.daily_end }}" \
+            --start-day "$DAILY_START" \
+            --end-day "$DAILY_END" \
             --raw-dir data/raw/henex \
             --manifest acceptance/henex/daily_manifest.json \
             --output acceptance/henex/henex_daily_prices.csv
@@ -80,4 +92,3 @@ jobs:
           path: acceptance/henex/
           if-no-files-found: error
           retention-days: 7
-
