@@ -1,8 +1,8 @@
 # Project status
 
-**Version:** 0.6.2
+**Version:** 0.6.3
 **Updated:** 26 August 2026  
-**Status:** v0.6.2 live annual-history acceptance fix validated; PR #3 ready for manual review
+**Status:** 2020-2025 official history accepted; v0.6.3 live daily-catalog fix in validation
 
 ## Repository foundation merged
 
@@ -41,6 +41,18 @@
 - All 72 tests pass locally and in clean GitHub CI; Ruff, mypy and the wheel build also pass.
 - Archive hashes and acceptance statistics are recorded in
   `docs/official_history_acceptance_2026-08-26.md`.
+
+## v0.6.3 live daily-catalog fix
+
+- PR #3 was merged and clean CI passed on 26 August 2026.
+- Manual workflow run 32968302085 accepted the complete 2020-2025 archive history and uploaded
+  the private `greek-dam-official-history` artifact.
+- Incremental run 32969157951 failed only at daily discovery because the live HEnEx catalogue
+  omits `.xlsx` from visible result names.
+- Daily discovery now accepts the live suffix-less labels, uses the live `/web/guest/` Liferay
+  pagination route and rejects repeated pages.
+- Requested daily ranges must contain every delivery day; partial catalogue retrieval is an
+  explicit error rather than a silently shortened dataset.
 
 ## Completed
 
@@ -119,6 +131,5 @@ excluded from the repository.
 
 ## Immediate next milestone
 
-Complete the v0.6.2 fix PR and confirm the corrected GitHub retrieval artifact. Then run the
-incremental 2026 daily range and record its acceptance evidence before probabilistic stress
-testing on `stress-testing`.
+Complete the v0.6.3 daily-catalog fix PR, rerun the incremental 2026 daily range and record its
+acceptance evidence before probabilistic stress testing on `stress-testing`.
