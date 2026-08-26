@@ -19,7 +19,12 @@
 
 ## Data
 
-- Only two recent HEnEx workbooks have been production-accepted so far.
+- Only two recent HEnEx workbooks have been production-accepted so far; the multi-year downloader
+  is tested synthetically but has not yet completed a live 2020-2026 acceptance run.
+- HEnEx incremental daily discovery depends on a website asset-catalog layout rather than a
+  documented data API and may need maintenance when the site changes.
+- ADMIE catalog retrieval is implemented, but file-format and publication-time acceptance is
+  pending before any exogenous field can enter forecasting.
 - The ENTSO-E client still requires private-token acceptance and overlapping-source
   reconciliation.
 - A complete official multi-year history has not yet been run end to end.

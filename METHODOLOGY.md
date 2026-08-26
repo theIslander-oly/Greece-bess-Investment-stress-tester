@@ -25,11 +25,19 @@ retrieval metadata and quality flags. UTC is the unique key. Daylight-saving day
 validated against their expected 23/25 hourly or 92/100 quarter-hour intervals.
 
 HEnEx workbook ingestion selects a single published market-clearing price per interval and
-records the raw file SHA-256. ENTSO-E ingestion uses the A44 day-ahead document type for the
-Greek bidding zone. Overlapping normalized series can be compared interval by interval.
+records the raw file SHA-256. Annual archive retrieval additionally records parent ZIP hashes,
+member revisions and coverage. Incremental daily discovery is used only for years not yet in the
+annual archive and must pass the same parser and quality gates. ENTSO-E ingestion uses the A44
+day-ahead document type for the Greek bidding zone. Overlapping normalized series can be compared
+interval by interval.
+
+ADMIE retrieval preserves publication time independently from delivery coverage. Candidate load,
+RES, availability and interconnector variables are quarantined from forecast features until their
+historical publication time is proven to precede the bid decision for the target market day.
 
 Official raw files and normalized datasets are not committed. Reproduction depends on the
-source register, commands, hashes and quality reports described in `docs/data_sources.md`.
+source register, commands, retrieval manifests, hashes and quality reports described in
+`docs/data_sources.md` and `docs/official_data_retrieval.md`.
 
 ## 3. Dispatch
 
