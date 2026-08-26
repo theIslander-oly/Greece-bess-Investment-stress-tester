@@ -2,6 +2,21 @@
 
 All notable project changes are documented here.
 
+## [0.6.3] — 2026-08-26
+
+### Fixed
+
+- Parse live HEnEx daily result labels that omit the `.xlsx` suffix.
+- Use the current `/web/guest/` Liferay pagination route and redirect parameter.
+- Continue through catalogue pages newer than the requested range.
+- Reject repeated catalogue pages and missing requested delivery days.
+
+### Validation
+
+- The preceding 2020-2025 workflow run passed and its private artifact was integrity-checked.
+- Failed incremental workflow run 32969157951 is retained as evidence of the live-layout defect.
+- Six focused catalogue regression tests cover the corrected behavior.
+
 ## [0.6.2] — 2026-08-26
 
 ### Fixed
