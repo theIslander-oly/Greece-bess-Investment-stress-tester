@@ -3,6 +3,27 @@
 This file records decisions that materially affect interpretation or reproducibility. Add a
 dated entry when a milestone changes scope, assumptions, data handling or validation.
 
+## 2026-08-26 — Select publications before parsing and bound row-level MCP consensus
+
+- **Decision:** Select the greatest workbook filename revision for each HEnEx delivery day before
+  parsing. Within that selected workbook, accept a dominant MCP only when it is unique, more than
+  half of the rows, differs from at most two rows, and the total spread is no more than
+  EUR 0.011/MWh.
+- **Reason:** Superseded 16 December 2020 workbooks contain material conflicts corrected by v03.
+  Across the latest 2020-2025 publications, 980 intervals contain only a EUR 0.01/MWh difference
+  in one or two Greek-border import/export rows; all other asset rows agree.
+- **Consequence:** Corrected later publications are authoritative, bounded rounding consensus is
+  labeled `henex_mcp_rounding_consensus`, and material or ambiguous disagreements still fail.
+
+## 2026-08-26 — Support the documented 2021 nested annual DAM archive
+
+- **Decision:** Allow one size-limited nested ZIP only when its name matches
+  `YYYY_EL-DAM_Results.zip`; reject deeper nesting and ignore unrelated LIDA/CRIDA archives.
+- **Reason:** The official 2021 annual download contains the DAM history as a nested archive,
+  unlike the other registered years.
+- **Consequence:** Both outer and nested archive hashes enter the manifest, and 2021 is no longer
+  silently absent from the normalized history.
+
 ## 2026-08-26 — Quarantine ADMIE forecast candidates until timing acceptance
 
 - **Decision:** Retrieve and timestamp ADMIE load, RES and system files, but do not parse them

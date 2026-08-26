@@ -1,8 +1,8 @@
 # Project status
 
-**Version:** 0.6.1
+**Version:** 0.6.2
 **Updated:** 26 August 2026  
-**Status:** v0.6.1 official-data acquisition complete; PR #2 ready for manual review
+**Status:** v0.6.2 live annual-history acceptance fix validated; PR #3 ready for manual review
 
 ## Repository foundation merged
 
@@ -26,6 +26,21 @@
 - Eight new retrieval/security tests; complete suite currently 68 tests.
 - Clean GitHub Actions validation passed Ruff, mypy, all 68 tests and wheel build on
   26 August 2026.
+- PR #2 was merged on 26 August 2026.
+
+## v0.6.2 live-history acceptance fix
+
+- The first official-history workflow correctly failed on superseded 16 December 2020 workbook
+  conflicts, revealing that revision selection occurred too late.
+- Latest workbook revisions are now selected before parsing; the corrected v03 file is retained.
+- The official nested 2021 DAM archive is extracted with bounded depth, size and provenance.
+- One-cent differences in at most two cross-border rows may use a unique strict majority and are
+  explicitly flagged; material or ambiguous conflicts still fail.
+- The complete live 2020-2025 archives produce 51,915 contiguous intervals, no missing or
+  duplicate UTC keys, and 196 preserved negative-price intervals.
+- All 72 tests pass locally and in clean GitHub CI; Ruff, mypy and the wheel build also pass.
+- Archive hashes and acceptance statistics are recorded in
+  `docs/official_history_acceptance_2026-08-26.md`.
 
 ## Completed
 
@@ -104,6 +119,6 @@ excluded from the repository.
 
 ## Immediate next milestone
 
-Manually review and merge PR #2. After merge, run the manual official-history workflow and record
-live 2020-2026 acceptance evidence. Then implement probabilistic stress testing on
-`stress-testing`.
+Complete the v0.6.2 fix PR and confirm the corrected GitHub retrieval artifact. Then run the
+incremental 2026 daily range and record its acceptance evidence before probabilistic stress
+testing on `stress-testing`.

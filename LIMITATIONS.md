@@ -19,15 +19,17 @@
 
 ## Data
 
-- Only two recent HEnEx workbooks have been production-accepted so far; the multi-year downloader
-  is tested synthetically but has not yet completed a live 2020-2026 acceptance run.
+- The live HEnEx annual archives from 1 November 2020 through 31 December 2025 pass continuity,
+  duplicate, DST and price-preservation checks. Incremental 2026 daily acceptance remains pending.
+- In 980 historical intervals, one or two cross-border asset rows differ from the dominant
+  Greek-zone MCP by EUR 0.01/MWh. The bounded consensus is retained and explicitly flagged;
+  larger or ambiguous disagreements remain errors.
 - HEnEx incremental daily discovery depends on a website asset-catalog layout rather than a
   documented data API and may need maintenance when the site changes.
 - ADMIE catalog retrieval is implemented, but file-format and publication-time acceptance is
   pending before any exogenous field can enter forecasting.
 - The ENTSO-E client still requires private-token acceptance and overlapping-source
   reconciliation.
-- A complete official multi-year history has not yet been run end to end.
 - Official publication revisions, terms and formats may change.
 - Missing official prices are not silently interpolated; this can make a run incomplete.
 

@@ -187,6 +187,22 @@ def assess_quality(
             )
         )
 
+    rounding_consensus_count = int(
+        data["quality_flags"].map(
+            lambda flags: "henex_mcp_rounding_consensus" in flags
+        ).sum()
+    )
+    if rounding_consensus_count:
+        issues.append(
+            QualityIssue(
+                "info",
+                "henex_mcp_rounding_consensus",
+                "HEnEx intervals used the dominant Greek-zone MCP where one or two "
+                "cross-border rows differed by no more than EUR 0.01/MWh",
+                rounding_consensus_count,
+            )
+        )
+
     return QualityReport(
         row_count=len(data),
         first_interval_utc=str(data["delivery_start_utc"].min()),
