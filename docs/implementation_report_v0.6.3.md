@@ -26,6 +26,6 @@ The annual archive path is unchanged. Its successful 2020-2025 acceptance remain
 
 ## Acceptance gate
 
-The correction must pass Ruff, mypy, the complete test suite and a clean wheel build. After merge,
+The correction passed Ruff, mypy, all 77 tests and a clean wheel build in GitHub CI. After merge,
 the private workflow must be rerun for 1 January through 25 August 2026. Aggregate coverage,
 quality, DST and provenance evidence will then be recorded without committing official data.
