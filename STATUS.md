@@ -2,7 +2,7 @@
 
 **Version:** 0.6.1
 **Updated:** 26 August 2026  
-**Status:** GitHub foundation merged; v0.6.1 official-data acquisition milestone in progress
+**Status:** v0.6.1 official-data acquisition complete; PR #2 ready for manual review
 
 ## Repository foundation merged
 
@@ -24,6 +24,8 @@
 - Strict HTTPS provider allowlists and atomic writes below ignored data directories.
 - Manual private GitHub workflow for short-lived normalized-history artifacts.
 - Eight new retrieval/security tests; complete suite currently 68 tests.
+- Clean GitHub Actions validation passed Ruff, mypy, all 68 tests and wheel build on
+  26 August 2026.
 
 ## Completed
 
@@ -102,6 +104,6 @@ excluded from the repository.
 
 ## Immediate next milestone
 
-Complete clean-environment validation and live GitHub review for the `data-ingestion` pull
-request. After merge, run the manual official-history workflow and record live 2020-2026
-acceptance evidence. Then implement probabilistic stress testing on `stress-testing`.
+Manually review and merge PR #2. After merge, run the manual official-history workflow and record
+live 2020-2026 acceptance evidence. Then implement probabilistic stress testing on
+`stress-testing`.
