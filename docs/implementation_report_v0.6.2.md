@@ -40,8 +40,7 @@ a Greek-border import/export asset.
 - Outer annual, nested 2021 and workbook hashes remain in the private retrieval manifest.
 - Regression tests cover superseded conflicting revisions, nested annual archives, safe rounding
   consensus and rejection of material majority disagreements.
-- All 72 source tests and an offline clean wheel build pass locally; GitHub CI remains the clean
-  environment gate.
+- All 72 tests pass locally and in clean GitHub CI; Ruff, mypy and the clean wheel build also pass.
 
 The exact archive hashes and year-level counts are recorded in
 `docs/official_history_acceptance_2026-08-26.md`. A corrected GitHub workflow run and its private
