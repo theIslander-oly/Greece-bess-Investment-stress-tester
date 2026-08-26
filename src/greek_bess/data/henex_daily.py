@@ -6,7 +6,7 @@ import re
 import urllib.parse
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, timedelta
 from html.parser import HTMLParser
 from pathlib import Path
 
@@ -23,13 +23,17 @@ from .provenance import (
 HENEX_DAM_PUBLICATIONS_URL = (
     "https://www.enexgroup.gr/markets-publications-el-day-ahead-market"
 )
+HENEX_DAM_CATALOG_URL = (
+    "https://www.enexgroup.gr/web/guest/markets-publications-el-day-ahead-market"
+)
 HENEX_RESULTS_PORTLET_INSTANCE = "6eBaUXF5VIb7"
 _PORTLET_ID = (
     "com_liferay_asset_publisher_web_portlet_AssetPublisherPortlet_INSTANCE_"
     + HENEX_RESULTS_PORTLET_INSTANCE
 )
 _FILENAME = re.compile(
-    r"(?P<day>\d{8})_EL-DAM_Results_EN_v(?P<revision>\d+)\.xlsx", re.IGNORECASE
+    r"(?P<day>\d{8})_EL-DAM_Results_EN_v(?P<revision>\d+)(?:\.xlsx)?\b",
+    re.IGNORECASE,
 )
 
 
@@ -70,17 +74,26 @@ class HenexDailyClient:
             raise ValueError("max_pages must be positive")
 
         found: dict[tuple[date, int], HenexDailyCatalogEntry] = {}
+        seen_catalog_entries: set[tuple[date, int]] = set()
         for page in range(1, max_pages + 1):
             html = self._get_bytes(_catalog_url(page)).decode("utf-8", errors="strict")
             page_entries = _parse_catalog(html)
-            new_count = 0
+            if not page_entries:
+                break
+            page_keys = {
+                (entry.delivery_day, entry.revision) for entry in page_entries
+            }
+            if page > 1 and page_keys.issubset(seen_catalog_entries):
+                raise HenexDailyError(
+                    "HEnEx daily catalog pagination repeated an earlier page"
+                )
+            seen_catalog_entries.update(page_keys)
             for entry in page_entries:
                 if start_day <= entry.delivery_day <= end_day:
                     key = (entry.delivery_day, entry.revision)
                     if key not in found:
                         found[key] = entry
-                        new_count += 1
-            if not page_entries or (page > 1 and new_count == 0):
+            if min(entry.delivery_day for entry in page_entries) < start_day:
                 break
 
         latest: dict[date, HenexDailyCatalogEntry] = {}
@@ -88,6 +101,17 @@ class HenexDailyClient:
             incumbent = latest.get(entry.delivery_day)
             if incumbent is None or entry.revision > incumbent.revision:
                 latest[entry.delivery_day] = entry
+        expected_days = {
+            start_day + timedelta(days=offset)
+            for offset in range((end_day - start_day).days + 1)
+        }
+        missing_days = sorted(expected_days.difference(latest))
+        if missing_days:
+            raise HenexDailyError(
+                "HEnEx daily catalog is missing "
+                f"{len(missing_days)} requested delivery day(s); "
+                f"first missing day: {missing_days[0].isoformat()}"
+            )
         return sorted(latest.values(), key=lambda entry: entry.delivery_day)
 
     def download_results(
@@ -187,9 +211,10 @@ def _catalog_url(page: int) -> str:
         "p_p_mode": "view",
         f"_{_PORTLET_ID}_cur": page,
         f"_{_PORTLET_ID}_delta": 200,
+        f"_{_PORTLET_ID}_redirect": "/markets-publications-el-day-ahead-market",
         "p_r_p_resetCur": "false",
     }
-    return f"{HENEX_DAM_PUBLICATIONS_URL}?{urllib.parse.urlencode(params)}"
+    return f"{HENEX_DAM_CATALOG_URL}?{urllib.parse.urlencode(params)}"
 
 
 def _parse_catalog(html: str) -> list[HenexDailyCatalogEntry]:
@@ -203,6 +228,8 @@ def _parse_catalog(html: str) -> list[HenexDailyCatalogEntry]:
         filename_match = _FILENAME.search(text) or _FILENAME.search(href)
         assert filename_match is not None
         filename = filename_match.group(0)
+        if not filename.lower().endswith(".xlsx"):
+            filename += ".xlsx"
         delivery_day = date.fromisoformat(
             f"{match.group('day')[:4]}-{match.group('day')[4:6]}-{match.group('day')[6:]}"
         )
@@ -235,4 +262,3 @@ def _looks_like_download(url: str) -> bool:
         or "/documents/" in lowered
         or "/c/document_library/get_file" in lowered
     )
-

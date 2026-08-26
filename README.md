@@ -4,7 +4,7 @@ Transparent research and pre-feasibility tooling for a standalone grid-scale bat
 
 This is not financial advice, an investment-grade forecast, a bankable revenue study or a substitute for legal, tax, grid-connection and market-access diligence.
 
-**Current release:** `v0.6.0` — explicit unlevered project finance and break-even analysis.
+**Current release:** `v0.6.3` — project finance plus accepted official-history retrieval.
 
 ## Current implementation
 
@@ -593,6 +593,8 @@ exogenous variables remain parallel acceptance tasks.
 - [Implementation report v0.6.1](docs/implementation_report_v0.6.1.md)
 - [Release notes v0.6.2](docs/release_notes_v0.6.2.md)
 - [Implementation report v0.6.2](docs/implementation_report_v0.6.2.md)
+- [Release notes v0.6.3](docs/release_notes_v0.6.3.md)
+- [Implementation report v0.6.3](docs/implementation_report_v0.6.3.md)
 - [Official annual-history acceptance](docs/official_history_acceptance_2026-08-26.md)
 - [Current status](STATUS.md)
 - [Implementation plan](PLAN.md)
