@@ -89,6 +89,26 @@ def ensure_canonical(frame: pd.DataFrame, *, allow_empty: bool = True) -> pd.Dat
     return result.sort_values("delivery_start_utc", kind="stable").reset_index(drop=True)
 
 
+def concat_canonical(frames: Iterable[pd.DataFrame]) -> pd.DataFrame:
+    """Combine canonical frames that describe one source into a single history.
+
+    Overlapping or repeated intervals are preserved so that the quality layer,
+    not this function, decides how a conflict is reported.
+    """
+
+    validated = [ensure_canonical(frame) for frame in frames]
+    populated = [frame for frame in validated if not frame.empty]
+    if not populated:
+        return empty_canonical_frame()
+
+    sources = sorted({str(value) for frame in populated for value in frame["source"].unique()})
+    if len(sources) != 1:
+        raise CanonicalSchemaError(
+            f"A canonical merge requires exactly one source, found: {', '.join(sources)}"
+        )
+    return ensure_canonical(pd.concat(populated, ignore_index=True))
+
+
 def _as_utc(series: pd.Series, name: str) -> pd.Series:
     parsed = pd.to_datetime(series, utc=True, errors="coerce")
     if parsed.isna().any():
