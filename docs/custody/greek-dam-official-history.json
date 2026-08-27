@@ -1,0 +1,92 @@
+{
+  "record_version": 1,
+  "artifact_name": "greek-dam-official-history",
+  "source_run_id": "32971677163",
+  "source_workflow": "Fetch official Greek market history",
+  "published_artifact_digest_sha256": "127915bc6e143a6bf2a4cb0a559b798e231062097bdaf9bf467a051260c4b198",
+  "recorded_at_utc": "2026-08-27T13:20:05.529617+00:00",
+  "file_count": 6,
+  "total_size_bytes": 18767930,
+  "files": [
+    {
+      "relative_path": "archive_manifest.json",
+      "size_bytes": 1485614,
+      "sha256": "92d866f05212260d44ecdad008c21b80e7dafb56e1e7b1b6b3c8f7cfe6d361fd"
+    },
+    {
+      "relative_path": "daily_manifest.json",
+      "size_bytes": 170764,
+      "sha256": "ffa96b0525569210b5f8972e1e29728167ef7c0a6abd6ad5e94f6e6d10078579"
+    },
+    {
+      "relative_path": "henex_archived_prices.csv",
+      "size_bytes": 11895903,
+      "sha256": "9ac9fbe4b469d5f4176606555191ad023b5e8ab332871eade831c4bd83e1097d"
+    },
+    {
+      "relative_path": "henex_archived_prices.quality.json",
+      "size_bytes": 709,
+      "sha256": "cd4c14c193f50c184ed1af39abde1af1030f2e6a33dc3cd4a9a8b6fdae513c15"
+    },
+    {
+      "relative_path": "henex_daily_prices.csv",
+      "size_bytes": 5214494,
+      "sha256": "1ebea3980b5b6d2986c8e71ce419b8bdcd14d6d8805ccd0cf99d2d0b5fba65c1"
+    },
+    {
+      "relative_path": "henex_daily_prices.quality.json",
+      "size_bytes": 446,
+      "sha256": "c7d6d14e129cde1f0e0b94237870e1dcbdc5add1fb7d2afb9f8a6a1a8632c59c"
+    }
+  ],
+  "content": {
+    "henex_archived_prices.csv": {
+      "interval_count": 51915,
+      "first_interval_utc": "2020-10-31T23:00:00+00:00",
+      "last_interval_utc": "2025-12-31T23:00:00+00:00",
+      "market_day_count": 1887,
+      "negative_price_count": 196,
+      "zero_price_count": 415,
+      "missing_price_count": 0,
+      "interval_counts_by_delivery_year": {
+        "2020": 1464,
+        "2021": 8760,
+        "2022": 8760,
+        "2023": 8760,
+        "2024": 8784,
+        "2025": 15387
+      },
+      "interval_counts_by_duration_hours": {
+        "0.25": 8836,
+        "1.0": 43079
+      },
+      "interval_counts_by_source": {
+        "henex": 51915
+      },
+      "quality_flag_counts": {
+        "henex_mcp_rounding_consensus": 980
+      },
+      "price_series_sha256": "f4698c15dc483c7c50bfb93cd0f90eb96982a092d9d01dda9e2f94469e694c31"
+    },
+    "henex_daily_prices.csv": {
+      "interval_count": 22748,
+      "first_interval_utc": "2025-12-31T23:00:00+00:00",
+      "last_interval_utc": "2026-08-25T22:00:00+00:00",
+      "market_day_count": 237,
+      "negative_price_count": 1571,
+      "zero_price_count": 1499,
+      "missing_price_count": 0,
+      "interval_counts_by_delivery_year": {
+        "2026": 22748
+      },
+      "interval_counts_by_duration_hours": {
+        "0.25": 22748
+      },
+      "interval_counts_by_source": {
+        "henex": 22748
+      },
+      "quality_flag_counts": {},
+      "price_series_sha256": "f4ccb35ea18ff4975e1d4a43f85619a4745cbef9b9d078a4629dab62ec1cd2e2"
+    }
+  }
+}
