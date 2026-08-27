@@ -51,13 +51,26 @@ Suggested future branch sequence:
   - Multi-workbook latest-revision normalization.
   - ADMIE filetype/range client with publication-time provenance.
   - Private short-lived GitHub retrieval artifact.
-- [ ] v0.7 — Probabilistic stress testing.
+- [ ] v0.7 — Deterministic scenario stress testing.
   - [x] Foundation: seasonal block bootstrap, reproducible seeds and sampled-block provenance.
   - [x] Deterministic additive price-level shock with interval provenance.
   - [x] Independent deterministic dispatch across validated bootstrap paths.
-  - Spread, outage and cannibalisation shocks. Negative-price-event transformations are deferred.
-  - P5/P50/P95, loss probability and worst-case paths.
-- [ ] v0.8 — Research interface and exportable reports.
+  - [ ] Explicit bootstrap source-era/resolution policy (the accepted official history mixes
+    hourly and quarter-hour regimes; the bootstrap requires one resolution, so the sampling
+    era must be a documented decision rather than an accident).
+  - [ ] Deterministic availability/outage-path integration (requires explicit approval).
+  - [ ] Spread-compression transformations about a daily reference level, as explicit
+    judgmental scenarios; this is how cannibalisation pressure is represented, since a causal
+    cannibalisation model is not buildable from price history alone.
+  - [ ] Scenario-ensemble range reporting (minimum/maximum/spread across named scenarios),
+    explicitly labelled non-probabilistic.
+  - Removed from scope on 2026-08-27: P5/P50/P95 percentiles and loss probabilities. Uniform
+    block resampling of the non-stationary 2020-2026 history supports no calibrated
+    probability interpretation, and additional constant price-level shocks, which leave
+    within-path spreads unchanged, are near-inert for arbitrage economics.
+  - Negative-price-event transformations remain deferred.
+- [ ] v0.8 — Research interface and exportable reports (not before the corrected v0.7 scope
+  is complete and reviewed).
 
 ## Parallel acceptance track
 
@@ -78,3 +91,9 @@ Suggested future branch sequence:
   - All four causal naïve baselines and both ML benchmarks accepted with leakage,
     settlement, coverage and determinism evidence.
 - [ ] Accept ADMIE load/RES file formats and prove pre-auction publication timing.
+- [ ] Store the accepted normalized official history durably and privately outside Git before
+  the seven-day workflow artifact expires (run `32971677163` artifact expires 2 September
+  2026); re-run the retrieval workflow if it lapses.
+- [ ] Add a per-calendar-year decomposition of the accepted replay (annual perfect-foresight
+  ceiling and forecast capture), since aggregate 2020-2026 margins conceal regime dependence
+  such as the 2022 gas-crisis year.
