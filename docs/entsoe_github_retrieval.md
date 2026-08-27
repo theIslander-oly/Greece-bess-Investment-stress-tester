@@ -34,6 +34,35 @@ the normal complete-day quality checks and retains only the normalized CSV and q
 JSON as a seven-day GitHub artifact. Raw XML remains on the temporary runner and is not
 uploaded.
 
+## Reconcile against the accepted HEnEx history
+
+The fetch workflow only retrieves and normalizes ENTSO-E prices. The
+**Reconcile HEnEx and ENTSO-E prices** workflow performs the comparison itself, because
+neither the personal token nor the accepted history artifact may leave GitHub.
+
+1. Open the repository's **Actions** tab.
+2. Select **Reconcile HEnEx and ENTSO-E prices**.
+3. Select **Run workflow**.
+4. Enter the run ID of the completed **Fetch official Greek market history** run that produced
+   the `greek-dam-official-history` artifact. The artifact is retained for seven days, so a
+   reconciliation must run before it expires or the history must be retrieved again.
+5. Leave the remaining inputs empty to derive the reconciliation window from the accepted
+   history itself, which keeps both sources on exactly the same market days.
+6. Select the green **Run workflow** button.
+
+The workflow merges the archived and daily HEnEx files into one series, retrieves ENTSO-E
+prices for the same window in sequential 31-day requests, classifies every interval and
+publishes the `henex-entsoe-reconciliation` artifact containing the interval-level comparison,
+the aggregate summary, the normalized ENTSO-E CSV and both quality reports.
+
+The run summary reports the classification counts. A run is a full reconciliation only when
+every interval is classified `match`; `price_mismatch`, `missing_henex` and `missing_entsoe`
+counts are the finding, not a workflow defect, and the interval detail stays inside the
+artifact. The job fails when either source is not deterministically valid on its own.
+
+A six-year window is roughly seventy sequential ENTSO-E requests, so the reconciliation job
+allows sixty minutes where the plain fetch workflow allows ten.
+
 ## Retrieve the result
 
 Open the completed workflow run and download the

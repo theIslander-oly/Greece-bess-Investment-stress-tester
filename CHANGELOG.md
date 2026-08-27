@@ -6,6 +6,14 @@ All notable project changes are documented here.
 
 ### Added
 
+- `merge-canonical` command and `concat_canonical` helper, which join normalized CSV files
+  from one official source into a single quality-assessed history and refuse to mix sources or
+  to drop a repeated interval.
+- `Reconcile HEnEx and ENTSO-E prices` GitHub Actions workflow, which reads the accepted
+  `greek-dam-official-history` artifact from an earlier run, derives the reconciliation window
+  from that history, retrieves ENTSO-E A44 prices for the same window with the encrypted
+  repository secret, classifies every interval with `compare-sources` and uploads the interval
+  detail as an artifact while keeping official prices out of the job log.
 - Reader-facing "What this tool cannot tell you" README section covering the April 2026 entry
   of batteries into the Greek DAM/IDM, expected spread compression from the arriving storage
   fleet, and the exclusion of balancing-market and availability-support revenues.
