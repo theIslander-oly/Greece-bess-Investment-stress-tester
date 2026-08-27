@@ -10,6 +10,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from .analysis import AnnualDecompositionError, decompose_annual_replay
 from .backtest import (
     backtest_forecast_dispatch,
     backtest_ml_dispatch_benchmark,
@@ -41,6 +42,7 @@ from .dispatch import (
     BatteryDispatchConfig,
     DispatchInputError,
     DispatchSolveError,
+    optimize_daily_perfect_foresight,
     optimize_perfect_foresight,
 )
 from .finance import FinanceConfig, evaluate_project_finance
@@ -172,6 +174,15 @@ def build_parser() -> argparse.ArgumentParser:
     optimize.add_argument("prices", type=Path, help="Canonical price CSV")
     optimize.add_argument("--config", required=True, type=Path, help="Battery JSON")
     optimize.add_argument("--availability", type=float, default=1.0)
+    optimize.add_argument(
+        "--daily-solves",
+        action="store_true",
+        help=(
+            "Solve every market day independently and compose the schedules, the "
+            "convention the forecast backtests are measured against, instead of one "
+            "solve over the whole horizon"
+        ),
+    )
     optimize.add_argument("--output", required=True, type=Path, help="Dispatch CSV")
     optimize.add_argument("--summary", type=Path, help="Summary JSON; defaults beside dispatch CSV")
 
@@ -310,6 +321,43 @@ def build_parser() -> argparse.ArgumentParser:
     shock.add_argument("--output", required=True, type=Path, help="Shocked paths CSV")
     shock.add_argument("--provenance", type=Path, help="Interval provenance CSV")
     shock.add_argument("--summary", type=Path, help="Method and configuration JSON")
+
+    annual = subparsers.add_parser(
+        "decompose-annual-replay",
+        help="Split an accepted replay into delivery years on the CET/CEST market clock",
+    )
+    annual.add_argument("prices", type=Path, help="Accepted canonical price CSV")
+    annual.add_argument(
+        "--perfect-foresight-schedule",
+        type=Path,
+        help="Interval dispatch CSV from optimize-perfect-foresight over the same history",
+    )
+    annual.add_argument(
+        "--daily-results",
+        action="extend",
+        nargs="+",
+        default=[],
+        metavar="METHOD=PATH",
+        help=(
+            "Daily CSV from backtest-forecast-dispatch, as METHOD=PATH. Repeat the flag "
+            "or pass several pairs to it; both accumulate"
+        ),
+    )
+    annual.add_argument(
+        "--energy-capacity-mwh",
+        type=float,
+        help="Battery energy capacity; required only for equivalent-full-cycle columns",
+    )
+    annual.add_argument("--output", required=True, type=Path, help="Per-year overview CSV")
+    annual.add_argument(
+        "--forecast-output", type=Path, help="Per-year, per-method CSV; defaults beside output"
+    )
+    annual.add_argument(
+        "--common-day-output",
+        type=Path,
+        help="Per-year like-for-like CSV; defaults beside output",
+    )
+    annual.add_argument("--summary", type=Path, help="Summary JSON; defaults beside output")
 
     record_custody = subparsers.add_parser(
         "record-custody",
@@ -450,7 +498,12 @@ def main(argv: list[str] | None = None) -> int:
             return 0 if set(counts) <= {"match"} else 2
         elif args.command == "optimize-perfect-foresight":
             config = _read_battery_config(args.config)
-            dispatch_result = optimize_perfect_foresight(
+            optimizer = (
+                optimize_daily_perfect_foresight
+                if args.daily_solves
+                else optimize_perfect_foresight
+            )
+            dispatch_result = optimizer(
                 _read_canonical_csv(args.prices),
                 config,
                 availability=args.availability,
@@ -569,6 +622,28 @@ def main(argv: list[str] | None = None) -> int:
             _write_json(bootstrap_dispatch_result.summary, summary_path)
             print(json.dumps(bootstrap_dispatch_result.summary, indent=2))
             return 0
+        elif args.command == "decompose-annual-replay":
+            annual_result = decompose_annual_replay(
+                _read_canonical_csv(args.prices),
+                perfect_foresight_schedule=(
+                    _read_schedule_csv(args.perfect_foresight_schedule)
+                    if args.perfect_foresight_schedule
+                    else None
+                ),
+                daily_results_by_method=_read_daily_results(args.daily_results),
+                energy_capacity_mwh=args.energy_capacity_mwh,
+            )
+            forecast_path = args.forecast_output or _sibling_path(args.output, ".forecast.csv")
+            common_day_path = args.common_day_output or _sibling_path(
+                args.output, ".common_day.csv"
+            )
+            summary_path = args.summary or args.output.with_suffix(".summary.json")
+            _write_plain_csv(annual_result.annual_overview, args.output)
+            _write_plain_csv(annual_result.annual_forecast, forecast_path)
+            _write_plain_csv(annual_result.annual_common_day, common_day_path)
+            _write_json(annual_result.summary, summary_path)
+            print(json.dumps(annual_result.summary, indent=2))
+            return 0
         elif args.command == "record-custody":
             custody = build_custody_record(
                 args.directory,
@@ -628,6 +703,7 @@ def main(argv: list[str] | None = None) -> int:
         BootstrapInputError,
         BootstrapDispatchInputError,
         PriceLevelShockInputError,
+        AnnualDecompositionError,
         CustodyError,
         OSError,
     ) as exc:
@@ -707,6 +783,30 @@ def _read_bootstrap_paths_csv(path: Path) -> pd.DataFrame:
         canonical.insert(0, "path_id", path_id)
         path_frames.append(canonical)
     return pd.concat(path_frames, ignore_index=True)
+
+
+def _read_schedule_csv(path: Path) -> pd.DataFrame:
+    frame = pd.read_csv(path)
+    if "delivery_start_utc" not in frame:
+        raise AnnualDecompositionError(
+            "Perfect-foresight schedule is missing columns: delivery_start_utc"
+        )
+    frame["delivery_start_utc"] = pd.to_datetime(frame["delivery_start_utc"], utc=True)
+    return frame
+
+
+def _read_daily_results(pairs: list[str]) -> dict[str, pd.DataFrame]:
+    daily_results: dict[str, pd.DataFrame] = {}
+    for pair in pairs:
+        method, separator, raw_path = pair.partition("=")
+        if not separator or not method or not raw_path:
+            raise AnnualDecompositionError(
+                f"--daily-results expects METHOD=PATH pairs, not {pair!r}"
+            )
+        if method in daily_results:
+            raise AnnualDecompositionError(f"--daily-results repeats the method {method!r}")
+        daily_results[method] = pd.read_csv(Path(raw_path))
+    return daily_results
 
 
 def _write_dispatch_outputs(

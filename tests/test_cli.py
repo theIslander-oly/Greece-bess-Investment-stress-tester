@@ -608,6 +608,130 @@ class CliTests(unittest.TestCase):
             )
             self.assertTrue(merged.with_suffix(".quality.json").exists())
 
+    def test_annual_decomposition_command_writes_year_tables(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            prices = root / "prices.csv"
+            battery = root / "battery.json"
+            schedule = root / "dispatch.csv"
+            daily = root / "backtest.daily.csv"
+            output = root / "annual.csv"
+            battery.write_text(
+                json.dumps(
+                    {
+                        "charge_power_mw": 1,
+                        "discharge_power_mw": 1,
+                        "energy_capacity_mwh": 1,
+                        "soc_min_fraction": 0,
+                        "soc_max_fraction": 1,
+                        "initial_soc_fraction": 0,
+                        "terminal_soc_fraction": 0,
+                        "charge_efficiency": 1,
+                        "discharge_efficiency": 1,
+                    }
+                ),
+                encoding="utf-8",
+            )
+            with redirect_stdout(io.StringIO()):
+                main(
+                    [
+                        "generate-synthetic",
+                        "--start-day",
+                        "2025-12-20",
+                        "--end-day",
+                        "2026-01-06",
+                        "--negative-price-share",
+                        "0",
+                        "--output",
+                        str(prices),
+                    ]
+                )
+                main(
+                    [
+                        "optimize-perfect-foresight",
+                        str(prices),
+                        "--config",
+                        str(battery),
+                        "--output",
+                        str(schedule),
+                    ]
+                )
+                main(
+                    [
+                        "backtest-forecast-dispatch",
+                        str(prices),
+                        "--config",
+                        str(battery),
+                        "--method",
+                        "rolling_mean",
+                        "--rolling-window-days",
+                        "3",
+                        "--output",
+                        str(root / "backtest.csv"),
+                        "--daily-output",
+                        str(daily),
+                    ]
+                )
+                exit_code = main(
+                    [
+                        "decompose-annual-replay",
+                        str(prices),
+                        "--perfect-foresight-schedule",
+                        str(schedule),
+                        "--daily-results",
+                        f"rolling_mean={daily}",
+                        "--energy-capacity-mwh",
+                        "1",
+                        "--output",
+                        str(output),
+                    ]
+                )
+
+            self.assertEqual(exit_code, 0)
+            overview = pd.read_csv(output)
+            forecast = pd.read_csv(root / "annual.forecast.csv")
+            common_day = pd.read_csv(root / "annual.common_day.csv")
+            summary = json.loads((root / "annual.summary.json").read_text())
+
+            self.assertEqual(overview["delivery_year"].tolist(), [2025, 2026])
+            self.assertEqual(forecast["forecast_method"].unique().tolist(), ["rolling_mean"])
+            self.assertEqual(len(common_day), 2)
+            self.assertEqual(summary["delivery_years"], [2025, 2026])
+            self.assertAlmostEqual(
+                summary["perfect_foresight_margin_reconciliation_residual_eur"], 0.0
+            )
+            self.assertAlmostEqual(
+                float(overview["perfect_foresight_net_market_margin_eur"].sum()),
+                summary["perfect_foresight_net_market_margin_eur"],
+            )
+
+    def test_annual_decomposition_rejects_a_malformed_daily_results_pair(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            prices = root / "prices.csv"
+            with redirect_stdout(io.StringIO()):
+                main(
+                    [
+                        "generate-synthetic",
+                        "--start-day",
+                        "2026-01-01",
+                        "--end-day",
+                        "2026-01-04",
+                        "--output",
+                        str(prices),
+                    ]
+                )
+                exit_code = main(
+                    [
+                        "decompose-annual-replay",
+                        str(prices),
+                        "--daily-results",
+                        "no-separator.csv",
+                        "--output",
+                        str(root / "annual.csv"),
+                    ]
+                )
+            self.assertEqual(exit_code, 1)
 
 if __name__ == "__main__":
     unittest.main()
