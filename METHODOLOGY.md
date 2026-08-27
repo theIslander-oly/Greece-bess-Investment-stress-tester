@@ -132,7 +132,20 @@ Outputs retain `path_id`, canonical interval identity, source labels, interval o
 revenue decomposition. A separate table reports the existing optimizer summary for each path.
 These are perfect-foresight upper bounds on synthetic paths, not expected revenues or forecasts.
 
-## 10. Validation
+## 10. Official operational acceptance
+
+Before a stage is treated as exercised on real data, it is run over the complete accepted official
+history and evidenced in aggregate only. Acceptance verifies the input artifact hash and provenance,
+canonical timezone-aware identity, DST-aware market-day completeness across both resolution regimes,
+duplicate/gap/overlap absence and signed-price preservation; then, for dispatch, solver identity and
+status, constraint compliance restated independently from the published schedule columns, and
+aggregate energy and margin components; then, for forecasting, a mutation audit proving no future
+observation reaches an earlier target day, refit cutoffs preceding their forecast targets, exact
+settlement against realized official prices, like-for-like ceilings on shared days, and coverage
+with every excluded day attributed to a structural cause. Both paths must reproduce identical
+results on an immediate second run. Interval prices and schedules are never recorded in the report.
+
+## 11. Validation
 
 Code changes must pass Ruff, mypy, pytest and a clean wheel build. Tests use deterministic
 synthetic inputs or small purpose-built fixtures. Official-data acceptance is recorded as

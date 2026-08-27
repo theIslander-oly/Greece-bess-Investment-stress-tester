@@ -5,7 +5,7 @@ Review each provider's current terms before use or redistribution.
 
 | Source | Intended use | Current status | Repository evidence |
 | --- | --- | --- | --- |
-| HEnEx Day-Ahead Market results | Primary official Greek DAM prices and publication metadata | Parser accepted on two files; verified 2020-2025 archive downloader and incremental daily discovery implemented | `docs/official_data_acceptance_2026-08-25.md`, `docs/official_data_retrieval.md` |
+| HEnEx Day-Ahead Market results | Primary official Greek DAM prices and publication metadata | Accepted end to end: parser, 2020-2025 archives, incremental 2026 daily retrieval, and operational dispatch/forecast acceptance over the complete history | `docs/official_data_acceptance_2026-08-25.md`, `docs/official_history_acceptance_2026-08-26.md`, `docs/official_multiyear_operational_acceptance_2026-08-27.md`, `docs/official_data_retrieval.md` |
 | ENTSO-E Transparency Platform A44 | Independent official price retrieval and reconciliation | Client implemented; private-token acceptance pending | `docs/entsoe_github_retrieval.md` |
 | IPTO/ADMIE publications | Future demand, generation, renewable and system context | Public catalog/download client implemented; feature parsing and publication-timing acceptance pending | `docs/official_data_retrieval.md` |
 | HEnEx market/rule publications | Market definitions, products and rule changes | Research input; not encoded as project-specific legal advice | Future legal/market-access review |
