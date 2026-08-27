@@ -243,7 +243,9 @@ jobs:
           print(text)
           step_summary = os.environ.get("GITHUB_STEP_SUMMARY")
           if step_summary:
-              Path(step_summary).write_text(text, encoding="utf-8")
+              # Append: the custody verification step already wrote its result here.
+              with open(step_summary, "a", encoding="utf-8") as handle:
+                  handle.write("\n" + text)
           PY
 
       - name: Upload the annual decomposition evidence
