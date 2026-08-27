@@ -690,8 +690,9 @@ Tax, subsidy and leveraged financing remain excluded until
 their jurisdiction-specific assumptions are independently validated. HEnEx workbook and complete
 official-history acceptance have passed, and both the perfect-foresight optimizer and the
 forecast-dispatch backtests have now been accepted over that full history. Private-token ENTSO-E
-reconciliation and publication-time acceptance for ADMIE exogenous variables remain parallel
-acceptance tasks.
+retrieval and the cross-source reconciliation passed on 27 August 2026: 74,662 of 74,663 official
+intervals match exactly and neither source omits an interval the other publishes. Publication-time
+acceptance for ADMIE exogenous variables remains a parallel acceptance task.
 
 ## Project records
 
@@ -719,6 +720,7 @@ acceptance tasks.
 - [Implementation report v0.7.2 bootstrap dispatch](docs/implementation_report_v0.7.2.md)
 - [Official annual-history acceptance](docs/official_history_acceptance_2026-08-26.md)
 - [Official multi-year operational acceptance](docs/official_multiyear_operational_acceptance_2026-08-27.md)
+- [Official HEnEx to ENTSO-E reconciliation](docs/official_source_reconciliation_2026-08-27.md)
 - [Current status](STATUS.md)
 - [Implementation plan](PLAN.md)
 - [Contributing guidance](CONTRIBUTING.md)
