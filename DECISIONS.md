@@ -3,6 +3,29 @@
 This file records decisions that materially affect interpretation or reproducibility. Add a
 dated entry when a milestone changes scope, assumptions, data handling or validation.
 
+## 2026-08-27 — Record both horizons in official operational acceptance
+
+- **Decision:** Accept the official multi-year history with the existing optimizer run twice: once
+  over the complete 74,663-interval horizon in a single solve, and once as 2,124 independent daily
+  solves composed without altering their physical semantics.
+- **Reason:** The API maximises margin across whatever horizon it is given, and the full history
+  proved tractable, so the true upper bound is recordable. The daily mode is the repository's
+  established comparative convention and is the ceiling the forecast backtests use, so both are
+  needed to interpret the forecast results.
+- **Consequence:** The daily-composed margin is necessarily lower than the full-horizon margin
+  because restoring the initial SOC each day removes inter-day arbitrage. Both remain labelled
+  historical perfect-foresight gross-margin upper bounds; neither is expected revenue.
+
+## 2026-08-27 — Attribute every excluded forecast day to a structural cause
+
+- **Decision:** Require each excluded backtest day to be attributed to first-day warm-up,
+  insufficient causal lag history, a spring DST day that removes the required wall-clock slot, or
+  the 2025-10-01 hourly-to-quarter-hour resolution change and its lag warm-up.
+- **Reason:** An unexplained exclusion could hide a defect, whereas these four causes are
+  deterministic consequences of documented market structure and causal lag rules.
+- **Consequence:** Acceptance reports coverage and exclusion counts by reason. Zero unexplained
+  exclusions occurred across the accepted history, so no code change was warranted.
+
 ## 2026-08-27 — Dispatch bootstrap paths independently under shared assumptions
 
 - **Decision:** Require equivalent complete canonical interval identities and retained synthetic

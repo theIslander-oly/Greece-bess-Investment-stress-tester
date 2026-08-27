@@ -26,7 +26,8 @@ full calendar year.
 The 2026 annual archive does not yet exist. `fetch-henex-daily` uses the official results asset
 catalog for a requested date range and retains the latest visible revision for each delivery day.
 Because this is a web catalog rather than a documented API, a layout change is a hard error. Its
-first complete 2026 run remains an acceptance task.
+first complete 2026 run has been accepted; see
+`docs/official_history_acceptance_2026-08-26.md`.
 
 ## ADMIE/IPTO file API track
 
@@ -57,11 +58,13 @@ relevant bid decision. Until then, files are historical explanatory inputs or la
   Ordinary code pushes do not trigger it, and it does not commit or publish those files.
 - Provider terms must be reviewed before redistribution or public hosting.
 
-## Remaining acceptance sequence
+## Acceptance sequence
 
-1. Run 2020-2025 archive retrieval in the connected private repository.
-2. Run incremental 2026 retrieval and confirm every expected market day.
-3. Produce annual row counts, DST checks, gaps, duplicates, revisions and price-regime reports.
-4. Reconcile an overlapping period with ENTSO-E A44 using a private token.
-5. Inventory ADMIE format regimes and publication timing before parsing forecast features.
-6. Only then run the optimizer and forecast benchmarks across the official history.
+1. ~~Run 2020-2025 archive retrieval in the connected private repository.~~ Accepted.
+2. ~~Run incremental 2026 retrieval and confirm every expected market day.~~ Accepted.
+3. ~~Produce annual row counts, DST checks, gaps, duplicates, revisions and price-regime
+   reports.~~ Accepted.
+4. ~~Run the optimizer and forecast benchmarks across the official history.~~ Accepted; see
+   `docs/official_multiyear_operational_acceptance_2026-08-27.md`.
+5. Reconcile an overlapping period with ENTSO-E A44 using a private token.
+6. Inventory ADMIE format regimes and publication timing before parsing forecast features.
