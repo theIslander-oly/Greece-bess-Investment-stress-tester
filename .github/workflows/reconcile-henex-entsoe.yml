@@ -173,6 +173,9 @@ jobs:
           henex_quality = json.loads(
               Path("acceptance/henex_prices.quality.json").read_text(encoding="utf-8")
           )
+          entsoe_flags = pd.read_csv(
+              "acceptance/entsoe/entsoe_prices.csv", usecols=["quality_flags"]
+          )["quality_flags"].fillna("[]")
 
           status_counts = comparison["comparison_status"].value_counts().sort_index()
           both = comparison["comparison_status"].isin({"match", "price_mismatch"})
@@ -203,6 +206,9 @@ jobs:
               "henex_interval_count": int(henex_quality["row_count"]),
               "entsoe_quality_valid": bool(entsoe_quality["is_valid"]),
               "entsoe_interval_count": int(entsoe_quality["row_count"]),
+              "entsoe_variable_block_repeat_count": int(
+                  entsoe_flags.str.contains("entsoe_variable_block_repeat").sum()
+              ),
               "entsoe_quality_issue_codes": sorted(
                   {str(issue["code"]) for issue in entsoe_quality["issues"]}
               ),
