@@ -4,7 +4,7 @@ Transparent research and pre-feasibility tooling for a standalone grid-scale bat
 
 This is not financial advice, an investment-grade forecast, a bankable revenue study or a substitute for legal, tax, grid-connection and market-access diligence.
 
-**Current release:** `v0.6.3` — project finance plus accepted official-history retrieval.
+**Current release:** `v0.7.0` — deterministic seasonal block-bootstrap foundation.
 
 ## Current implementation
 
@@ -54,7 +54,39 @@ Version 0.6 provides:
 - maximum initial CAPEX and market-margin break-even outputs;
 - mandatory operating-margin labels that preserve upper-bound and backtest limitations.
 
-Probabilistic scenario analysis and the user interface remain subsequent phases.
+The first v0.7 foundation also provides deterministic, seeded seasonal block-bootstrap price
+paths with sampled-block provenance. Dispatch, financial probability outputs, additional shocks
+and the user interface remain subsequent phases.
+
+## Generate synthetic bootstrap paths
+
+Create a JSON configuration (the end day is exclusive):
+
+```json
+{
+  "start_day": "2027-01-01",
+  "end_day": "2028-01-01",
+  "path_count": 100,
+  "block_days": 7,
+  "random_seed": 42
+}
+```
+
+Then run the generator against a complete canonical price history held outside Git:
+
+```bash
+greek-bess generate-bootstrap-paths data/processed/henex_prices.csv \
+  --config config/bootstrap.json \
+  --output data/processed/bootstrap_paths.csv
+```
+
+The command writes the labelled synthetic paths, a block-level `.provenance.csv`, and a
+`.summary.json`. It samples with replacement from contiguous blocks in the same meteorological
+season and requires the source block to have the target block's exact interval-count pattern.
+It copies prices without smoothing or interpolation, including zero and negative values. Missing
+prices, gaps, overlaps, incomplete market days and unavailable DST-compatible blocks fail
+explicitly. These paths are synthetic scenarios—not forecasts, probability-calibrated outcomes,
+or investment evidence—and generated artifacts must not be committed.
 
 ## Repository guide
 
@@ -595,6 +627,7 @@ exogenous variables remain parallel acceptance tasks.
 - [Implementation report v0.6.2](docs/implementation_report_v0.6.2.md)
 - [Release notes v0.6.3](docs/release_notes_v0.6.3.md)
 - [Implementation report v0.6.3](docs/implementation_report_v0.6.3.md)
+- [Implementation report v0.7 foundation](docs/implementation_report_v0.7.md)
 - [Official annual-history acceptance](docs/official_history_acceptance_2026-08-26.md)
 - [Current status](STATUS.md)
 - [Implementation plan](PLAN.md)

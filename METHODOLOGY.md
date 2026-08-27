@@ -12,7 +12,7 @@ The project is intentionally modular:
 6. plan dispatch on forecasts and settle the plan on realized prices;
 7. evolve usable energy and power through degradation and augmentation cohorts;
 8. transform a continuous operating path into explicit unlevered cash flows;
-9. stress assumptions and price paths in reproducible scenarios (planned for v0.7).
+9. generate reproducible synthetic price paths for later stress scenarios (v0.7 foundation).
 
 Each stage emits auditable interval, daily and summary outputs rather than only a headline
 return.
@@ -89,7 +89,22 @@ maximum initial CAPEX and market-margin break-even values.
 No revenue is extrapolated across missing operating days. Tax, debt, subsidy and working
 capital layers are not included.
 
-## 7. Validation
+## 7. Seasonal block-bootstrap foundation
+
+The v0.7 foundation samples contiguous historical market-day blocks with replacement. An
+explicit seed drives NumPy's deterministic generator. Candidate blocks must begin in the same
+meteorological season as the target block, be calendar-contiguous, and match the target block's
+exact vector of daily interval counts. The last block may be shorter. Each sampled block records
+its target/source day boundaries, season, interval count, candidate count and selected candidate
+index.
+
+Target UTC and local timestamps are reconstructed from the target market days; sampled prices
+are copied by physical interval order without scaling, smoothing or interpolation. Complete-day
+and continuous-horizon validation occurs before sampling, and a target block fails when no
+seasonal source block has a compatible 23/25-hour or 92/100-quarter-hour structure. Outputs are
+labelled synthetic scenarios and are not forecasts or probability-calibrated market evidence.
+
+## 8. Validation
 
 Code changes must pass Ruff, mypy, pytest and a clean wheel build. Tests use deterministic
 synthetic inputs or small purpose-built fixtures. Official-data acceptance is recorded as

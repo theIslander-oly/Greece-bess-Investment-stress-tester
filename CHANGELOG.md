@@ -2,6 +2,25 @@
 
 All notable project changes are documented here.
 
+## [0.7.0] — 2026-08-26
+
+### Added
+
+- Deterministic meteorological-season block bootstrap with explicit target dates, path count,
+  block length and random seed.
+- Block-level provenance recording target/source dates, season, interval count, candidate count
+  and sampled candidate index.
+- Public Python API and `generate-bootstrap-paths` CLI with path, provenance and summary outputs.
+- Synthetic tests for reproducibility, timezone-aware timestamps, zero/negative prices, spring
+  and autumn DST market days, strict configuration and missing-observation rejection.
+
+### Interpretation limits
+
+- Bootstrap paths are labelled synthetic scenarios, not forecasts, probability-calibrated
+  outcomes, expected revenues or investment evidence.
+- Dispatch, degradation, finance, percentile/loss outputs and additional shocks are excluded
+  from this foundation.
+
 ## [0.6.3] — 2026-08-26
 
 ### Fixed

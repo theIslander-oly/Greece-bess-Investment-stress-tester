@@ -52,7 +52,7 @@ Suggested future branch sequence:
   - ADMIE filetype/range client with publication-time provenance.
   - Private short-lived GitHub retrieval artifact.
 - [ ] v0.7 — Probabilistic stress testing.
-  - Seasonal block bootstrap and reproducible seeds.
+  - [x] Foundation: seasonal block bootstrap, reproducible seeds and sampled-block provenance.
   - Price, spread, negative-price, outage and cannibalisation shocks.
   - P5/P50/P95, loss probability and worst-case paths.
 - [ ] v0.8 — Research interface and exportable reports.
