@@ -4,6 +4,21 @@
 **Updated:** 27 August 2026
 **Status:** Official multi-year operational acceptance passed; broader stress testing pending
 
+## Official cross-source reconciliation
+
+- The accepted HEnEx history was compared interval by interval against ENTSO-E A44 Greek
+  day-ahead prices over the identical window, market days 1 November 2020 through 25 August 2026.
+- 74,662 of 74,663 intervals match within EUR 0.000001/MWh; neither source omits an interval the
+  other publishes.
+- One interval on the 29 October 2023 autumn DST market day differs by exactly EUR 0.01/MWh,
+  consistent with the already-accepted HEnEx one-cent rounding-consensus bound.
+- Both sources independently pass their own deterministic quality assessment over the window.
+- The reconciliation corrected a real defect in the project's ENTSO-E reader: A44 `A03` curve-type
+  repeats were being dropped, which had understated ENTSO-E coverage by 4,874 intervals.
+- An immediate second run reproduced every count and statistic.
+- This is cross-source ingestion evidence, not revenue, forecast or investment evidence.
+- Aggregate evidence is recorded in `docs/official_source_reconciliation_2026-08-27.md`.
+
 ## Official multi-year operational acceptance
 
 - The accepted `greek-dam-official-history` artifact was hash-verified before use and covers
@@ -160,8 +175,6 @@
 
 ## Validation still required
 
-- Run ENTSO-E client with a private user token.
-- Compare overlapping HEnEx and ENTSO-E official intervals.
 - Accept ADMIE load/RES formats and prove pre-auction publication timing.
 
 The HEnEx acceptance evidence, raw-file hashes and exact results are recorded in
@@ -198,6 +211,6 @@ scenarios: percentile and loss-probability outputs were removed pending a defens
 calibration story. The next isolated v0.7 modeling milestone is deterministic
 availability/outage-path integration, which requires explicit approval before implementation,
 preceded by a documented bootstrap source-era/resolution policy. Negative-price-event
-transformations remain deferred. ENTSO-E reconciliation, ADMIE timing acceptance, durable
-private storage of the accepted history, and per-year replay decomposition remain parallel
-tasks.
+transformations remain deferred. ENTSO-E reconciliation passed on 2026-08-27. ADMIE timing
+acceptance, durable private storage of the accepted history, and per-year replay decomposition
+remain parallel tasks.

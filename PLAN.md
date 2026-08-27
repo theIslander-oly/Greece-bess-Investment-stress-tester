@@ -78,8 +78,11 @@ Suggested future branch sequence:
   - Official `20260824` and `20260825` English v01 result workbooks.
   - 96 quarter-hour intervals per day and 192 contiguous intervals combined.
   - No missing prices, duplicate intervals, gaps, overlaps or quality errors.
-- [ ] Validate the ENTSO-E client with a private token.
-- [ ] Reconcile overlapping official sources.
+- [x] Validate the ENTSO-E client with a private token.
+  - Workflow run `33073631530` retrieved the complete 1 November 2020 to 25 August 2026 window.
+- [x] Reconcile overlapping official sources.
+  - 74,662 of 74,663 intervals match exactly; one 29 October 2023 interval differs by
+    EUR 0.01/MWh; neither source omits an interval the other publishes.
 - [x] Record the accepted HEnEx source versions, retrieval date and raw hashes.
 - [ ] Record the ENTSO-E retrieval metadata and raw-response hashes.
 - [x] Run and accept the 2020-2025 HEnEx annual archives live.
