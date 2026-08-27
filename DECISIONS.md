@@ -3,6 +3,50 @@
 This file records decisions that materially affect interpretation or reproducibility. Add a
 dated entry when a milestone changes scope, assumptions, data handling or validation.
 
+## 2026-08-27 — Decompose the accepted replay by market-clock delivery year
+
+- **Decision:** Add a `decompose-annual-replay` surface and workflow that regroup an
+  already-accepted replay into delivery years, where a delivery year is the calendar year of
+  the interval's CET/CEST market-day start. Every year carries its market-day count, its
+  coverage against the calendar year and an explicit partial-year flag; per-market-day figures
+  are within-period averages and no annual figure is annualized, extrapolated or scaled to a
+  full year. No probability, percentile, loss metric or ranking of years is attached.
+- **Reason:** The accepted 2020-2026 aggregate margin averages a COVID trough, a gas-crisis
+  year and a negative-price surge into one number, which conceals the regime dependence that
+  is the most decision-relevant property of the replay. The market clock is the sense in which
+  the Greek DAM has delivery years and is already the convention of the committed custody
+  records, so a second convention would put two committed documents in apparent conflict.
+  Partial years are unavoidable at both ends of the accepted window: 2020 begins on 1 November
+  and 2026 ends on 25 August. Annualizing either would manufacture revenue the replay does not
+  contain, which is the same objection that removed percentiles from the v0.7 scope.
+- **Consequence:** A UTC-grouped count and a market-clock count of the same intervals differ
+  by one interval at each year boundary; the summary states the equivalence so the difference
+  is read as a grouping, not a defect. Annual figures keep the labels their aggregates carry:
+  a per-year perfect-foresight margin remains a gross-margin upper bound and a per-year
+  capture ratio remains a historical backtest outcome. Ordering years by margin is not a
+  ranking of anything about the future.
+
+## 2026-08-27 — Attribute a delivery year only from independent daily solves
+
+- **Decision:** Decompose the perfect-foresight ceiling from a schedule composed of
+  independent daily solves rather than from a single full-horizon solve, and publish that mode
+  as `optimize_daily_perfect_foresight` and `optimize-perfect-foresight --daily-solves`. The
+  mode requires `terminal_soc_fraction` to equal `initial_soc_fraction`. The decomposition
+  additionally refuses any schedule whose settled price differs from the supplied history at
+  any interval.
+- **Reason:** A full-horizon solve may charge on 31 December and discharge on 1 January, which
+  splits one trade's cost and revenue across two delivery years and makes an annual figure an
+  artifact of where the boundary falls. Independent daily solves cannot do this, and they are
+  already the repository's comparative convention and the ceiling the forecast backtests are
+  measured against, so the annual ceiling and the annual capture ratio share one basis. The
+  2026-08-27 acceptance ran this mode through a temporary runner that no longer exists; there
+  was no published surface for it, so the decomposition could not be reproduced.
+- **Consequence:** The composed annual ceilings sum to the composed total, and their sum is at
+  or below the full-horizon bound because restoring SOC each day removes inter-day arbitrage.
+  Both remain labelled upper bounds. The price-equality check means a decomposition cannot
+  silently pair a schedule with a history it was not solved on, which is the annual analogue
+  of the settlement audit the acceptance performed.
+
 ## 2026-08-27 — Hold accepted official artifacts as encrypted release assets, fingerprinted in Git
 
 - **Decision:** Store each accepted official artifact as an encrypted asset attached to a

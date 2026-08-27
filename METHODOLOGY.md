@@ -152,7 +152,40 @@ settlement against realized official prices, like-for-like ceilings on shared da
 with every excluded day attributed to a structural cause. Both paths must reproduce identical
 results on an immediate second run. Interval prices and schedules are never recorded in the report.
 
-## 11. Validation
+## 11. Per-delivery-year replay decomposition
+
+An accepted replay is decomposed into delivery years so that regime dependence is visible
+rather than averaged away. The decomposition adds no model, market or transformation: it
+regroups results the dispatch and backtest stages already produced.
+
+A delivery year is the calendar year of the interval's CET/CEST market-day start. This is the
+sense in which the Greek DAM has delivery years and the convention the committed custody
+records use; grouping by UTC year instead places the interval beginning 31 December 23:00Z in
+the earlier year, which is a different grouping of identical intervals rather than an error.
+
+The perfect-foresight ceiling is decomposed from a schedule composed of independent daily
+solves, so that no trade spans a year boundary and every interval's margin belongs
+unambiguously to its own delivery year. A single full-horizon solve may charge in one
+delivery year and discharge in the next, and is therefore not the basis for annual
+attribution. The schedule must settle every interval at the price the supplied history
+publishes; a difference means the schedule was solved on other data and the decomposition is
+refused rather than reported.
+
+Forecast capture is decomposed per method against that method's own backtested days, because
+each method excludes different days for structural reasons, and separately over the days every
+supplied method backtested, where the ceiling must be identical. The recorded spread across
+methods on that common set is the like-for-like evidence. Annual error metrics are recomposed
+from the daily tables by interval weighting: mean absolute error is interval-weighted and root
+mean squared error is recomposed from interval-weighted squared daily values.
+
+Every year carries its market-day count, its coverage against the calendar year and an explicit
+partial-year flag. Per-market-day figures are within-period averages over the days present; no
+annual figure is annualized, extrapolated or scaled to a full year, because doing so would
+manufacture revenue the replay does not contain. Zero, negative and missing prices are counted
+per year and never filled. No probability, percentile, loss metric or ranking of delivery years
+is produced.
+
+## 12. Validation
 
 Code changes must pass Ruff, mypy, pytest and a clean wheel build. Tests use deterministic
 synthetic inputs or small purpose-built fixtures. Official-data acceptance is recorded as

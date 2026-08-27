@@ -1,10 +1,38 @@
 # Project status
 
-**Version:** 0.7.3
+**Version:** 0.7.4
 **Updated:** 27 August 2026
 **Status:** Official multi-year operational acceptance and HEnEx-to-ENTSO-E cross-source
 reconciliation passed; artifact custody tooling in place awaiting the operator upload;
+per-delivery-year replay decomposition implemented and awaiting its first official run;
 broader stress testing pending
+
+## Per-delivery-year decomposition of the accepted replay
+
+- `decompose-annual-replay` regroups an already-accepted replay into delivery years, adding no
+  model, market or transformation.
+- A delivery year is the calendar year of the interval's CET/CEST market-day start, the same
+  convention the committed custody records use; the summary states why a UTC grouping of the
+  same intervals differs by one interval at a year boundary.
+- Each year carries market-day coverage, an explicit partial-year flag, interval counts by
+  resolution, preserved negative, zero and missing price counts, price context including the
+  mean daily price range, and its perfect-foresight ceiling.
+- Forecast capture is reported per method on that method's own backtested days, and separately
+  on the days every method backtested, where the recorded ceiling spread is the like-for-like
+  evidence.
+- `optimize-perfect-foresight --daily-solves` publishes the daily-composed dispatch mode the
+  2026-08-27 acceptance ran through a temporary runner, so the annual ceiling and the annual
+  capture ratio share one basis and no trade spans a year boundary.
+- A schedule whose settled prices differ from the supplied history at any interval is refused,
+  so a decomposition cannot be paired with a history it was not solved on.
+- Per-market-day figures are within-period averages; nothing is annualized, and no probability,
+  percentile, loss metric or year ranking is produced.
+- The `Decompose the accepted replay by delivery year` workflow verifies the accepted artifact
+  against its committed custody record before consuming it, then runs the daily ceiling, the
+  four causal naïve backtests and the decomposition inside Actions.
+- **Outstanding:** the workflow has not yet been run against run `32971677163`, so no accepted
+  per-year evidence is recorded. Running it before 2 September 2026 avoids depending on the
+  operator's decrypted custody copy.
 
 ## Durable custody of accepted official artifacts
 
@@ -236,4 +264,5 @@ availability/outage-path integration, which requires explicit approval before im
 preceded by a documented bootstrap source-era/resolution policy. Negative-price-event
 transformations remain deferred. ENTSO-E reconciliation passed on 2026-08-27. Custody tooling and the storage
 procedure landed on 2026-08-27 and await the operator upload. ADMIE timing acceptance and
-per-year replay decomposition remain parallel tasks.
+per-year replay decomposition remain parallel tasks. The per-year decomposition surface and
+workflow landed on 2026-08-27; only its official run is outstanding.

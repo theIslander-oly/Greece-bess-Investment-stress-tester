@@ -68,6 +68,10 @@
   quarter-hour delivery later in the held-out test period. This is disclosed rather than corrected.
 - Accepted historical dispatch assumes constant full availability. No outage, derating or
   auxiliary-load path exists, so the accepted margins do not reflect unavailability.
+- The daily-composed perfect-foresight mode restores the configured SOC at every day end, so
+  it is at or below the single full-horizon bound by construction. Neither is achievable
+  revenue; the composed mode exists because it is the ceiling the forecast backtests are
+  measured against and the only basis on which a trade cannot span a year boundary.
 - Daily backtests restore initial SOC at day end and do not optimize energy across days.
 - Daylight-saving slot differences can make persistence forecasts incomplete; exclusions are
   disclosed.
@@ -99,6 +103,29 @@
 - The command-line interface is research-oriented; no user interface exists yet.
 - The first GitHub snapshot imports already completed v0.1-v0.6 work, so earlier development
   history is represented by implementation reports rather than fabricated Git commits.
+
+## Per-delivery-year decomposition limitations
+
+- A delivery year is a regrouping of an already-accepted replay, not new evidence. Splitting a
+  historical upper bound by year does not make any year's figure a forecast, an expectation or
+  a probable outcome for a comparable future year.
+- Years of unequal coverage are not comparable on totals alone. Partial years are flagged and
+  carry their market-day count; per-market-day figures are within-period averages and are
+  deliberately not annualized.
+- A year's figures are conditioned on that year's market regime, on the illustrative battery
+  and fee assumptions, and on the fixed availability of 1.0. A high-spread year says what the
+  replayed battery would have captured in that regime under those assumptions, not what a
+  battery operating in that year would have earned.
+- The 2020-2026 accepted history mixes hourly and quarter-hour delivery, with the change on
+  1 October 2025. Years on either side of that change differ in interval structure as well as
+  in price regime, and the per-year interval counts by resolution disclose this rather than
+  correcting for it.
+- Annual capture ratios compare a method against the ceiling on the days that method
+  backtested. Methods exclude different days for structural reasons, so cross-method
+  comparison uses the common-day table, whose recorded ceiling spread is the like-for-like
+  evidence.
+- No probability, percentile, loss metric or ranking of delivery years is produced, and a year
+  ordering by margin is not a ranking of anything about the future.
 
 ## Price-level shock limitations
 

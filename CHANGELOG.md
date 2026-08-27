@@ -6,6 +6,28 @@ All notable project changes are documented here.
 
 ### Added
 
+- `decompose-annual-replay` command and a `greek_bess.analysis` package, which regroup an
+  already-accepted replay into delivery years without adding a model, market or
+  transformation. A delivery year is the calendar year of the interval's CET/CEST market-day
+  start, matching the committed custody records. The per-year overview carries market-day
+  coverage, an explicit partial-year flag, interval counts by resolution, preserved negative,
+  zero and missing price counts, price context including the mean daily price range, and the
+  perfect-foresight ceiling; a second table reports forecast capture per method on that
+  method's own backtested days; a third restricts every method to the days all methods
+  backtested and records the ceiling spread that proves the comparison is like-for-like.
+  Per-market-day figures are within-period averages and nothing is annualized. No probability,
+  percentile, loss metric or ranking of years is produced.
+- `optimize-perfect-foresight --daily-solves` and `optimize_daily_perfect_foresight`, which
+  solve every market day independently and compose the schedules. This publishes the
+  daily-composed mode the 2026-08-27 acceptance ran through a temporary runner, requires the
+  terminal SOC to equal the initial SOC, and is the basis on which no trade can span a
+  delivery-year boundary. The composed schedule carries a `market_day` column and its summary
+  records per-day solver statuses and the largest terminal-energy error.
+- `Decompose the accepted replay by delivery year` GitHub Actions workflow, which verifies an
+  accepted `greek-dam-official-history` artifact against its committed custody record before
+  consuming it, then runs the daily-composed ceiling, the requested causal naïve backtests and
+  the decomposition inside Actions, publishing only per-year aggregates to the job summary.
+
 - `record-custody` and `verify-custody` commands and a `greek_bess.data.custody` module, which
   fingerprint an accepted official artifact without recording any price. A custody record holds
   per-file digests plus content-level invariants of the normalized series — interval count,

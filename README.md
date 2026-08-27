@@ -76,7 +76,10 @@ The current implementation provides:
 - exact-date discounted unlevered cash flows, NPV and IRR;
 - simple and discounted payback;
 - maximum initial CAPEX and market-margin break-even outputs;
-- mandatory operating-margin labels that preserve upper-bound and backtest limitations.
+- mandatory operating-margin labels that preserve upper-bound and backtest limitations;
+- a daily-composed perfect-foresight mode that restores SOC at every day end;
+- a per-delivery-year decomposition of an accepted replay on the CET/CEST market clock, with
+  partial-year labelling, per-method capture and a like-for-like common-day comparison.
 
 The first v0.7 foundation also provides deterministic, seeded seasonal block-bootstrap price
 paths with sampled-block provenance. Each validated path can now be dispatched independently
@@ -406,6 +409,24 @@ This produces:
 - `outputs/perfect_foresight_dispatch.summary.json`, with aggregate energy,
   equivalent cycles, captured prices and margin components.
 
+Add `--daily-solves` to solve every market day independently and compose the schedules
+instead of optimizing the whole horizon in one solve:
+
+```bash
+greek-bess optimize-perfect-foresight \
+  data/curated/henex_prices.csv \
+  --config examples/battery_50mw_100mwh.json \
+  --daily-solves \
+  --output outputs/perfect_foresight_daily.csv
+```
+
+Each day then starts and ends at the configured SOC, which is the convention the forecast
+backtests are measured against, and requires `terminal_soc_fraction` to equal
+`initial_soc_fraction`. The composed margin is necessarily at or below the single
+full-horizon margin, because restoring SOC every day removes inter-day arbitrage. Both
+remain labelled upper bounds. The composed schedule carries a `market_day` column and its
+summary records the per-day solver statuses and the largest terminal-energy error.
+
 The optimizer uses these conventions:
 
 - charge MW and MWh are grid imports settled at the DAM price;
@@ -635,6 +656,59 @@ financing fees, working capital, grid feasibility, bid acceptance and revenues f
 Intraday, Balancing or reserve markets. A positive NPV flag is a mathematical result under
 the inputs—not a build recommendation.
 
+## 12. Decompose an accepted replay by delivery year
+
+Aggregate multi-year margins conceal regime dependence: a gas-crisis year, a low-price year
+and a negative-price year average into one number. `decompose-annual-replay` splits an
+already-computed replay into delivery years without adding a model, a market or a
+transformation.
+
+```bash
+greek-bess decompose-annual-replay \
+  data/curated/henex_prices.csv \
+  --perfect-foresight-schedule outputs/perfect_foresight_daily.csv \
+  --daily-results ensemble=outputs/forecast_dispatch.daily.csv \
+  --daily-results rolling_mean=outputs/rolling_mean_dispatch.daily.csv \
+  --energy-capacity-mwh 100 \
+  --output outputs/annual_overview.csv
+```
+
+This produces:
+
+- `outputs/annual_overview.csv`, one row per delivery year with market-day coverage, a
+  partial-year flag, interval counts by resolution, preserved negative, zero and missing
+  price counts, price context including the mean daily price range, and the
+  perfect-foresight ceiling for that year;
+- `outputs/annual_overview.forecast.csv`, one row per delivery year and forecast method, with
+  backtested-day coverage, realized margin, that method's own-days ceiling, regret, capture
+  and loss-making days;
+- `outputs/annual_overview.common_day.csv`, the same per-year comparison restricted to the
+  market days every supplied method backtested, where the ceiling must be identical and the
+  recorded spread proves it;
+- `outputs/annual_overview.summary.json`, with the year list, the partial years, the
+  ceiling-reconciliation residual and the labels below.
+
+Conventions:
+
+- **A delivery year is the calendar year of the interval's CET/CEST market-day start**, the
+  same convention the committed custody records use. Grouping by UTC year instead moves the
+  interval beginning 31 December 23:00Z into the earlier year.
+- Partial years are labelled and carry their market-day count. Per-market-day figures are
+  within-period averages; **no annual figure is annualized, extrapolated or scaled to a full
+  year**.
+- The supplied schedule must settle every interval at the price the supplied history
+  publishes, otherwise the decomposition is refused: that is what proves the schedule was
+  solved on this history.
+- Use `--daily-solves` for the schedule. A full-horizon solve may charge on 31 December and
+  discharge on 1 January, which splits one trade across two delivery years.
+- Annual perfect-foresight figures remain labelled gross-margin upper bounds and annual
+  forecast figures remain historical backtest outcomes. No probability, percentile, loss
+  metric or ranking of years is produced.
+
+The `Decompose the accepted replay by delivery year` GitHub Actions workflow runs the whole
+sequence against an accepted `greek-dam-official-history` artifact, after verifying it
+against its committed custody record, and uploads the per-year tables as a private artifact.
+
 ## Record and verify custody of an accepted official artifact
 
 An accepted official artifact lives outside Git, so the repository holds a fingerprint of it
@@ -691,6 +765,8 @@ src/greek_bess/
     timezones.py
   dispatch/
     perfect_foresight.py
+  analysis/
+    annual.py
   forecast/
     naive.py
     ml.py
@@ -750,6 +826,7 @@ acceptance for ADMIE exogenous variables remains a parallel acceptance task.
 - [Implementation report v0.7 foundation](docs/implementation_report_v0.7.md)
 - [Implementation report v0.7.1 price-level shock](docs/implementation_report_v0.7.1.md)
 - [Implementation report v0.7.2 bootstrap dispatch](docs/implementation_report_v0.7.2.md)
+- [Implementation report v0.7.4 per-year replay decomposition](docs/implementation_report_v0.7.4.md)
 - [Official annual-history acceptance](docs/official_history_acceptance_2026-08-26.md)
 - [Official multi-year operational acceptance](docs/official_multiyear_operational_acceptance_2026-08-27.md)
 - [Official HEnEx to ENTSO-E reconciliation](docs/official_source_reconciliation_2026-08-27.md)
