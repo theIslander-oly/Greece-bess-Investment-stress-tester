@@ -12,9 +12,44 @@ from greek_bess.data.quality import assess_quality
 from greek_bess.data.schema import CANONICAL_COLUMNS, ensure_canonical
 from greek_bess.data.timezones import GREECE_TZ, UTC, market_day_starts
 
+SUPPORTED_RESOLUTION_MINUTES = frozenset({15, 60})
+
+SOURCE_ERA_POLICY = (
+    "A source era is a maximal contiguous run of market days sharing one delivery "
+    "resolution. The bootstrap samples from exactly one era. When a history contains more "
+    "than one, the era must be declared with source_resolution_minutes, optionally narrowed "
+    "by source_start_day and source_end_day; there is no default, because a silently chosen "
+    "era would make the sampled regime an accident of the input rather than a decision."
+)
+
 
 class BootstrapInputError(ValueError):
     """Raised when bootstrap inputs cannot produce an auditable path."""
+
+
+@dataclass(frozen=True)
+class SourceEra:
+    """One maximal contiguous run of market days at a single delivery resolution."""
+
+    resolution_minutes: int
+    first_day: date
+    last_day: date
+    market_day_count: int
+
+    @property
+    def label(self) -> str:
+        return (
+            f"{self.resolution_minutes}min {self.first_day.isoformat()}"
+            f"..{self.last_day.isoformat()}"
+        )
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "resolution_minutes": self.resolution_minutes,
+            "first_day": self.first_day.isoformat(),
+            "last_day": self.last_day.isoformat(),
+            "market_day_count": self.market_day_count,
+        }
 
 
 @dataclass(frozen=True)
@@ -30,10 +65,33 @@ class BootstrapConfig:
     path_count: int = 1
     block_days: int = 7
     random_seed: int = 42
+    source_resolution_minutes: int | None = None
+    source_start_day: date | None = None
+    source_end_day: date | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.start_day, date) or not isinstance(self.end_day, date):
             raise BootstrapInputError("start_day and end_day must be date values")
+        for name in ("source_start_day", "source_end_day"):
+            value = getattr(self, name)
+            if value is not None and not isinstance(value, date):
+                raise BootstrapInputError(f"{name} must be a date value when supplied")
+        if (
+            self.source_start_day is not None
+            and self.source_end_day is not None
+            and self.source_end_day <= self.source_start_day
+        ):
+            raise BootstrapInputError(
+                "source_end_day must be later than source_start_day (exclusive)"
+            )
+        if self.source_resolution_minutes is not None and (
+            isinstance(self.source_resolution_minutes, bool)
+            or self.source_resolution_minutes not in SUPPORTED_RESOLUTION_MINUTES
+        ):
+            raise BootstrapInputError(
+                "source_resolution_minutes must be one of "
+                f"{sorted(SUPPORTED_RESOLUTION_MINUTES)} when supplied"
+            )
         for name, value in (
             ("path_count", self.path_count),
             ("block_days", self.block_days),
@@ -56,7 +114,16 @@ class BootstrapConfig:
 
         if not isinstance(payload, dict):
             raise BootstrapInputError("Bootstrap config JSON must contain one object")
-        allowed = {"start_day", "end_day", "path_count", "block_days", "random_seed"}
+        allowed = {
+            "start_day",
+            "end_day",
+            "path_count",
+            "block_days",
+            "random_seed",
+            "source_resolution_minutes",
+            "source_start_day",
+            "source_end_day",
+        }
         unknown = sorted(set(payload) - allowed)
         if unknown:
             raise BootstrapInputError(f"Unknown bootstrap config fields: {', '.join(unknown)}")
@@ -64,6 +131,9 @@ class BootstrapConfig:
             values = dict(payload)
             values["start_day"] = date.fromisoformat(str(values["start_day"]))
             values["end_day"] = date.fromisoformat(str(values["end_day"]))
+            for name in ("source_start_day", "source_end_day"):
+                if values.get(name) is not None:
+                    values[name] = date.fromisoformat(str(values[name]))
             return cls(**values)
         except (KeyError, TypeError, ValueError) as exc:
             raise BootstrapInputError(f"Invalid bootstrap config: {exc}") from exc
@@ -72,6 +142,9 @@ class BootstrapConfig:
         payload = asdict(self)
         payload["start_day"] = self.start_day.isoformat()
         payload["end_day"] = self.end_day.isoformat()
+        for name in ("source_start_day", "source_end_day"):
+            value = getattr(self, name)
+            payload[name] = None if value is None else value.isoformat()
         return payload
 
 
@@ -95,7 +168,10 @@ def generate_seasonal_bootstrap_paths(
     """
 
     history = _validated_history(historical_prices)
-    resolution_minutes = int(round(float(history["duration_hours"].iloc[0]) * 60))
+    eras = detect_source_eras(history)
+    era = select_source_era(eras, config)
+    history, source_first_day, source_last_day = _restrict_to_era(history, era, config)
+    resolution_minutes = era.resolution_minutes
     by_day = {
         delivery_day: day.reset_index(drop=True)
         for delivery_day, day in history.assign(
@@ -150,6 +226,9 @@ def generate_seasonal_bootstrap_paths(
                     "interval_count": sum(target_counts),
                     "candidate_count": len(candidates),
                     "sampled_candidate_index": sampled_index,
+                    "source_era_resolution_minutes": resolution_minutes,
+                    "source_era_first_day": source_first_day.isoformat(),
+                    "source_era_last_day": source_last_day.isoformat(),
                 }
             )
             target_day += timedelta(days=length)
@@ -164,12 +243,20 @@ def generate_seasonal_bootstrap_paths(
         ),
         "method": "meteorological-season block bootstrap with replacement",
         "configuration": config.to_dict(),
+        "source_era_policy": SOURCE_ERA_POLICY,
         "resolution_minutes": resolution_minutes,
+        "available_source_eras": [available.to_dict() for available in eras],
+        "available_source_era_count": len(eras),
+        "selected_source_era": era.to_dict(),
+        "source_era_declared": config.source_resolution_minutes is not None,
         "historical_first_day": history_days[0].isoformat(),
         "historical_last_day": history_days[-1].isoformat(),
+        "sampled_source_market_day_count": len(history_days),
         "path_count": config.path_count,
         "interval_count_per_path": int((paths["path_id"] == 0).sum()),
         "sampled_block_count": len(provenance),
+        "minimum_block_candidate_count": int(provenance["candidate_count"].min()),
+        "median_block_candidate_count": float(provenance["candidate_count"].median()),
     }
     return BootstrapResult(paths=paths, provenance=provenance, summary=summary)
 
@@ -180,10 +267,124 @@ def _validated_history(frame: pd.DataFrame) -> pd.DataFrame:
     if not report.is_valid:
         errors = ", ".join(issue.code for issue in report.issues if issue.severity == "error")
         raise BootstrapInputError(f"Historical prices failed quality validation: {errors}")
-    durations = history["duration_hours"].unique()
-    if len(durations) != 1:
-        raise BootstrapInputError("Historical prices must use one interval resolution")
     return history
+
+
+def detect_source_eras(historical_prices: pd.DataFrame) -> list[SourceEra]:
+    """Split a canonical history into maximal contiguous single-resolution runs.
+
+    A resolution change or a gap in market days both end an era, because a block sampled
+    across either would not be a contiguous run of one regime. This is a structural
+    reading of the frame; the deterministic quality gate is applied separately by
+    ``generate_seasonal_bootstrap_paths``, which in practice already refuses a
+    non-contiguous history, so a real accepted history separates eras by resolution alone.
+    """
+
+    history = ensure_canonical(historical_prices, allow_empty=False)
+    working = history.assign(market_day=history["delivery_start_market"].dt.date)
+    per_day = working.groupby("market_day", sort=True)["duration_hours"].agg(["nunique", "first"])
+    mixed = per_day.loc[per_day["nunique"] > 1]
+    if not mixed.empty:
+        raise BootstrapInputError(
+            f"Market day {mixed.index[0]} mixes interval resolutions; the bootstrap "
+            "requires one resolution per market day"
+        )
+
+    eras: list[SourceEra] = []
+    current_days: list[date] = []
+    current_minutes: int | None = None
+    for market_day, duration_hours in per_day["first"].items():
+        minutes = int(round(float(duration_hours) * 60))
+        contiguous = bool(current_days) and market_day == current_days[-1] + timedelta(days=1)
+        if current_minutes == minutes and contiguous:
+            current_days.append(market_day)
+            continue
+        if current_days and current_minutes is not None:
+            eras.append(_era(current_minutes, current_days))
+        current_days = [market_day]
+        current_minutes = minutes
+    if current_days and current_minutes is not None:
+        eras.append(_era(current_minutes, current_days))
+    return eras
+
+
+def _era(resolution_minutes: int, days: list[date]) -> SourceEra:
+    return SourceEra(
+        resolution_minutes=resolution_minutes,
+        first_day=days[0],
+        last_day=days[-1],
+        market_day_count=len(days),
+    )
+
+
+def select_source_era(eras: list[SourceEra], config: BootstrapConfig) -> SourceEra:
+    """Resolve exactly one era, requiring a declaration when the history holds several."""
+
+    if not eras:
+        raise BootstrapInputError("Historical prices contain no market days")
+
+    declared = config.source_resolution_minutes
+    if declared is None:
+        if len(eras) == 1:
+            return eras[0]
+        available = "; ".join(era.label for era in eras)
+        raise BootstrapInputError(
+            "Historical prices contain more than one source era, so the sampling era must "
+            "be declared with source_resolution_minutes rather than chosen implicitly. "
+            f"Available eras: {available}"
+        )
+
+    matching = [era for era in eras if era.resolution_minutes == declared]
+    if config.source_start_day is not None:
+        matching = [era for era in matching if era.last_day >= config.source_start_day]
+    if config.source_end_day is not None:
+        matching = [era for era in matching if era.first_day < config.source_end_day]
+
+    if not matching:
+        available = "; ".join(era.label for era in eras) or "none"
+        raise BootstrapInputError(
+            f"No source era matches the declared selection ({declared} minutes"
+            f"{_window_text(config)}). Available eras: {available}"
+        )
+    if len(matching) > 1:
+        available = "; ".join(era.label for era in matching)
+        raise BootstrapInputError(
+            "The declared selection matches more than one source era; narrow it with "
+            f"source_start_day and source_end_day. Matching eras: {available}"
+        )
+    return matching[0]
+
+
+def _window_text(config: BootstrapConfig) -> str:
+    if config.source_start_day is None and config.source_end_day is None:
+        return ""
+    start = "-inf" if config.source_start_day is None else config.source_start_day.isoformat()
+    end = "+inf" if config.source_end_day is None else config.source_end_day.isoformat()
+    return f", {start}..{end}"
+
+
+def _restrict_to_era(
+    history: pd.DataFrame, era: SourceEra, config: BootstrapConfig
+) -> tuple[pd.DataFrame, date, date]:
+    market_day = history["delivery_start_market"].dt.date
+    first_day = era.first_day
+    last_day = era.last_day
+    if config.source_start_day is not None and config.source_start_day > first_day:
+        first_day = config.source_start_day
+    if config.source_end_day is not None:
+        narrowed = config.source_end_day - timedelta(days=1)
+        if narrowed < last_day:
+            last_day = narrowed
+    if last_day < first_day:
+        raise BootstrapInputError(
+            f"The declared source window leaves no market day inside era {era.label}"
+        )
+    selected = history.loc[market_day.between(first_day, last_day)].reset_index(drop=True)
+    if selected.empty:
+        raise BootstrapInputError(
+            f"The declared source window leaves no market day inside era {era.label}"
+        )
+    return selected, first_day, last_day
 
 
 def _candidate_blocks(
