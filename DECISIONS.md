@@ -3,6 +3,26 @@
 This file records decisions that materially affect interpretation or reproducibility. Add a
 dated entry when a milestone changes scope, assumptions, data handling or validation.
 
+## 2026-08-27 — Model negative-price events as explicit additive UTC windows
+
+- **Decision:** Apply one finite negative EUR/MWh shift within required, non-overlapping half-open
+  UTC windows and require every selected shocked price to be negative.
+- **Reason:** Explicit windows make event placement deterministic and auditable without claiming an
+  estimated occurrence process; additive shifts retain the original within-event price shape.
+- **Consequence:** Boundaries must align to complete intervals shared by every path. Event and
+  interval provenance is retained, while event frequency calibration and other shocks remain out
+  of scope. Outputs are synthetic sensitivities, not forecasts or investment evidence.
+
+## 2026-08-27 — Use one additive constant for the first price-level shock
+
+- **Decision:** Apply a required finite EUR/MWh shift equally to every interval of each validated
+  bootstrap path, identified by a required transformation ID, without clipping the result.
+- **Reason:** A constant additive transformation is deterministic, transparent and preserves
+  absolute price differences while allowing zero and negative shocked prices.
+- **Consequence:** Original and shocked prices plus interval/path/source provenance are retained.
+  The result is a synthetic sensitivity, not a calibrated distribution, forecast or investment
+  conclusion; all other shock types remain excluded.
+
 ## 2026-08-26 — Start v0.7 with an auditable seasonal block bootstrap
 
 - **Decision:** Sample complete contiguous market-day blocks with replacement from the same

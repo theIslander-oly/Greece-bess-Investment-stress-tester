@@ -1,8 +1,27 @@
 # Project status
 
-**Version:** 0.7.0
-**Updated:** 26 August 2026  
-**Status:** First v0.7 bootstrap foundation implemented; broader stress testing remains pending
+**Version:** 0.7.2
+**Updated:** 27 August 2026
+**Status:** Deterministic price-level and negative-event shocks implemented; broader work pending
+
+## v0.7.2 negative-price-event shock
+
+- Explicit non-overlapping half-open UTC event windows receive one configured negative additive
+  shift; every selected result must be negative or the transformation fails.
+- Event boundaries must align with complete canonical intervals and select identical UTC keys in
+  every path, preserving path identity and DST-aware interval structure.
+- Interval provenance retains applied status, event/transformation IDs, original and shocked
+  prices, shift, and input source metadata.
+- Outputs remain synthetic sensitivities, not forecasts, calibrated events or investment evidence.
+
+## v0.7.1 price-level shock
+
+- One explicit additive constant EUR/MWh transformation operates only on validated bootstrap
+  paths and preserves canonical timezone-aware interval keys and path IDs.
+- Every output interval records its original price, shocked price, shift, transformation ID and
+  input source provenance in a separate audit table.
+- Missing prices, duplicate path intervals, incomplete market days and non-contiguous paths fail.
+- Public API and CLI outputs remain labelled synthetic, non-forecast and non-investment evidence.
 
 ## v0.7 seasonal block-bootstrap foundation
 
@@ -150,5 +169,5 @@ excluded from the repository.
 
 ## Immediate next milestone
 
-Review and accept the bootstrap foundation before adding any separate v0.7 shock, dispatch or
-probability-output layer. ENTSO-E reconciliation and ADMIE timing acceptance remain separate.
+Review the isolated negative-price-event transformation before considering spread, outage,
+cannibalisation or probability layers. ENTSO-E reconciliation remains separate.

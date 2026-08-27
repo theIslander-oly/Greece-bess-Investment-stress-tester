@@ -2,6 +2,43 @@
 
 All notable project changes are documented here.
 
+## [0.7.2] — 2026-08-27
+
+### Added
+
+- Deterministic additive negative-price events over explicit, non-overlapping half-open UTC
+  windows with required event and transformation identifiers.
+- Interval provenance recording whether an event applies, event identity, original and shocked
+  prices, the configured shift, and input source metadata.
+- Public Python API and `apply-negative-price-events` CLI with strict path/window validation.
+- Synthetic tests for deterministic arithmetic, unchanged non-event intervals, negative outcomes,
+  boundary alignment, overlap rejection, configuration validation, and CLI artifacts.
+
+### Interpretation limits
+
+- Event windows and shifts are user sensitivities, not estimated event frequencies, forecasts,
+  probabilities, or investment evidence.
+- Spread, outage and cannibalisation shocks and all dispatch, finance and probability outputs
+  remain excluded.
+
+## [0.7.1] — 2026-08-27
+
+### Added
+
+- Strict additive price-level shock configuration with a finite EUR/MWh shift and required
+  transformation identifier.
+- Deterministic public Python API and `apply-price-level-shock` CLI workflow.
+- Interval provenance containing path identity, UTC key, original and shocked prices, method,
+  configured shift and input source metadata.
+- Synthetic tests for exact arithmetic, reproducibility, signed prices, CLI artifacts and
+  rejection of missing, duplicate or incomplete paths.
+
+### Interpretation limits
+
+- Shocked paths are synthetic sensitivities, not forecasts, probabilities, revenues or
+  investment evidence.
+- No spread, negative-price-event, outage or cannibalisation shocks are included.
+
 ## [0.7.0] — 2026-08-26
 
 ### Added

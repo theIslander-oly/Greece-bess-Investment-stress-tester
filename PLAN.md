@@ -53,7 +53,9 @@ Suggested future branch sequence:
   - Private short-lived GitHub retrieval artifact.
 - [ ] v0.7 — Probabilistic stress testing.
   - [x] Foundation: seasonal block bootstrap, reproducible seeds and sampled-block provenance.
-  - Price, spread, negative-price, outage and cannibalisation shocks.
+  - [x] Deterministic additive price-level shock with interval provenance.
+  - [x] Deterministic negative-price-event windows with interval provenance.
+  - Spread, outage and cannibalisation shocks.
   - P5/P50/P95, loss probability and worst-case paths.
 - [ ] v0.8 — Research interface and exportable reports.
 

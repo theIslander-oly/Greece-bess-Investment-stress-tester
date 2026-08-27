@@ -75,3 +75,21 @@
 - The command-line interface is research-oriented; no user interface exists yet.
 - The first GitHub snapshot imports already completed v0.1-v0.6 work, so earlier development
   history is represented by implementation reports rather than fabricated Git commits.
+
+## Price-level shock limitations
+
+- The additive constant is a user-configured sensitivity, not an estimated price process or a
+  probability-calibrated market view.
+- Applying one shift to every interval does not change within-path spreads or temporal shape and
+  does not represent negative-price events, outages, cannibalisation or structural market change.
+- Shocked paths are not forecasts, expected prices, investment evidence or dispatch/finance
+  results. No likelihood, percentile, loss metric or ranking is attached to them.
+
+## Negative-price-event limitations
+
+- Explicit event windows and the common additive shift are user assumptions, not estimates of
+  Greek negative-price frequency, timing, duration or severity.
+- The transformation does not randomly place events, change within-event spreads, model market
+  causes, or attach event likelihoods.
+- Requiring all selected shocked prices to be negative validates the label but does not make the
+  resulting paths forecasts or investment evidence.

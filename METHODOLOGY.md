@@ -104,7 +104,35 @@ and continuous-horizon validation occurs before sampling, and a target block fai
 seasonal source block has a compatible 23/25-hour or 92/100-quarter-hour structure. Outputs are
 labelled synthetic scenarios and are not forecasts or probability-calibrated market evidence.
 
-## 8. Validation
+## 8. Additive bootstrap price-level transformation
+
+The first shock layer accepts only complete canonical bootstrap paths. For configured shift
+\(s\) in EUR/MWh, each interval price is transformed as \(p'_{i,k}=p_{i,k}+s\), where \(i\) is
+the interval and \(k\) is the unchanged path ID. There is no random draw, clipping, flooring,
+interpolation or calendar remapping. Consequently identical ordered inputs and configuration
+produce identical results, and zero or negative shocked prices remain valid.
+
+Validation is performed independently for every path: canonical timezone-aware columns, unique
+path/UTC keys, complete DST-aware market days, continuous intervals, one supported resolution and
+non-missing prices are required. An interval audit table records the UTC key, path ID,
+transformation ID, additive shift, original and shocked values, and input source/version. Outputs
+are synthetic sensitivities and not forecasts or investment evidence.
+
+## 9. Explicit negative-price-event transformation
+
+Each configured event is a non-overlapping half-open UTC window \([t_0,t_1)\). For every path,
+the method requires the same complete canonical interval keys in that window and applies
+\(p'_{i,k}=p_{i,k}+s\), where the shared shift \(s<0\). Every selected result must be strictly
+negative; otherwise the configuration fails rather than being relabelled as a negative event.
+Non-event intervals are unchanged. No clipping, replacement, interpolation or random event draw
+occurs.
+
+Every interval receives a provenance row containing its path and UTC keys, applied status,
+optional event ID, transformation ID, shift, original/shocked values and input source/version.
+Event timing and magnitude are user sensitivities without an assigned likelihood; outputs are not
+forecasts, probability-calibrated scenarios or investment evidence.
+
+## 10. Validation
 
 Code changes must pass Ruff, mypy, pytest and a clean wheel build. Tests use deterministic
 synthetic inputs or small purpose-built fixtures. Official-data acceptance is recorded as

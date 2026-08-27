@@ -4,7 +4,7 @@ Transparent research and pre-feasibility tooling for a standalone grid-scale bat
 
 This is not financial advice, an investment-grade forecast, a bankable revenue study or a substitute for legal, tax, grid-connection and market-access diligence.
 
-**Current release:** `v0.7.0` — deterministic seasonal block-bootstrap foundation.
+**Current release:** `v0.7.2` — deterministic explicit negative-price-event shock.
 
 ## Current implementation
 
@@ -87,6 +87,53 @@ It copies prices without smoothing or interpolation, including zero and negative
 prices, gaps, overlaps, incomplete market days and unavailable DST-compatible blocks fail
 explicitly. These paths are synthetic scenarios—not forecasts, probability-calibrated outcomes,
 or investment evidence—and generated artifacts must not be committed.
+
+## Apply one explicit price-level shock
+
+The `apply-price-level-shock` command applies the same configured additive EUR/MWh shift to every
+interval without clipping zero or negative results. For example, `config/price-shock.json` may
+contain `{"shift_eur_per_mwh": -20.0, "transformation_id": "down_20_eur_mwh"}`.
+
+```bash
+greek-bess apply-price-level-shock data/processed/bootstrap_paths.csv \
+  --config config/price-shock.json \
+  --output data/processed/shocked_paths.csv
+```
+
+The command also writes sibling `.provenance.csv` and `.summary.json` artifacts. Provenance is
+one-to-one with intervals and retains path ID, canonical UTC key, original price, shocked price,
+shift, transformation ID and input source metadata. Inputs with missing prices, duplicate keys,
+gaps or incomplete DST-aware market days are rejected. These synthetic shocked paths are not
+forecasts, calibrated scenarios or investment evidence.
+
+## Apply explicit negative-price events
+
+`apply-negative-price-events` applies one configured negative EUR/MWh shift inside explicit,
+non-overlapping half-open UTC windows. Boundaries must align with complete intervals shared by
+every path, and every selected shocked price must be negative. Example configuration:
+
+```json
+{
+  "transformation_id": "winter_morning_event",
+  "shift_eur_per_mwh": -150.0,
+  "events": [{
+    "event_id": "event_1",
+    "start_utc": "2026-01-01T05:00:00+00:00",
+    "end_utc": "2026-01-01T09:00:00+00:00"
+  }]
+}
+```
+
+```bash
+greek-bess apply-negative-price-events data/processed/bootstrap_paths.csv \
+  --config config/negative-events.json \
+  --output data/processed/negative_event_paths.csv
+```
+
+The sibling provenance artifact has one row per interval with event-applied status, event and
+transformation IDs, original and shocked prices, shift and input source metadata. Event inputs are
+synthetic sensitivities, not occurrence forecasts, calibrated probabilities or investment
+evidence. Generated artifacts must not be committed.
 
 ## Repository guide
 
@@ -628,6 +675,8 @@ exogenous variables remain parallel acceptance tasks.
 - [Release notes v0.6.3](docs/release_notes_v0.6.3.md)
 - [Implementation report v0.6.3](docs/implementation_report_v0.6.3.md)
 - [Implementation report v0.7 foundation](docs/implementation_report_v0.7.md)
+- [Implementation report v0.7.1 price-level shock](docs/implementation_report_v0.7.1.md)
+- [Implementation report v0.7.2 negative-price events](docs/implementation_report_v0.7.2.md)
 - [Official annual-history acceptance](docs/official_history_acceptance_2026-08-26.md)
 - [Current status](STATUS.md)
 - [Implementation plan](PLAN.md)

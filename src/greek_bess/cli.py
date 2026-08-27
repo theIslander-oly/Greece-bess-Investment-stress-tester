@@ -48,6 +48,12 @@ from .forecast import (
 from .stress import (
     BootstrapConfig,
     BootstrapInputError,
+    NegativePriceEventConfig,
+    NegativePriceEventInputError,
+    PriceLevelShockConfig,
+    PriceLevelShockInputError,
+    apply_negative_price_events,
+    apply_price_level_shock,
     generate_seasonal_bootstrap_paths,
 )
 
@@ -151,9 +157,7 @@ def build_parser() -> argparse.ArgumentParser:
     optimize.add_argument("--config", required=True, type=Path, help="Battery JSON")
     optimize.add_argument("--availability", type=float, default=1.0)
     optimize.add_argument("--output", required=True, type=Path, help="Dispatch CSV")
-    optimize.add_argument(
-        "--summary", type=Path, help="Summary JSON; defaults beside dispatch CSV"
-    )
+    optimize.add_argument("--summary", type=Path, help="Summary JSON; defaults beside dispatch CSV")
 
     forecast = subparsers.add_parser(
         "forecast-naive",
@@ -169,9 +173,7 @@ def build_parser() -> argparse.ArgumentParser:
     forecast.add_argument("--rolling-window-days", type=int, default=28)
     forecast.add_argument("--start-day", type=date.fromisoformat)
     forecast.add_argument("--output", required=True, type=Path, help="Forecast CSV")
-    forecast.add_argument(
-        "--metrics", type=Path, help="Metrics JSON; defaults beside forecast CSV"
-    )
+    forecast.add_argument("--metrics", type=Path, help="Metrics JSON; defaults beside forecast CSV")
 
     ml_forecast = subparsers.add_parser(
         "forecast-ml",
@@ -192,18 +194,14 @@ def build_parser() -> argparse.ArgumentParser:
     )
     backtest.add_argument("prices", type=Path, help="Canonical price CSV")
     backtest.add_argument("--config", required=True, type=Path, help="Battery JSON")
-    backtest.add_argument(
-        "--method", choices=FORECAST_METHODS, default="ensemble"
-    )
+    backtest.add_argument("--method", choices=FORECAST_METHODS, default="ensemble")
     backtest.add_argument("--rolling-window-days", type=int, default=28)
     backtest.add_argument("--start-day", type=date.fromisoformat)
     backtest.add_argument("--output", required=True, type=Path, help="Interval CSV")
     backtest.add_argument(
         "--daily-output", type=Path, help="Daily CSV; defaults beside interval CSV"
     )
-    backtest.add_argument(
-        "--summary", type=Path, help="Summary JSON; defaults beside interval CSV"
-    )
+    backtest.add_argument("--summary", type=Path, help="Summary JSON; defaults beside interval CSV")
 
     ml_backtest = subparsers.add_parser(
         "backtest-ml-dispatch",
@@ -231,18 +229,14 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     degradation.add_argument("prices", type=Path, help="Canonical price CSV")
-    degradation.add_argument(
-        "--config", required=True, type=Path, help="Battery dispatch JSON"
-    )
+    degradation.add_argument("--config", required=True, type=Path, help="Battery dispatch JSON")
     degradation.add_argument(
         "--degradation-config",
         required=True,
         type=Path,
         help="Degradation and augmentation JSON",
     )
-    degradation.add_argument(
-        "--output", required=True, type=Path, help="Interval dispatch CSV"
-    )
+    degradation.add_argument("--output", required=True, type=Path, help="Interval dispatch CSV")
     degradation.add_argument("--daily-output", type=Path)
     degradation.add_argument("--cohort-output", type=Path)
     degradation.add_argument("--summary", type=Path)
@@ -262,9 +256,7 @@ def build_parser() -> argparse.ArgumentParser:
     finance.add_argument(
         "--finance-config", required=True, type=Path, help="Finance assumptions JSON"
     )
-    finance.add_argument(
-        "--output", required=True, type=Path, help="Annual cash-flow CSV"
-    )
+    finance.add_argument("--output", required=True, type=Path, help="Annual cash-flow CSV")
     finance.add_argument("--daily-output", type=Path)
     finance.add_argument("--summary", type=Path)
 
@@ -273,14 +265,34 @@ def build_parser() -> argparse.ArgumentParser:
         help="Generate labelled synthetic seasonal block-bootstrap price paths",
     )
     bootstrap.add_argument("prices", type=Path, help="Canonical historical price CSV")
-    bootstrap.add_argument(
-        "--config", required=True, type=Path, help="Bootstrap assumptions JSON"
-    )
-    bootstrap.add_argument(
-        "--output", required=True, type=Path, help="Synthetic paths CSV"
-    )
+    bootstrap.add_argument("--config", required=True, type=Path, help="Bootstrap assumptions JSON")
+    bootstrap.add_argument("--output", required=True, type=Path, help="Synthetic paths CSV")
     bootstrap.add_argument("--provenance", type=Path, help="Sampled-block provenance CSV")
     bootstrap.add_argument("--summary", type=Path, help="Method and configuration JSON")
+
+    shock = subparsers.add_parser(
+        "apply-price-level-shock",
+        help="Apply a labelled additive price-level shock to synthetic bootstrap paths",
+    )
+    shock.add_argument("paths", type=Path, help="Synthetic bootstrap paths CSV")
+    shock.add_argument(
+        "--config", required=True, type=Path, help="Price-level shock assumptions JSON"
+    )
+    shock.add_argument("--output", required=True, type=Path, help="Shocked paths CSV")
+    shock.add_argument("--provenance", type=Path, help="Interval provenance CSV")
+    shock.add_argument("--summary", type=Path, help="Method and configuration JSON")
+
+    negative_event = subparsers.add_parser(
+        "apply-negative-price-events",
+        help="Apply explicit synthetic negative-price-event windows to bootstrap paths",
+    )
+    negative_event.add_argument("paths", type=Path, help="Synthetic bootstrap paths CSV")
+    negative_event.add_argument(
+        "--config", required=True, type=Path, help="Negative-price-event assumptions JSON"
+    )
+    negative_event.add_argument("--output", required=True, type=Path, help="Shocked paths CSV")
+    negative_event.add_argument("--provenance", type=Path, help="Interval provenance CSV")
+    negative_event.add_argument("--summary", type=Path, help="Method and configuration JSON")
     return parser
 
 
@@ -337,9 +349,7 @@ def main(argv: list[str] | None = None) -> int:
             report = assess_quality(frame, require_complete_days=not args.allow_partial_days)
         elif args.command == "fetch-entsoe":
             entsoe_client = EntsoeClient(raw_cache_dir=args.raw_cache_dir)
-            frame = entsoe_client.fetch_prices(
-                args.start, args.end, chunk_days=args.chunk_days
-            )
+            frame = entsoe_client.fetch_prices(args.start, args.end, chunk_days=args.chunk_days)
             report = assess_quality(frame, require_complete_days=not args.allow_partial_days)
         elif args.command == "list-admie-filetypes":
             filetypes = AdmieClient().list_filetypes()
@@ -351,12 +361,10 @@ def main(argv: list[str] | None = None) -> int:
             discovered = []
             for filetype in args.filetypes:
                 discovered.extend(
-                    admie_client.find_files(
-                        filetype, args.start_day, args.end_day, overlap=True
-                    )
+                    admie_client.find_files(filetype, args.start_day, args.end_day, overlap=True)
                 )
-            selected = discovered if args.all_revisions else select_latest_admie_revisions(
-                discovered
+            selected = (
+                discovered if args.all_revisions else select_latest_admie_revisions(discovered)
             )
             manifest = args.manifest or args.raw_dir / "retrieval_manifest.json"
             records = admie_client.download_files(
@@ -444,19 +452,13 @@ def main(argv: list[str] | None = None) -> int:
             ml_dispatch_result = backtest_ml_dispatch_benchmark(
                 prices, _read_battery_config(args.config), ml_result
             )
-            forecasts_path = args.forecasts_output or _sibling_path(
-                args.output, ".forecasts.csv"
-            )
-            daily_path = args.daily_output or _sibling_path(
-                args.output, ".daily.csv"
-            )
+            forecasts_path = args.forecasts_output or _sibling_path(args.output, ".forecasts.csv")
+            daily_path = args.daily_output or _sibling_path(args.output, ".daily.csv")
             forecast_summary_path = args.forecast_summary or _sibling_path(
                 args.output, ".forecast.summary.json"
             )
             summary_path = args.summary or args.output.with_suffix(".summary.json")
-            _write_dispatch_csv(
-                ml_dispatch_result.selected_model_interval_schedule, args.output
-            )
+            _write_dispatch_csv(ml_dispatch_result.selected_model_interval_schedule, args.output)
             _write_plain_csv(ml_result.forecasts, forecasts_path)
             _write_plain_csv(ml_dispatch_result.daily_results, daily_path)
             _write_json(ml_result.summary, forecast_summary_path)
@@ -469,12 +471,8 @@ def main(argv: list[str] | None = None) -> int:
                 _read_battery_config(args.config),
                 _read_degradation_config(args.degradation_config),
             )
-            daily_path = args.daily_output or _sibling_path(
-                args.output, ".daily.csv"
-            )
-            cohort_path = args.cohort_output or _sibling_path(
-                args.output, ".cohorts.csv"
-            )
+            daily_path = args.daily_output or _sibling_path(args.output, ".daily.csv")
+            cohort_path = args.cohort_output or _sibling_path(args.output, ".cohorts.csv")
             summary_path = args.summary or args.output.with_suffix(".summary.json")
             _write_dispatch_csv(degradation_result.interval_schedule, args.output)
             _write_plain_csv(degradation_result.daily_results, daily_path)
@@ -487,9 +485,7 @@ def main(argv: list[str] | None = None) -> int:
                 pd.read_csv(args.daily_results),
                 _read_finance_config(args.finance_config),
             )
-            daily_path = args.daily_output or _sibling_path(
-                args.output, ".daily.csv"
-            )
+            daily_path = args.daily_output or _sibling_path(args.output, ".daily.csv")
             summary_path = args.summary or args.output.with_suffix(".summary.json")
             _write_plain_csv(finance_result.annual_cash_flows, args.output)
             _write_plain_csv(finance_result.daily_cash_flows, daily_path)
@@ -500,9 +496,7 @@ def main(argv: list[str] | None = None) -> int:
             bootstrap_result = generate_seasonal_bootstrap_paths(
                 _read_canonical_csv(args.prices), _read_bootstrap_config(args.config)
             )
-            provenance_path = args.provenance or _sibling_path(
-                args.output, ".provenance.csv"
-            )
+            provenance_path = args.provenance or _sibling_path(args.output, ".provenance.csv")
             summary_path = args.summary or args.output.with_suffix(".summary.json")
             export = bootstrap_result.paths.copy()
             export["quality_flags"] = export["quality_flags"].map(json.dumps)
@@ -510,6 +504,32 @@ def main(argv: list[str] | None = None) -> int:
             _write_plain_csv(bootstrap_result.provenance, provenance_path)
             _write_json(bootstrap_result.summary, summary_path)
             print(json.dumps(bootstrap_result.summary, indent=2))
+            return 0
+        elif args.command == "apply-price-level-shock":
+            shock_result = apply_price_level_shock(
+                _read_bootstrap_paths_csv(args.paths), _read_price_level_config(args.config)
+            )
+            provenance_path = args.provenance or _sibling_path(args.output, ".provenance.csv")
+            summary_path = args.summary or args.output.with_suffix(".summary.json")
+            export = shock_result.paths.copy()
+            export["quality_flags"] = export["quality_flags"].map(json.dumps)
+            _write_plain_csv(export, args.output)
+            _write_plain_csv(shock_result.provenance, provenance_path)
+            _write_json(shock_result.summary, summary_path)
+            print(json.dumps(shock_result.summary, indent=2))
+            return 0
+        elif args.command == "apply-negative-price-events":
+            event_result = apply_negative_price_events(
+                _read_bootstrap_paths_csv(args.paths), _read_negative_event_config(args.config)
+            )
+            provenance_path = args.provenance or _sibling_path(args.output, ".provenance.csv")
+            summary_path = args.summary or args.output.with_suffix(".summary.json")
+            export = event_result.paths.copy()
+            export["quality_flags"] = export["quality_flags"].map(json.dumps)
+            _write_plain_csv(export, args.output)
+            _write_plain_csv(event_result.provenance, provenance_path)
+            _write_json(event_result.summary, summary_path)
+            print(json.dumps(event_result.summary, indent=2))
             return 0
         else:  # pragma: no cover - argparse makes this unreachable.
             raise AssertionError(f"Unhandled command: {args.command}")
@@ -528,6 +548,8 @@ def main(argv: list[str] | None = None) -> int:
         AdmieError,
         OfficialDataDownloadError,
         BootstrapInputError,
+        NegativePriceEventInputError,
+        PriceLevelShockInputError,
         OSError,
     ) as exc:
         print(f"error: {exc}", file=sys.stderr)
@@ -547,20 +569,14 @@ def _write_outputs(frame: pd.DataFrame, report: QualityReport, output: Path) -> 
 
     quality_path = output.with_suffix(".quality.json")
     temporary_quality = quality_path.with_suffix(quality_path.suffix + ".tmp")
-    temporary_quality.write_text(
-        json.dumps(report.to_dict(), indent=2) + "\n", encoding="utf-8"
-    )
+    temporary_quality.write_text(json.dumps(report.to_dict(), indent=2) + "\n", encoding="utf-8")
     temporary_quality.replace(quality_path)
 
 
 def _add_ml_arguments(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument(
-        "--validation-start-day", required=True, type=date.fromisoformat
-    )
+    parser.add_argument("--validation-start-day", required=True, type=date.fromisoformat)
     parser.add_argument("--test-start-day", required=True, type=date.fromisoformat)
-    parser.add_argument(
-        "--models", nargs="+", choices=ML_MODELS, default=list(ML_MODELS)
-    )
+    parser.add_argument("--models", nargs="+", choices=ML_MODELS, default=list(ML_MODELS))
     parser.add_argument("--feature-window-days", type=int, default=28)
     parser.add_argument("--refit-frequency-days", type=int, default=7)
     parser.add_argument("--min-training-days", type=int, default=28)
@@ -602,6 +618,16 @@ def _read_canonical_csv(path: Path) -> pd.DataFrame:
     return ensure_canonical(frame)
 
 
+def _read_bootstrap_paths_csv(path: Path) -> pd.DataFrame:
+    frame = pd.read_csv(path)
+    if "path_id" not in frame:
+        raise PriceLevelShockInputError("Missing bootstrap path columns: path_id")
+    path_ids = frame["path_id"].copy()
+    canonical = _read_canonical_csv(path)
+    canonical.insert(0, "path_id", path_ids)
+    return canonical
+
+
 def _write_dispatch_outputs(
     schedule: pd.DataFrame,
     summary: dict[str, object],
@@ -632,6 +658,16 @@ def _read_finance_config(path: Path) -> FinanceConfig:
 def _read_bootstrap_config(path: Path) -> BootstrapConfig:
     payload = json.loads(path.read_text(encoding="utf-8"))
     return BootstrapConfig.from_dict(payload)
+
+
+def _read_price_level_config(path: Path) -> PriceLevelShockConfig:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    return PriceLevelShockConfig.from_dict(payload)
+
+
+def _read_negative_event_config(path: Path) -> NegativePriceEventConfig:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    return NegativePriceEventConfig.from_dict(payload)
 
 
 def _write_dispatch_csv(schedule: pd.DataFrame, output: Path) -> None:
