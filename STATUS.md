@@ -2,7 +2,27 @@
 
 **Version:** 0.7.2
 **Updated:** 27 August 2026
-**Status:** Deterministic bootstrap-path dispatch integrated; broader stress testing pending
+**Status:** Official multi-year operational acceptance passed; broader stress testing pending
+
+## Official multi-year operational acceptance
+
+- The accepted `greek-dam-official-history` artifact was hash-verified before use and covers
+  74,663 official intervals across 2,124 market days from 1 November 2020 through 25 August 2026.
+- Input acceptance passed with zero missing prices, duplicates, gaps, overlaps, incomplete market
+  days and mixed-resolution days, preserving 1,767 negative and 1,914 zero prices and 980
+  rounding-consensus flags.
+- The existing optimizer solved the complete 74,663-interval horizon in one optimal MILP solve and
+  again as 2,124 independent daily solves, with zero constraint violations in either mode.
+- All four causal naïve baselines and both ML benchmarks were backtested over the accepted history
+  with proven leakage-free time ordering, exact realized-price settlement and identical
+  like-for-like perfect-foresight ceilings.
+- Every excluded forecast day is attributable to warm-up, causal-lag, spring DST or the
+  2025-10-01 resolution change; none is unexplained.
+- Both analytical paths reproduced identical results on an immediate second run.
+- Results are historical perfect-foresight upper bounds and historical benchmark evidence, not
+  expected revenue, forecasts, probabilities or investment conclusions.
+- Aggregate evidence is recorded in
+  `docs/official_multiyear_operational_acceptance_2026-08-27.md`.
 
 ## v0.7.2 bootstrap-path dispatch integration
 
@@ -142,7 +162,7 @@
 
 - Run ENTSO-E client with a private user token.
 - Compare overlapping HEnEx and ENTSO-E official intervals.
-- Run the optimizer and forecast backtest over a complete official multi-year history.
+- Accept ADMIE load/RES formats and prove pre-auction publication timing.
 
 The HEnEx acceptance evidence, raw-file hashes and exact results are recorded in
 `docs/official_data_acceptance_2026-08-25.md`. Official raw workbooks are deliberately
@@ -171,6 +191,8 @@ excluded from the repository.
 
 ## Immediate next milestone
 
-Review the isolated bootstrap-dispatch integration before considering any further shock or
-probability layer. Negative-price-event transformations remain deferred. ENTSO-E reconciliation
-and ADMIE timing acceptance remain separate.
+Official multi-year operational acceptance has passed for both the perfect-foresight and
+forecast-backtest paths. The next isolated v0.7 modeling milestone is deterministic
+availability/outage-path integration, which requires explicit approval before implementation.
+Negative-price-event transformations remain deferred. ENTSO-E reconciliation and ADMIE timing
+acceptance remain separate.

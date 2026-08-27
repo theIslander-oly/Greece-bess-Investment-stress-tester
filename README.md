@@ -634,10 +634,11 @@ The next modeling phase is probabilistic stress testing: reproducible seasonal p
 resampling, spread and negative-price shocks, availability/outage blocks, degradation and
 CAPEX sensitivities, battery-market cannibalisation, P5/P50/P95 outcomes, loss
 probability and worst paths. Tax, subsidy and leveraged financing remain excluded until
-their jurisdiction-specific assumptions are independently validated. HEnEx workbook
-acceptance has passed; the new retrieval pipeline must now be run against the complete official
-history. Private-token ENTSO-E reconciliation and publication-time acceptance for ADMIE
-exogenous variables remain parallel acceptance tasks.
+their jurisdiction-specific assumptions are independently validated. HEnEx workbook and complete
+official-history acceptance have passed, and both the perfect-foresight optimizer and the
+forecast-dispatch backtests have now been accepted over that full history. Private-token ENTSO-E
+reconciliation and publication-time acceptance for ADMIE exogenous variables remain parallel
+acceptance tasks.
 
 ## Project records
 
@@ -664,6 +665,7 @@ exogenous variables remain parallel acceptance tasks.
 - [Implementation report v0.7.1 price-level shock](docs/implementation_report_v0.7.1.md)
 - [Implementation report v0.7.2 bootstrap dispatch](docs/implementation_report_v0.7.2.md)
 - [Official annual-history acceptance](docs/official_history_acceptance_2026-08-26.md)
+- [Official multi-year operational acceptance](docs/official_multiyear_operational_acceptance_2026-08-27.md)
 - [Current status](STATUS.md)
 - [Implementation plan](PLAN.md)
 - [Contributing guidance](CONTRIBUTING.md)

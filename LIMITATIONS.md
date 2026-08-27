@@ -47,6 +47,11 @@
 
 - Current ML models use calendar and historical prices only; validated weather, demand, fuel,
   renewable and interconnector forecasts are not yet included.
+- The Greek DAM moved from hourly to quarter-hour delivery on 1 October 2025. Persistence lags have
+  no matching wall-clock slot on that day, and models trained on hourly history forecast
+  quarter-hour delivery later in the held-out test period. This is disclosed rather than corrected.
+- Accepted historical dispatch assumes constant full availability. No outage, derating or
+  auxiliary-load path exists, so the accepted margins do not reflect unavailability.
 - Daily backtests restore initial SOC at day end and do not optimize energy across days.
 - Daylight-saving slot differences can make persistence forecasts incomplete; exclusions are
   disclosed.

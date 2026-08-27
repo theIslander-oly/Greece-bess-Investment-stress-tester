@@ -70,5 +70,11 @@ Suggested future branch sequence:
 - [x] Record the accepted HEnEx source versions, retrieval date and raw hashes.
 - [ ] Record the ENTSO-E retrieval metadata and raw-response hashes.
 - [x] Run and accept the 2020-2025 HEnEx annual archives live.
-- [ ] Run and accept the incremental 2026 HEnEx daily retrieval live.
+- [x] Run and accept the incremental 2026 HEnEx daily retrieval live.
+  - Workflow run `32971677163` completed both retrieval stages successfully.
+  - The accepted artifact contains 22,748 incremental 2026 intervals through 25 August 2026.
+- [x] Run the optimizer and forecast backtests over the complete official multi-year history.
+  - Perfect-foresight dispatch accepted over all 74,663 official intervals.
+  - All four causal naïve baselines and both ML benchmarks accepted with leakage,
+    settlement, coverage and determinism evidence.
 - [ ] Accept ADMIE load/RES file formats and prove pre-auction publication timing.

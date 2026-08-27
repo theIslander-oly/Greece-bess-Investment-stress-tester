@@ -2,6 +2,31 @@
 
 All notable project changes are documented here.
 
+## [Unreleased]
+
+### Added
+
+- `docs/official_multiyear_operational_acceptance_2026-08-27.md`, recording live acceptance of the
+  existing perfect-foresight dispatch and forecast-dispatch backtests over all 74,663 official
+  HEnEx intervals from 1 November 2020 through 25 August 2026.
+- Aggregate input, constraint, leakage, settlement, coverage, exclusion and determinism evidence,
+  including the accepted artifact SHA-256, solver identity and software versions.
+
+### Changed
+
+- `PLAN.md` records the incremental 2026 daily retrieval as accepted; workflow run `32971677163`
+  and the hash-verified artifact prove the previous pending state was stale.
+- `STATUS.md` records the operational acceptance and removes the completed multi-year optimizer and
+  forecast-backtest validation item.
+
+### Interpretation limits
+
+- No model, market, stress transformation, degradation, finance or interface behaviour changed;
+  no production code was modified.
+- Perfect-foresight results are historical gross-margin upper bounds and forecast results are
+  historical benchmark evidence, not expected revenue, forecasts, probabilities, rankings of future
+  performance or investment conclusions.
+
 ## [0.7.2] — 2026-08-27
 
 ### Added
