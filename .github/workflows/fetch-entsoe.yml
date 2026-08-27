@@ -64,5 +64,5 @@ jobs:
             acceptance/entsoe/entsoe_prices.csv
             acceptance/entsoe/entsoe_prices.quality.json
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 90
 
