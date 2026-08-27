@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import io
 import unittest
 import urllib.error
 from unittest import mock
@@ -82,6 +83,30 @@ class EntsoeRetryTests(unittest.TestCase):
                 client.fetch_prices("2026-01-01T00:00Z", "2026-01-01T01:00Z")
         self.assertEqual(opener.call_count, 3)
         self.assertEqual(waits, [1.0, 2.0])
+
+    def test_a_rejected_request_reports_its_period_and_reason(self) -> None:
+        client, _ = self._client()
+        body = io.BytesIO(
+            b"<Acknowledgement_MarketDocument><Reason>"
+            b"<text>No matching data found</text>"
+            b"</Reason></Acknowledgement_MarketDocument>"
+        )
+        opener = mock.Mock(
+            side_effect=urllib.error.HTTPError(
+                "https://web-api.tp.entsoe.eu/api?securityToken=test-token",
+                400,
+                "Bad Request",
+                {},  # type: ignore[arg-type]
+                body,
+            )
+        )
+        with mock.patch("urllib.request.urlopen", opener):
+            with self.assertRaises(EntsoeResponseError) as caught:
+                client.fetch_prices("2026-01-01T00:00Z", "2026-01-02T00:00Z")
+        message = str(caught.exception)
+        self.assertIn("No matching data found", message)
+        self.assertIn("2026-01-01T00:00Z", message)
+        self.assertNotIn("test-token", message)
 
     def test_a_rejected_request_is_not_retried_and_never_reveals_the_token(self) -> None:
         client, waits = self._client()

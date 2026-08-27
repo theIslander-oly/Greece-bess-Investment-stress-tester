@@ -132,7 +132,10 @@ class EntsoeClient:
             except urllib.error.HTTPError as exc:
                 # Do not include exc.url: ENTSO-E tokens are query parameters.
                 if exc.code not in RETRYABLE_HTTP_STATUS or attempt == self.max_attempts:
-                    raise EntsoeResponseError(f"ENTSO-E returned HTTP {exc.code}") from exc
+                    raise EntsoeResponseError(
+                        f"ENTSO-E returned HTTP {exc.code} for {start_utc:%Y-%m-%dT%H:%MZ} "
+                        f"to {end_utc:%Y-%m-%dT%H:%MZ}{_rejection_detail(exc)}"
+                    ) from exc
                 detail = f"HTTP {exc.code}"
             except (TimeoutError, urllib.error.URLError) as exc:
                 reason = getattr(exc, "reason", exc)
@@ -172,6 +175,29 @@ class EntsoeClient:
             f"{digest[:12]}.xml"
         )
         (self.raw_cache_dir / name).write_bytes(raw)
+
+
+def _rejection_detail(error: urllib.error.HTTPError) -> str:
+    """Return the acknowledgement reason ENTSO-E sent with a rejected request."""
+
+    try:
+        body = error.read()
+    except (OSError, ValueError):
+        return ""
+    if not body:
+        return ""
+    try:
+        root = ET.fromstring(body)
+    except ET.ParseError:
+        return ""
+    reasons = [
+        stripped
+        for element in _descendants(root, "text")
+        if (text := element.text) and (stripped := text.strip())
+    ]
+    if not reasons:
+        return ""
+    return ": " + "; ".join(reasons)[:500]
 
 
 def parse_entsoe_price_xml(
