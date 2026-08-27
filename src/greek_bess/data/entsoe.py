@@ -47,8 +47,8 @@ class EntsoeClient:
         timeout_seconds: int = 60,
         endpoint: str = ENTSOE_API_ENDPOINT,
         raw_cache_dir: str | Path | None = None,
-        max_attempts: int = 4,
-        retry_backoff_seconds: float = 5.0,
+        max_attempts: int = 5,
+        retry_backoff_seconds: float = 10.0,
         sleep: Callable[[float], None] = time.sleep,
     ) -> None:
         self._token = token or os.getenv("ENTSOE_SECURITY_TOKEN")
