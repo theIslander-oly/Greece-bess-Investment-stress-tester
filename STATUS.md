@@ -1,11 +1,29 @@
 # Project status
 
-**Version:** 0.7.4
+**Version:** 0.7.5
 **Updated:** 27 August 2026
 **Status:** Official multi-year operational acceptance and HEnEx-to-ENTSO-E cross-source
 reconciliation passed; artifact custody tooling in place awaiting the operator upload;
 per-delivery-year replay decomposition implemented and awaiting its first official run;
-broader stress testing pending
+bootstrap source-era policy landed; availability/outage integration awaiting approval
+
+## Bootstrap source-era and resolution policy
+
+- A source era is a maximal contiguous run of market days at one delivery resolution. The
+  bootstrap samples from exactly one; a resolution change or a market-day gap ends an era.
+- A single-era history needs no declaration. A multi-era history must declare one with
+  `source_resolution_minutes`, narrowed by `source_start_day`/`source_end_day` when ambiguous.
+  There is no default and no "most recent" rule.
+- The accepted history holds two eras: 60 minutes over 2020-11-01 to 2025-09-30 (1,795 market
+  days, five or six occurrences of every season) and 15 minutes over 2025-10-01 to 2026-08-25
+  (329 market days, exactly one occurrence of each season). Passing it undeclared now fails
+  with a message naming both, instead of a bare resolution complaint.
+- The selected era is recorded in the run summary and on every provenance row, and days outside
+  it are absent from the candidate search, so no block can straddle a regime boundary.
+- Minimum and median block-candidate counts are reported, so a position where every path
+  repeats one source block is visible rather than smoothed.
+- Resampling one resolution into another, blending eras and attaching any likelihood to an era
+  remain out of scope. The policy is recorded in `docs/bootstrap_source_era_policy.md`.
 
 ## Per-delivery-year decomposition of the accepted replay
 
@@ -259,9 +277,9 @@ Official multi-year operational acceptance has passed for both the perfect-fores
 forecast-backtest paths. On 2026-08-27 the project was repositioned as a Greek DAM battery
 replay and research benchmark, and the v0.7 scope was corrected to deterministic named
 scenarios: percentile and loss-probability outputs were removed pending a defensible
-calibration story. The next isolated v0.7 modeling milestone is deterministic
-availability/outage-path integration, which requires explicit approval before implementation,
-preceded by a documented bootstrap source-era/resolution policy. Negative-price-event
+calibration story. The bootstrap source-era/resolution policy landed on 2026-08-27, so the next isolated v0.7
+modeling milestone is deterministic availability/outage-path integration, which still requires
+explicit approval before implementation. Negative-price-event
 transformations remain deferred. ENTSO-E reconciliation passed on 2026-08-27. Custody tooling and the storage
 procedure landed on 2026-08-27 and await the operator upload. ADMIE timing acceptance and
 per-year replay decomposition remain parallel tasks. The per-year decomposition surface and

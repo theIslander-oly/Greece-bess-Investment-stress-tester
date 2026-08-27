@@ -107,6 +107,27 @@ and continuous-horizon validation occurs before sampling, and a target block fai
 seasonal source block has a compatible 23/25-hour or 92/100-quarter-hour structure. Outputs are
 labelled synthetic scenarios and are not forecasts or probability-calibrated market evidence.
 
+### 7.1 Source era and resolution
+
+Mapping a sampled block onto target days requires one delivery resolution, and the accepted
+history holds two because the Greek DAM moved from hourly to quarter-hour delivery on
+1 October 2025. A source era is a maximal contiguous run of market days at one resolution; a
+resolution change or a gap in market days ends one. The bootstrap samples from exactly one era.
+
+A history with one era needs no declaration. A history with several requires an explicit
+declaration, with no default and no "most recent" rule, because a default would make the
+sampled regime an accident of the input. The refusal lists the available eras and their
+windows. The selected era is recorded in the run summary and on every provenance row, and days
+outside it are absent from the candidate search, so no block can straddle a regime boundary.
+
+The choice is a judgment about relevance and carries a cost either way: the quarter-hour era is
+the operating regime but contains one occurrence of each meteorological season and therefore
+expresses no inter-annual variation, while the hourly era spans five or six occurrences of every
+season but is a superseded delivery regime. Minimum and median block-candidate counts are
+reported so scarcity is visible. Resampling one resolution into another, blending eras and
+attaching any likelihood to an era are all excluded. The full policy is in
+`docs/bootstrap_source_era_policy.md`.
+
 ## 8. Additive bootstrap price-level transformation
 
 The first shock layer accepts only complete canonical bootstrap paths. For configured shift

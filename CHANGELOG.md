@@ -6,6 +6,20 @@ All notable project changes are documented here.
 
 ### Added
 
+- An explicit bootstrap source-era and resolution policy. A source era is a maximal contiguous
+  run of market days at one delivery resolution; a resolution change or a market-day gap ends
+  one. `BootstrapConfig` gains `source_resolution_minutes`, `source_start_day` and
+  `source_end_day`; `detect_source_eras` and `select_source_era` are public. A single-era
+  history needs no declaration, a multi-era history must declare one, and there is no default,
+  because the accepted 2020-2026 history holds an hourly and a quarter-hour era and a default
+  would settle that trade-off silently. The refusal lists the available eras and their windows,
+  the selection is recorded in the run summary and on every provenance row, sampling is confined
+  to the selected era so no block straddles a regime boundary, and minimum and median
+  block-candidate counts are reported so scarcity is visible.
+- `docs/bootstrap_source_era_policy.md`, recording the policy, the two eras of the accepted
+  history with their season coverage, what each choice costs, and the deliberate exclusions:
+  no resampling between resolutions, no blending of eras and no likelihood attached to either.
+
 - `decompose-annual-replay` command and a `greek_bess.analysis` package, which regroup an
   already-accepted replay into delivery years without adding a model, market or
   transformation. A delivery year is the calendar year of the interval's CET/CEST market-day
@@ -78,6 +92,9 @@ All notable project changes are documented here.
 
 ### Changed
 
+- The bootstrap no longer refuses a mixed-resolution history with a bare "must use one
+  interval resolution" message. It reports the eras the history contains and requires one
+  to be chosen.
 - Artifact retention on `Fetch official Greek market history`, `Fetch ENTSO-E prices` and
   `Reconcile HEnEx and ENTSO-E prices` is raised from 7 to 90 days, so a passed acceptance no
   longer has a one-week shelf life.

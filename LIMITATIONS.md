@@ -57,6 +57,17 @@
   DST block positions can leave no compatible source block, which fails explicitly.
 - The bootstrap foundation does not model structural change, outages, cannibalisation, spreads,
   or negative-price shocks, and does not produce percentiles or loss probabilities.
+- The bootstrap samples one declared source era and cannot mix delivery regimes. Neither era of
+  the accepted history is a good basis on its own: the quarter-hour era (1 October 2025 to
+  25 August 2026) is the operating regime but contains exactly one occurrence of each
+  meteorological season, so resampling it expresses no inter-annual variation at all, and its
+  autumn is only 61 days; the hourly era (1 November 2020 to 30 September 2025) spans five or
+  six occurrences of every season but is a superseded delivery regime whose blocks can only be
+  mapped onto hourly target days. The era is a declared judgment about relevance and carries no
+  probability.
+- Block-candidate scarcity is reported, not corrected. A minimum candidate count of 1 means
+  every path repeats the same source block at that position, which is a property of the chosen
+  era rather than of the random seed.
 - Bootstrap dispatch knows every price within each synthetic path and is therefore only a
   gross-margin upper bound. Paths are solved independently with shared assumptions; no path
   probability, percentile, ranking, degradation, finance or investment conclusion is produced.

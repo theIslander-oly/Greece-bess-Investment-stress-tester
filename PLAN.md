@@ -55,9 +55,12 @@ Suggested future branch sequence:
   - [x] Foundation: seasonal block bootstrap, reproducible seeds and sampled-block provenance.
   - [x] Deterministic additive price-level shock with interval provenance.
   - [x] Independent deterministic dispatch across validated bootstrap paths.
-  - [ ] Explicit bootstrap source-era/resolution policy (the accepted official history mixes
+  - [x] Explicit bootstrap source-era/resolution policy (the accepted official history mixes
     hourly and quarter-hour regimes; the bootstrap requires one resolution, so the sampling
-    era must be a documented decision rather than an accident).
+    era must be a documented decision rather than an accident). A source era is a maximal
+    contiguous single-resolution run; a multi-era history must declare one, with no default;
+    the selection is recorded in the summary and on every provenance row, and candidate
+    scarcity is reported. Policy in `docs/bootstrap_source_era_policy.md`.
   - [ ] Deterministic availability/outage-path integration (requires explicit approval).
   - [ ] Spread-compression transformations about a daily reference level, as explicit
     judgmental scenarios; this is how cannibalisation pressure is represented, since a causal

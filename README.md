@@ -96,9 +96,26 @@ Create a JSON configuration (the end day is exclusive):
   "end_day": "2028-01-01",
   "path_count": 100,
   "block_days": 7,
-  "random_seed": 42
+  "random_seed": 42,
+  "source_resolution_minutes": 15,
+  "source_start_day": "2025-10-01",
+  "source_end_day": "2026-08-26"
 }
 ```
+
+The three `source_*` fields declare the **source era** to sample from. An era is a maximal
+contiguous run of market days at one delivery resolution, and the bootstrap samples from exactly
+one. A history with a single era needs no declaration; the accepted 2020-2026 history holds two,
+because the Greek DAM moved from hourly to quarter-hour delivery on 1 October 2025, so it must
+be declared. There is no default: passing an undeclared multi-era history fails with a message
+listing the available eras and their windows.
+
+Neither era is the right answer on its own. The quarter-hour era is the operating regime but
+contains exactly one occurrence of each meteorological season, so resampling it expresses no
+inter-annual variation; the hourly era spans five or six occurrences of every season but is a
+superseded delivery regime. Read
+[the source-era policy](docs/bootstrap_source_era_policy.md) before choosing, and use
+`greek_bess.stress.detect_source_eras` to list what a history contains.
 
 Then run the generator against a complete canonical price history held outside Git:
 
@@ -124,7 +141,11 @@ forecasts, probabilities, expected revenue, or investment evidence.
 
 The command writes the labelled synthetic paths, a block-level `.provenance.csv`, and a
 `.summary.json`. It samples with replacement from contiguous blocks in the same meteorological
-season and requires the source block to have the target block's exact interval-count pattern.
+season, inside the declared source era only, and requires the source block to have the target
+block's exact interval-count pattern. The summary records every available era, the selected
+era and whether it was declared; the provenance records the era on every sampled block, and the
+summary reports minimum and median block-candidate counts so scarcity is visible rather than
+smoothed.
 It copies prices without smoothing or interpolation, including zero and negative values. Missing
 prices, gaps, overlaps, incomplete market days and unavailable DST-compatible blocks fail
 explicitly. These paths are synthetic scenarios—not forecasts, probability-calibrated outcomes,
@@ -827,10 +848,12 @@ acceptance for ADMIE exogenous variables remains a parallel acceptance task.
 - [Implementation report v0.7.1 price-level shock](docs/implementation_report_v0.7.1.md)
 - [Implementation report v0.7.2 bootstrap dispatch](docs/implementation_report_v0.7.2.md)
 - [Implementation report v0.7.4 per-year replay decomposition](docs/implementation_report_v0.7.4.md)
+- [Implementation report v0.7.5 bootstrap source-era policy](docs/implementation_report_v0.7.5.md)
 - [Official annual-history acceptance](docs/official_history_acceptance_2026-08-26.md)
 - [Official multi-year operational acceptance](docs/official_multiyear_operational_acceptance_2026-08-27.md)
 - [Official HEnEx to ENTSO-E reconciliation](docs/official_source_reconciliation_2026-08-27.md)
 - [Durable custody of accepted official artifacts](docs/official_artifact_custody.md)
+- [Bootstrap source-era and resolution policy](docs/bootstrap_source_era_policy.md)
 - [Current status](STATUS.md)
 - [Implementation plan](PLAN.md)
 - [Contributing guidance](CONTRIBUTING.md)

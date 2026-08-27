@@ -3,6 +3,32 @@
 This file records decisions that materially affect interpretation or reproducibility. Add a
 dated entry when a milestone changes scope, assumptions, data handling or validation.
 
+## 2026-08-27 — Require an explicit bootstrap source era, with no default
+
+- **Decision:** Define a source era as a maximal contiguous run of market days at one delivery
+  resolution, and require the bootstrap to sample from exactly one. A history holding a single
+  era needs no declaration; a history holding several must declare one with
+  `source_resolution_minutes`, narrowed by `source_start_day` and `source_end_day` when that
+  would otherwise be ambiguous. There is no default and no "most recent" rule. The refusal
+  lists the available eras, the run summary and every provenance row record the selection, and
+  the summary reports the minimum and median block-candidate counts.
+- **Reason:** The Greek DAM moved from hourly to quarter-hour delivery on 1 October 2025, so
+  the accepted 2020-2026 history holds two regimes while the bootstrap requires one. The
+  previous behaviour refused such a history outright, which pushed the operator into slicing
+  the CSV by hand; that slice is the single most consequential assumption behind every
+  generated path and it existed nowhere in the record. Neither era is the right answer: the
+  quarter-hour era is the regime the market actually operates under but contains exactly one
+  occurrence of each meteorological season, so it expresses no inter-annual variation at all,
+  while the hourly era holds five or six occurrences of every season but is a superseded
+  delivery regime. A default would settle that trade-off silently.
+- **Consequence:** Passing the accepted history to the bootstrap now fails with a message
+  naming both eras and their windows rather than a bare resolution complaint. A path can no
+  longer be read without knowing which regime produced it. Candidate scarcity is disclosed
+  rather than smoothed: a minimum candidate count of 1 means every path repeats one source
+  block at that position, which is a property of the era and not of the seed. Resampling one
+  resolution into another, blending the two eras, and attaching any likelihood to an era all
+  remain out of scope. The policy is recorded in `docs/bootstrap_source_era_policy.md`.
+
 ## 2026-08-27 — Decompose the accepted replay by market-clock delivery year
 
 - **Decision:** Add a `decompose-annual-replay` surface and workflow that regroup an
