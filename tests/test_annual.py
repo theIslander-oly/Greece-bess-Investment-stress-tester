@@ -80,6 +80,17 @@ class AnnualMarketClockTests(unittest.TestCase):
             float(overview.loc[2026, "mean_daily_price_range_eur_per_mwh"]), 85.0
         )
 
+    def test_a_duplicated_accepted_history_is_rejected(self) -> None:
+        prices = year_boundary_prices()
+        duplicated = pd.concat([prices, prices.head(1)], ignore_index=True)
+
+        with self.assertRaisesRegex(AnnualDecompositionError, "repeats 1 canonical"):
+            decompose_annual_replay(duplicated)
+
+        schedule = optimize_perfect_foresight(prices, battery()).schedule
+        with self.assertRaisesRegex(AnnualDecompositionError, "double-count"):
+            decompose_annual_replay(duplicated, perfect_foresight_schedule=schedule)
+
     def test_missing_prices_are_counted_and_never_filled(self) -> None:
         prices = year_boundary_prices()
         prices.loc[0, "price_eur_per_mwh"] = np.nan

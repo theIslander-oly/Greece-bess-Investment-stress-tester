@@ -38,7 +38,9 @@ The **common-day table** restricts every method to the market days all supplied 
 backtested and records the ceiling spread for that year, which is the like-for-like evidence: on
 a shared day set under one battery and one availability assumption the ceiling must be identical.
 
-Two refusals protect the pairing. A schedule that settles any interval at a price the supplied
+Three refusals protect the pairing. An accepted history repeating a canonical delivery
+interval is rejected, because a decomposition of a duplicated history would double-count its own
+totals. A schedule that settles any interval at a price the supplied
 history does not publish is rejected, as is a schedule covering an interval the history does not
 contain; this is the annual analogue of the acceptance settlement audit. A daily-results table
 covering a market day absent from the history is rejected as describing a different history.
@@ -75,11 +77,12 @@ reach the job summary; the tables are uploaded as a private 90-day artifact.
 
 ## Validation and limitations
 
-Ruff, mypy, 142 tests and a clean wheel build pass, up from 116. Twenty-six new deterministic
+Ruff, mypy, 157 tests and a clean wheel build pass, up from 116. Twenty-seven new deterministic
 synthetic tests cover market-clock year assignment against a UTC grouping, partial-year coverage,
 preserved zero, negative and missing prices, annual ceiling reconciliation, interval-weighted
 error recomposition, the identical common-day ceiling, a year with no backtested days, a year with
-no common days, both schedule refusals, both daily-results refusals, the daily-solve terminal-SOC
+no common days, a duplicated accepted history, both schedule refusals, both daily-results
+refusals, the daily-solve terminal-SOC
 requirement, per-day availability, availability alignment under a shuffled input frame, the bound
 ordering between the two solve modes, and the CLI artifacts. No official data or generated output
 is committed.

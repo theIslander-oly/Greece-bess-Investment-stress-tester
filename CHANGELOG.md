@@ -30,7 +30,9 @@ All notable project changes are documented here.
   method's own backtested days; a third restricts every method to the days all methods
   backtested and records the ceiling spread that proves the comparison is like-for-like.
   Per-market-day figures are within-period averages and nothing is annualized. No probability,
-  percentile, loss metric or ranking of years is produced.
+  percentile, loss metric or ranking of years is produced. A duplicated accepted history, a
+  schedule settled on prices the history does not publish and a daily-results table describing
+  another history are each refused explicitly.
 - `optimize-perfect-foresight --daily-solves` and `optimize_daily_perfect_foresight`, which
   solve every market day independently and compose the schedules. This publishes the
   daily-composed mode the 2026-08-27 acceptance ran through a temporary runner, requires the

@@ -124,6 +124,15 @@ def decompose_annual_replay(
     if energy_capacity_mwh is not None and energy_capacity_mwh <= 0:
         raise AnnualDecompositionError("energy_capacity_mwh must be positive when supplied")
 
+    duplicated = accepted["delivery_start_utc"].duplicated()
+    if duplicated.any():
+        first = accepted.loc[duplicated, "delivery_start_utc"].iloc[0]
+        raise AnnualDecompositionError(
+            f"The accepted history repeats {int(duplicated.sum())} canonical delivery "
+            f"intervals, beginning {first}; a decomposition of a duplicated history would "
+            "double-count its own totals"
+        )
+
     accepted = accepted.copy()
     accepted["delivery_year"] = accepted["delivery_start_market"].dt.year
     accepted["market_day"] = accepted["delivery_start_market"].dt.date

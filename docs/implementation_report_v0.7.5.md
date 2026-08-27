@@ -68,7 +68,7 @@ quarter-hour delivery began.
 
 ## Validation and limitations
 
-Ruff, mypy, 156 tests and a clean wheel build pass, up from 142. Fourteen new deterministic
+Ruff, mypy, 157 tests and a clean wheel build pass. Fourteen new deterministic
 synthetic tests cover era detection as maximal contiguous single-resolution runs, a gap ending an
 era, the refusal to choose implicitly and the eras it names, a declared era bounding every
 sampled block and the resulting path resolution, the quarter-hour declaration changing the

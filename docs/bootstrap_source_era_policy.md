@@ -33,7 +33,21 @@ The accepted history contains exactly two:
 | 1 | 60 min | 2020-11-01 .. 2025-09-30 | 1,795 | 5 winters, 5 springs, 5 summers, 6 autumns |
 | 2 | 15 min | 2025-10-01 .. 2026-08-25 | 329 | 1 of each |
 
-1,795 + 329 = 2,124, the accepted market-day count.
+The split is not merely computed here; it reconciles exactly with figures recorded
+independently by `docs/official_multiyear_operational_acceptance_2026-08-27.md`, which counted
+market-day lengths without reference to any era concept:
+
+| Check | From the era split | From the acceptance report |
+|---|---:|---:|
+| Hourly market days | 1,795 | 23 × 5 + 24 × 1,786 + 25 × 4 = 1,795 |
+| Hourly intervals | 43,079 | 43,079 |
+| Quarter-hour market days | 329 | 92 × 1 + 96 × 327 + 100 × 1 = 329 |
+| Quarter-hour intervals | 31,584 | 31,584 |
+| Total market days | 2,124 | 2,124 |
+| Total intervals | 74,663 | 74,663 |
+
+The era boundary therefore falls exactly where the accepted history's resolution regimes change,
+with no day unaccounted for on either side.
 
 ## The policy
 
