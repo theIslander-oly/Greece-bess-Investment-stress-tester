@@ -11,6 +11,14 @@
 ## Market coverage
 
 - Only Greek Day-Ahead Market energy arbitrage is modeled.
+- The replayed 2020-2026 history predates operating battery competition: storage units were
+  only integrated into the Greek Day-Ahead and Intraday Markets in April 2026. As the
+  tendered, availability-supported fleet (about 1 GW awarded in the 2023-2024 auctions) and
+  merchant projects enter operation, price spreads are widely expected to compress, so
+  historical replay tends to overstate what a future merchant DAM-only battery could earn.
+- Balancing-market participation and state availability-support payments — major revenue
+  components for real Greek battery projects — are excluded and would require their own
+  data-acceptance track before inclusion.
 - Price taking and full acceptance of planned quantities are assumed.
 - Intraday, balancing, reserves, imbalance exposure, route-to-market constraints, taxes,
   subsidies, permitting, licensing and grid feasibility are excluded.
@@ -90,5 +98,8 @@
   probability-calibrated market view.
 - Applying one shift to every interval does not change within-path spreads or temporal shape and
   does not represent negative-price events, outages, cannibalisation or structural market change.
+- Because spreads are unchanged, a constant level shift alters battery arbitrage economics only
+  through round-trip efficiency losses and per-MWh fees; it is therefore a weak stress for
+  storage value, and spread transformations are the economically first-order sensitivity.
 - Shocked paths are not forecasts, expected prices, investment evidence or dispatch/finance
   results. No likelihood, percentile, loss metric or ranking is attached to them.

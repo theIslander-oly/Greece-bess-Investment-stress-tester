@@ -6,6 +6,13 @@ All notable project changes are documented here.
 
 ### Added
 
+- Reader-facing "What this tool cannot tell you" README section covering the April 2026 entry
+  of batteries into the Greek DAM/IDM, expected spread compression from the arriving storage
+  fleet, and the exclusion of balancing-market and availability-support revenues.
+- `CLAUDE.md` and a `.claude/` SessionStart hook that prepares a Python 3.12 virtual
+  environment so Claude Code on the web sessions can run Ruff, mypy and the test suite.
+- Explicit documentation that the dispatch summary's equivalent full cycles are grid-side while
+  the degradation model uses cell-side cycles.
 - `docs/official_multiyear_operational_acceptance_2026-08-27.md`, recording live acceptance of the
   existing perfect-foresight dispatch and forecast-dispatch backtests over all 74,663 official
   HEnEx intervals from 1 November 2020 through 25 August 2026.
@@ -14,6 +21,17 @@ All notable project changes are documented here.
 
 ### Changed
 
+- Repositioned the project documentation as a Greek DAM battery replay and research benchmark;
+  repository, package and CLI names are unchanged (decision entry 2026-08-27).
+- Corrected the v0.7 scope from "probabilistic stress testing" to deterministic named
+  scenarios: source-era/resolution policy, availability/outage paths, spread-compression
+  transformations and non-probabilistic scenario ranges. P5/P50/P95 and loss-probability
+  outputs were removed pending a defensible calibration methodology (decision entry
+  2026-08-27).
+- Documented that a constant price-level shift leaves within-path spreads unchanged and is
+  therefore a weak stress for arbitrage value (`METHODOLOGY.md` §8, `LIMITATIONS.md`).
+- Added parallel-track items for durable private storage of the accepted history before
+  artifact expiry (2 September 2026) and a per-calendar-year replay decomposition.
 - `PLAN.md` records the incremental 2026 daily retrieval as accepted; workflow run `32971677163`
   and the hash-verified artifact prove the previous pending state was stale.
 - `STATUS.md` records the operational acceptance and removes the completed multi-year optimizer and
