@@ -47,10 +47,12 @@ from .forecast import (
 )
 from .stress import (
     BootstrapConfig,
+    BootstrapDispatchInputError,
     BootstrapInputError,
     PriceLevelShockConfig,
     PriceLevelShockInputError,
     apply_price_level_shock,
+    dispatch_bootstrap_paths,
     generate_seasonal_bootstrap_paths,
 )
 
@@ -266,6 +268,19 @@ def build_parser() -> argparse.ArgumentParser:
     bootstrap.add_argument("--output", required=True, type=Path, help="Synthetic paths CSV")
     bootstrap.add_argument("--provenance", type=Path, help="Sampled-block provenance CSV")
     bootstrap.add_argument("--summary", type=Path, help="Method and configuration JSON")
+
+    bootstrap_dispatch = subparsers.add_parser(
+        "dispatch-bootstrap-paths",
+        help="Dispatch each validated synthetic bootstrap path independently",
+    )
+    bootstrap_dispatch.add_argument("paths", type=Path, help="Synthetic bootstrap paths CSV")
+    bootstrap_dispatch.add_argument("--config", required=True, type=Path, help="Battery JSON")
+    bootstrap_dispatch.add_argument("--availability", type=float, default=1.0)
+    bootstrap_dispatch.add_argument(
+        "--output", required=True, type=Path, help="Interval dispatch CSV"
+    )
+    bootstrap_dispatch.add_argument("--path-summary", type=Path, help="Path summaries CSV")
+    bootstrap_dispatch.add_argument("--summary", type=Path, help="Method summary JSON")
 
     shock = subparsers.add_parser(
         "apply-price-level-shock",
@@ -490,6 +505,19 @@ def main(argv: list[str] | None = None) -> int:
             _write_json(bootstrap_result.summary, summary_path)
             print(json.dumps(bootstrap_result.summary, indent=2))
             return 0
+        elif args.command == "dispatch-bootstrap-paths":
+            bootstrap_dispatch_result = dispatch_bootstrap_paths(
+                _read_bootstrap_paths_csv(args.paths),
+                _read_battery_config(args.config),
+                availability=args.availability,
+            )
+            path_summary_path = args.path_summary or _sibling_path(args.output, ".paths.csv")
+            summary_path = args.summary or args.output.with_suffix(".summary.json")
+            _write_dispatch_csv(bootstrap_dispatch_result.interval_results, args.output)
+            _write_plain_csv(bootstrap_dispatch_result.path_summaries, path_summary_path)
+            _write_json(bootstrap_dispatch_result.summary, summary_path)
+            print(json.dumps(bootstrap_dispatch_result.summary, indent=2))
+            return 0
         elif args.command == "apply-price-level-shock":
             shock_result = apply_price_level_shock(
                 _read_bootstrap_paths_csv(args.paths), _read_price_level_config(args.config)
@@ -520,6 +548,7 @@ def main(argv: list[str] | None = None) -> int:
         AdmieError,
         OfficialDataDownloadError,
         BootstrapInputError,
+        BootstrapDispatchInputError,
         PriceLevelShockInputError,
         OSError,
     ) as exc:
@@ -592,11 +621,22 @@ def _read_canonical_csv(path: Path) -> pd.DataFrame:
 def _read_bootstrap_paths_csv(path: Path) -> pd.DataFrame:
     frame = pd.read_csv(path)
     if "path_id" not in frame:
-        raise PriceLevelShockInputError("Missing bootstrap path columns: path_id")
-    path_ids = frame["path_id"].copy()
-    canonical = _read_canonical_csv(path)
-    canonical.insert(0, "path_id", path_ids)
-    return canonical
+        raise BootstrapDispatchInputError("Missing bootstrap path columns: path_id")
+    path_frames: list[pd.DataFrame] = []
+    for path_id, group in frame.groupby("path_id", sort=True):
+        group = group.drop(columns="path_id").copy()
+        group["delivery_start_utc"] = pd.to_datetime(group["delivery_start_utc"], utc=True)
+        group["delivery_end_utc"] = pd.to_datetime(group["delivery_end_utc"], utc=True)
+        group["retrieved_at_utc"] = pd.to_datetime(group["retrieved_at_utc"], utc=True)
+        group["delivery_start_market"] = group["delivery_start_utc"].dt.tz_convert(MARKET_TZ)
+        group["delivery_start_greece"] = group["delivery_start_utc"].dt.tz_convert(GREECE_TZ)
+        group["quality_flags"] = group["quality_flags"].map(
+            lambda value: json.loads(value) if isinstance(value, str) else []
+        )
+        canonical = ensure_canonical(group)
+        canonical.insert(0, "path_id", path_id)
+        path_frames.append(canonical)
+    return pd.concat(path_frames, ignore_index=True)
 
 
 def _write_dispatch_outputs(

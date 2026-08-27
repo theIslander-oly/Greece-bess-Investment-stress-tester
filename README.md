@@ -4,7 +4,7 @@ Transparent research and pre-feasibility tooling for a standalone grid-scale bat
 
 This is not financial advice, an investment-grade forecast, a bankable revenue study or a substitute for legal, tax, grid-connection and market-access diligence.
 
-**Current release:** `v0.7.1` — deterministic bootstrap price-level shock.
+**Current release:** `v0.7.2` — independent deterministic dispatch across bootstrap paths.
 
 ## Current implementation
 
@@ -55,8 +55,9 @@ Version 0.6 provides:
 - mandatory operating-margin labels that preserve upper-bound and backtest limitations.
 
 The first v0.7 foundation also provides deterministic, seeded seasonal block-bootstrap price
-paths with sampled-block provenance. Dispatch, financial probability outputs, additional shocks
-and the user interface remain subsequent phases.
+paths with sampled-block provenance. Each validated path can now be dispatched independently
+under one shared battery configuration and availability assumption. Probability outputs,
+additional shocks, finance integration and the user interface remain excluded.
 
 ## Generate synthetic bootstrap paths
 
@@ -79,6 +80,20 @@ greek-bess generate-bootstrap-paths data/processed/henex_prices.csv \
   --config config/bootstrap.json \
   --output data/processed/bootstrap_paths.csv
 ```
+
+Dispatch the generated paths with identical physical assumptions (the optimizer retains each
+`path_id` and canonical interval key):
+
+```bash
+greek-bess dispatch-bootstrap-paths data/processed/bootstrap_paths.csv \
+  --config examples/battery_50mw_100mwh.json \
+  --availability 1.0 \
+  --output data/processed/bootstrap_dispatch.csv
+```
+
+The command writes interval dispatch, a sibling `.paths.csv` operational/revenue summary, and a
+JSON method summary. All results are synthetic perfect-foresight gross-margin upper bounds—not
+forecasts, probabilities, expected revenue, or investment evidence.
 
 The command writes the labelled synthetic paths, a block-level `.provenance.csv`, and a
 `.summary.json`. It samples with replacement from contiguous blocks in the same meteorological
@@ -647,6 +662,7 @@ exogenous variables remain parallel acceptance tasks.
 - [Implementation report v0.6.3](docs/implementation_report_v0.6.3.md)
 - [Implementation report v0.7 foundation](docs/implementation_report_v0.7.md)
 - [Implementation report v0.7.1 price-level shock](docs/implementation_report_v0.7.1.md)
+- [Implementation report v0.7.2 bootstrap dispatch](docs/implementation_report_v0.7.2.md)
 - [Official annual-history acceptance](docs/official_history_acceptance_2026-08-26.md)
 - [Current status](STATUS.md)
 - [Implementation plan](PLAN.md)
