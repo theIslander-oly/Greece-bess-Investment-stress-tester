@@ -7,12 +7,79 @@ import unittest
 from contextlib import redirect_stdout
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 from greek_bess.cli import main
 
 
 class CliTests(unittest.TestCase):
+    def test_price_level_shock_command_writes_auditable_outputs(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            prices = root / "prices.csv"
+            bootstrap_config = root / "bootstrap.json"
+            paths = root / "paths.csv"
+            shock_config = root / "shock.json"
+            shocked = root / "shocked.csv"
+            with redirect_stdout(io.StringIO()):
+                main(
+                    [
+                        "generate-synthetic",
+                        "--start-day",
+                        "2025-01-01",
+                        "--end-day",
+                        "2025-01-04",
+                        "--output",
+                        str(prices),
+                    ]
+                )
+            bootstrap_config.write_text(
+                json.dumps({"start_day": "2026-01-01", "end_day": "2026-01-02"}), encoding="utf-8"
+            )
+            with redirect_stdout(io.StringIO()):
+                main(
+                    [
+                        "generate-bootstrap-paths",
+                        str(prices),
+                        "--config",
+                        str(bootstrap_config),
+                        "--output",
+                        str(paths),
+                    ]
+                )
+            shock_config.write_text(
+                json.dumps({"shift_eur_per_mwh": -20.0, "transformation_id": "down_20"}),
+                encoding="utf-8",
+            )
+
+            with redirect_stdout(io.StringIO()):
+                exit_code = main(
+                    [
+                        "apply-price-level-shock",
+                        str(paths),
+                        "--config",
+                        str(shock_config),
+                        "--output",
+                        str(shocked),
+                    ]
+                )
+
+            output = pd.read_csv(shocked)
+            original = pd.read_csv(paths)
+            provenance = pd.read_csv(root / "shocked.provenance.csv")
+            summary = json.loads((root / "shocked.summary.json").read_text())
+            self.assertEqual(exit_code, 0)
+            self.assertEqual(len(output), 24)
+            self.assertEqual(len(provenance), 24)
+            self.assertEqual(output["path_id"].tolist(), original["path_id"].tolist())
+            self.assertTrue(
+                np.allclose(
+                    output["price_eur_per_mwh"], original["price_eur_per_mwh"] - 20
+                )
+            )
+            self.assertEqual(summary["configuration"]["transformation_id"], "down_20")
+
     def test_bootstrap_command_writes_paths_provenance_and_summary(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -262,12 +329,8 @@ class CliTests(unittest.TestCase):
                 )
             self.assertEqual(forecast_exit, 0)
             self.assertEqual(backtest_exit, 0)
-            forecast_summary = json.loads(
-                forecasts.with_suffix(".summary.json").read_text()
-            )
-            dispatch_summary = json.loads(
-                intervals.with_suffix(".summary.json").read_text()
-            )
+            forecast_summary = json.loads(forecasts.with_suffix(".summary.json").read_text())
+            dispatch_summary = json.loads(intervals.with_suffix(".summary.json").read_text())
             self.assertEqual(forecast_summary["selected_model"], "ridge")
             self.assertIn("dispatch_ranking", dispatch_summary)
             self.assertTrue(root.joinpath("ml_dispatch.forecasts.csv").exists())
@@ -370,14 +433,10 @@ class CliTests(unittest.TestCase):
                         str(annual_cash_flows),
                     ]
                 )
-            finance_summary = json.loads(
-                annual_cash_flows.with_suffix(".summary.json").read_text()
-            )
+            finance_summary = json.loads(annual_cash_flows.with_suffix(".summary.json").read_text())
             self.assertEqual(finance_exit, 0)
             self.assertEqual(finance_summary["modeled_day_count"], 2)
-            self.assertIn(
-                "upper bound", finance_summary["operating_margin_interpretation"]
-            )
+            self.assertIn("upper bound", finance_summary["operating_margin_interpretation"])
 
     def test_project_finance_command_writes_daily_annual_and_summary_outputs(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -421,9 +480,7 @@ class CliTests(unittest.TestCase):
                     ]
                 )
 
-            summary = json.loads(
-                annual_output.with_suffix(".summary.json").read_text()
-            )
+            summary = json.loads(annual_output.with_suffix(".summary.json").read_text())
             self.assertEqual(exit_code, 0)
             self.assertTrue(annual_output.exists())
             self.assertTrue(root.joinpath("project_cash_flows.daily.csv").exists())
