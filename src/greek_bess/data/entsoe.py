@@ -4,10 +4,13 @@ from __future__ import annotations
 
 import hashlib
 import os
+import sys
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
+from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
 
@@ -19,6 +22,7 @@ from .timezones import GREECE_TZ, MARKET_TZ, UTC, as_utc_timestamp, parse_iso_du
 
 ENTSOE_API_ENDPOINT = "https://web-api.tp.entsoe.eu/api"
 GREECE_BIDDING_ZONE_EIC = "10YGR-HTSO-----Y"
+RETRYABLE_HTTP_STATUS = frozenset({429, 500, 502, 503, 504})
 
 
 class EntsoeError(RuntimeError):
@@ -40,18 +44,30 @@ class EntsoeClient:
         self,
         token: str | None = None,
         *,
-        timeout_seconds: int = 30,
+        timeout_seconds: int = 60,
         endpoint: str = ENTSOE_API_ENDPOINT,
         raw_cache_dir: str | Path | None = None,
+        max_attempts: int = 4,
+        retry_backoff_seconds: float = 5.0,
+        sleep: Callable[[float], None] = time.sleep,
     ) -> None:
         self._token = token or os.getenv("ENTSOE_SECURITY_TOKEN")
         if not self._token or self._token == "replace-with-your-personal-token":
             raise EntsoeAuthenticationError(
                 "Set ENTSOE_SECURITY_TOKEN to a personal ENTSO-E API token"
             )
+        if timeout_seconds <= 0:
+            raise ValueError("timeout_seconds must be positive")
+        if max_attempts < 1:
+            raise ValueError("max_attempts must be at least 1")
+        if retry_backoff_seconds < 0:
+            raise ValueError("retry_backoff_seconds cannot be negative")
         self.timeout_seconds = timeout_seconds
         self.endpoint = endpoint
         self.raw_cache_dir = Path(raw_cache_dir) if raw_cache_dir else None
+        self.max_attempts = max_attempts
+        self.retry_backoff_seconds = retry_backoff_seconds
+        self._sleep = sleep
 
     def fetch_prices(
         self,
@@ -106,14 +122,40 @@ class EntsoeClient:
             },
             method="GET",
         )
-        try:
-            with urllib.request.urlopen(request, timeout=self.timeout_seconds) as response:
-                return response.read()
-        except urllib.error.HTTPError as exc:
-            # Do not include exc.url: ENTSO-E tokens are query parameters.
-            raise EntsoeResponseError(f"ENTSO-E returned HTTP {exc.code}") from exc
-        except urllib.error.URLError as exc:
-            raise EntsoeResponseError(f"ENTSO-E connection failed: {exc.reason}") from exc
+        # A multi-year retrieval issues dozens of sequential requests, so a single
+        # timeout or transient server error must not discard the whole window.
+        for attempt in range(1, self.max_attempts + 1):
+            try:
+                with urllib.request.urlopen(request, timeout=self.timeout_seconds) as response:
+                    result: bytes = response.read()
+                    return result
+            except urllib.error.HTTPError as exc:
+                # Do not include exc.url: ENTSO-E tokens are query parameters.
+                if exc.code not in RETRYABLE_HTTP_STATUS or attempt == self.max_attempts:
+                    raise EntsoeResponseError(f"ENTSO-E returned HTTP {exc.code}") from exc
+                detail = f"HTTP {exc.code}"
+            except (TimeoutError, urllib.error.URLError) as exc:
+                reason = getattr(exc, "reason", exc)
+                if attempt == self.max_attempts:
+                    raise EntsoeResponseError(f"ENTSO-E connection failed: {reason}") from exc
+                detail = str(reason)
+            self._report_retry(start_utc, end_utc, attempt, detail)
+            self._sleep(self.retry_backoff_seconds * attempt)
+        raise EntsoeResponseError("ENTSO-E retrieval exhausted every attempt")
+
+    def _report_retry(
+        self,
+        start_utc: pd.Timestamp,
+        end_utc: pd.Timestamp,
+        attempt: int,
+        detail: str,
+    ) -> None:
+        # The request period is provenance; the endpoint carries the token and is omitted.
+        print(
+            f"ENTSO-E request for {start_utc:%Y-%m-%d} to {end_utc:%Y-%m-%d} failed on "
+            f"attempt {attempt} of {self.max_attempts} ({detail}); retrying",
+            file=sys.stderr,
+        )
 
     def _cache_raw(
         self,

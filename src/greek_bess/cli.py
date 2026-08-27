@@ -120,6 +120,9 @@ def build_parser() -> argparse.ArgumentParser:
     )
     entsoe.add_argument("--end", required=True, help="Timezone-aware exclusive end")
     entsoe.add_argument("--chunk-days", type=int, default=31)
+    entsoe.add_argument("--timeout-seconds", type=int, default=60)
+    entsoe.add_argument("--max-attempts", type=int, default=4)
+    entsoe.add_argument("--retry-backoff-seconds", type=float, default=5.0)
     entsoe.add_argument("--raw-cache-dir", type=Path, default=Path("data/raw/entsoe"))
     entsoe.add_argument("--output", required=True, type=Path)
     entsoe.add_argument("--allow-partial-days", action="store_true")
@@ -356,7 +359,12 @@ def main(argv: list[str] | None = None) -> int:
             frame = normalize_henex_workbooks(workbooks)
             report = assess_quality(frame, require_complete_days=not args.allow_partial_days)
         elif args.command == "fetch-entsoe":
-            entsoe_client = EntsoeClient(raw_cache_dir=args.raw_cache_dir)
+            entsoe_client = EntsoeClient(
+                raw_cache_dir=args.raw_cache_dir,
+                timeout_seconds=args.timeout_seconds,
+                max_attempts=args.max_attempts,
+                retry_backoff_seconds=args.retry_backoff_seconds,
+            )
             frame = entsoe_client.fetch_prices(args.start, args.end, chunk_days=args.chunk_days)
             report = assess_quality(frame, require_complete_days=not args.allow_partial_days)
         elif args.command == "list-admie-filetypes":
