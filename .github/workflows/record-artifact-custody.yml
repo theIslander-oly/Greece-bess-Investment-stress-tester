@@ -1,0 +1,111 @@
+name: Record official artifact custody
+
+# Fingerprints an accepted official artifact so that a copy held in private storage can
+# later be proven to be that artifact, and so that a re-retrieval can be proven identical
+# or shown to differ. The job runs inside Actions because the accepted artifacts exist
+# only as private workflow artifacts (decision entry 2026-08-27).
+#
+# When a committed custody record already exists for an artifact, the job verifies the
+# artifact against it and fails on any difference. When none exists, the job records one
+# and uploads it for review. No official price is printed or committed either way.
+
+on:
+  workflow_dispatch:
+    inputs:
+      history_run_id:
+        description: Run ID holding the greek-dam-official-history artifact
+        required: true
+        default: "32971677163"
+        type: string
+      reconciliation_run_id:
+        description: Run ID holding the henex-entsoe-reconciliation artifact; empty skips it
+        required: false
+        default: "33073631530"
+        type: string
+  push:
+    branches:
+      - claude/**
+    paths:
+      - .github/workflows/record-artifact-custody.yml
+      - src/greek_bess/data/custody.py
+      - docs/custody/**
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  custody:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      HISTORY_RUN_ID: ${{ inputs.history_run_id || '32971677163' }}
+      RECONCILIATION_RUN_ID: ${{ inputs.reconciliation_run_id || '33073631530' }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install the project
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install .
+
+      - name: Download the accepted official history artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: greek-dam-official-history
+          run-id: ${{ env.HISTORY_RUN_ID }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: artifacts/greek-dam-official-history
+
+      - name: Download the reconciliation artifact
+        if: ${{ env.RECONCILIATION_RUN_ID != '' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: henex-entsoe-reconciliation
+          run-id: ${{ env.RECONCILIATION_RUN_ID }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: artifacts/henex-entsoe-reconciliation
+
+      - name: Record or verify the official history custody
+        shell: bash
+        run: |
+          .github/scripts/custody_step.sh \
+            greek-dam-official-history \
+            "$HISTORY_RUN_ID" \
+            "Fetch official Greek market history"
+
+      - name: Record or verify the reconciliation custody
+        if: ${{ env.RECONCILIATION_RUN_ID != '' }}
+        shell: bash
+        run: |
+          .github/scripts/custody_step.sh \
+            henex-entsoe-reconciliation \
+            "$RECONCILIATION_RUN_ID" \
+            "Reconcile HEnEx and ENTSO-E prices"
+
+      - name: Upload the custody records
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: official-artifact-custody-records
+          path: custody/
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Fail when any artifact did not verify
+        shell: bash
+        run: |
+          if [[ -f custody/verification_failed ]]; then
+            echo "A stored artifact does not match its committed custody record."
+            echo "This is a finding to investigate, not a check to re-run: an official"
+            echo "publication may have been revised. See the uploaded verification report."
+            exit 1
+          fi

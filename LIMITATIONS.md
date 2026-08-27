@@ -40,7 +40,13 @@
   one 29 October 2023 interval differing by EUR 0.01/MWh. ENTSO-E A44 `A03` documents state a
   price once and imply its repeats; those implied intervals are materialized and flagged, not
   interpolated.
-- Official publication revisions, terms and formats may change.
+- Official publication revisions, terms and formats may change. Accepted artifacts are held
+  outside Git as encrypted release assets and fingerprinted by committed custody records, so a
+  revision is detected rather than silently adopted; the encryption key is consequently part of
+  the custody chain, and a lost key forces a re-retrieval that may not reproduce the accepted
+  baseline.
+- A custody record proves that a stored copy is the accepted artifact. It says nothing about
+  whether that artifact supports any analytical or investment conclusion.
 - Missing official prices are not silently interpolated; this can make a run incomplete.
 
 ## Forecasting and backtests

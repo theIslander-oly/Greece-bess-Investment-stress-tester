@@ -181,6 +181,14 @@ Market Files API. Every retrieval writes a manifest with source URL, coverage, r
 SHA-256 and publication metadata where the provider exposes it. Raw and normalized official
 data remain ignored by Git.
 
+Accepted official artifacts are held outside Git as encrypted assets on a release in the
+private repository, and each is fingerprinted by a price-free custody record committed under
+`docs/custody/`. `verify-custody` re-derives that fingerprint from a stored copy, so a copy can
+be proven to be the accepted artifact and a re-retrieval that differs is detected rather than
+silently adopted — which matters because official publications are revised. The procedure and
+the operator steps are in
+[`docs/official_artifact_custody.md`](docs/official_artifact_custody.md).
+
 Review the source terms before any deployment or redistribution:
 
 - [HEnEx Terms of Use](https://www.enexgroup.gr/web/guest/terms-of-use)
@@ -627,6 +635,30 @@ financing fees, working capital, grid feasibility, bid acceptance and revenues f
 Intraday, Balancing or reserve markets. A positive NPV flag is a mathematical result under
 the inputs—not a build recommendation.
 
+## Record and verify custody of an accepted official artifact
+
+An accepted official artifact lives outside Git, so the repository holds a fingerprint of it
+rather than the data. `record-custody` builds that fingerprint and `verify-custody` checks a
+stored copy against it:
+
+```bash
+greek-bess record-custody greek-dam-official-history \
+  --artifact-name greek-dam-official-history \
+  --source-run-id 32971677163 \
+  --source-workflow "Fetch official Greek market history" \
+  --output docs/custody/greek-dam-official-history.json
+
+greek-bess verify-custody greek-dam-official-history \
+  --record docs/custody/greek-dam-official-history.json \
+  --report verification.json
+```
+
+A custody record contains no official price. It holds per-file digests and content-level
+invariants of the normalized series, including a digest of the interval and price series that
+is independent of CSV column order, file formatting and float repr — so a re-export verifies
+while a single revised cent does not. `verify-custody` returns exit code `2` on any
+difference, which is a finding to investigate rather than a check to re-run.
+
 ## Quality-result exit codes
 
 - `0`: ingestion and quality checks passed;
@@ -721,6 +753,7 @@ acceptance for ADMIE exogenous variables remains a parallel acceptance task.
 - [Official annual-history acceptance](docs/official_history_acceptance_2026-08-26.md)
 - [Official multi-year operational acceptance](docs/official_multiyear_operational_acceptance_2026-08-27.md)
 - [Official HEnEx to ENTSO-E reconciliation](docs/official_source_reconciliation_2026-08-27.md)
+- [Durable custody of accepted official artifacts](docs/official_artifact_custody.md)
 - [Current status](STATUS.md)
 - [Implementation plan](PLAN.md)
 - [Contributing guidance](CONTRIBUTING.md)

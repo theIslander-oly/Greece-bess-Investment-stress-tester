@@ -3,6 +3,43 @@
 This file records decisions that materially affect interpretation or reproducibility. Add a
 dated entry when a milestone changes scope, assumptions, data handling or validation.
 
+## 2026-08-27 — Hold accepted official artifacts as encrypted release assets, fingerprinted in Git
+
+- **Decision:** Store each accepted official artifact as an encrypted asset attached to a
+  release in this private repository, and commit a price-free custody record for it under
+  `docs/custody/`. The record carries per-file digests and content-level invariants of the
+  normalized series, including a digest of the interval and price series computed over sorted
+  `(delivery_start_utc, delivery_end_utc, price)` triples at six fixed decimals. Encryption
+  keys and the upload itself stay with the operator; no automation in this repository holds a
+  key that could decrypt an accepted artifact.
+- **Reason:** The accepted history existed only as a workflow artifact expiring on 2 September
+  2026, and official data may not enter Git. A release asset is durable and re-fetchable, but
+  an unencrypted one would place official HEnEx and ENTSO-E data into a repository asset under
+  redistribution terms this project has not assessed; encrypting before upload removes that
+  question entirely. Re-retrieval cannot substitute for custody, because HEnEx replaces
+  publications — the superseded 16 December 2020 workbooks are the precedent — so without a
+  committed fingerprint a provider revision would silently replace an accepted baseline.
+- **Consequence:** A stored copy can be proven to be the accepted artifact rather than merely
+  plausible, and a re-retrieval that differs is detected rather than adopted. The encryption
+  key becomes part of the custody chain, so a lost key forces re-retrieval with those drift
+  consequences. A verification difference is a recorded finding to investigate, never a check
+  to re-run, and a committed record is not overwritten without a decision entry.
+
+## 2026-08-27 — Digest the price series, not only the artifact bytes
+
+- **Decision:** Fingerprint an accepted history with both per-file SHA-256 digests and a
+  separate digest of the interval and price series, and treat the latter as authoritative for
+  whether the data changed. Missing prices digest as an empty field rather than a substituted
+  number, and `-0.0` is normalized to `0.0`.
+- **Reason:** Byte digests answer "are these the same bytes", which is not the question that
+  matters across a re-export or a pandas upgrade. They are also insufficient on their own in
+  practice: a one-cent price revision changes a file's SHA-256 while leaving its byte size
+  unchanged, so size is no guard, and a format-only difference would otherwise be
+  indistinguishable from a revised price.
+- **Consequence:** A re-export of the same history verifies; a revised cent does not. The two
+  digests together distinguish a formatting change from a data change, which is what makes a
+  verification difference diagnosable rather than merely alarming.
+
 ## 2026-08-27 — Read the ENTSO-E curve type instead of assuming one point per interval
 
 - **Decision:** Honor the `curveType` an A44 document declares. Under `A03` a point's price holds
