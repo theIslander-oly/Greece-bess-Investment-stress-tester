@@ -202,6 +202,9 @@ jobs:
                   float(differences.mean()) if len(differences) else None
               ),
               "affected_market_day_count": int(unmatched["market_day"].nunique()),
+              "affected_market_days": [
+                  str(day) for day in sorted(unmatched["market_day"].unique())[:25]
+              ],
               "henex_quality_valid": bool(henex_quality["is_valid"]),
               "henex_interval_count": int(henex_quality["row_count"]),
               "entsoe_quality_valid": bool(entsoe_quality["is_valid"]),
