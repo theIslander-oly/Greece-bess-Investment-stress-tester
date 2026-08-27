@@ -16,6 +16,12 @@ from .backtest import (
     simulate_degradation_dispatch,
 )
 from .data.admie import AdmieClient, AdmieError, select_latest_admie_revisions
+from .data.custody import (
+    CustodyError,
+    build_custody_record,
+    read_custody_record,
+    verify_custody_record,
+)
 from .data.entsoe import EntsoeClient, EntsoeError
 from .data.henex import HenexParseError, parse_henex_results
 from .data.henex_archive import (
@@ -27,7 +33,7 @@ from .data.henex_archive import (
 from .data.henex_daily import HenexDailyClient, HenexDailyError
 from .data.http import OfficialDataDownloadError
 from .data.quality import QualityReport, assess_quality, compare_sources
-from .data.schema import concat_canonical, ensure_canonical
+from .data.schema import concat_canonical, ensure_canonical, read_canonical_csv
 from .data.synthetic import generate_synthetic_prices
 from .data.timezones import GREECE_TZ, MARKET_TZ
 from .degradation import DegradationConfig
@@ -304,6 +310,32 @@ def build_parser() -> argparse.ArgumentParser:
     shock.add_argument("--output", required=True, type=Path, help="Shocked paths CSV")
     shock.add_argument("--provenance", type=Path, help="Interval provenance CSV")
     shock.add_argument("--summary", type=Path, help="Method and configuration JSON")
+
+    record_custody = subparsers.add_parser(
+        "record-custody",
+        help="Fingerprint an accepted official artifact without recording any price",
+    )
+    record_custody.add_argument(
+        "directory", type=Path, help="Directory holding the extracted artifact"
+    )
+    record_custody.add_argument("--artifact-name", required=True)
+    record_custody.add_argument("--source-run-id", required=True)
+    record_custody.add_argument("--source-workflow")
+    record_custody.add_argument(
+        "--published-digest",
+        help="SHA-256 the provider publishes for the artifact archive, when it exposes one",
+    )
+    record_custody.add_argument("--output", required=True, type=Path, help="Custody record JSON")
+
+    verify_custody = subparsers.add_parser(
+        "verify-custody",
+        help="Verify a stored copy against a committed custody record",
+    )
+    verify_custody.add_argument(
+        "directory", type=Path, help="Directory holding the copy under verification"
+    )
+    verify_custody.add_argument("--record", required=True, type=Path)
+    verify_custody.add_argument("--report", type=Path, help="Verification result JSON")
     return parser
 
 
@@ -537,6 +569,33 @@ def main(argv: list[str] | None = None) -> int:
             _write_json(bootstrap_dispatch_result.summary, summary_path)
             print(json.dumps(bootstrap_dispatch_result.summary, indent=2))
             return 0
+        elif args.command == "record-custody":
+            custody = build_custody_record(
+                args.directory,
+                artifact_name=args.artifact_name,
+                source_run_id=args.source_run_id,
+                source_workflow=args.source_workflow,
+                published_artifact_digest_sha256=args.published_digest,
+            )
+            _write_json(custody.to_dict(), args.output)
+            print(json.dumps(custody.to_dict(), indent=2))
+            return 0
+        elif args.command == "verify-custody":
+            custody = read_custody_record(args.record)
+            differences = verify_custody_record(custody, args.directory)
+            result = {
+                "artifact_name": custody.artifact_name,
+                "source_run_id": custody.source_run_id,
+                "recorded_at_utc": custody.recorded_at_utc,
+                "file_count": custody.file_count,
+                "difference_count": len(differences),
+                "differences": differences,
+                "verified": not differences,
+            }
+            if args.report is not None:
+                _write_json(result, args.report)
+            print(json.dumps(result, indent=2))
+            return 0 if not differences else 2
         elif args.command == "apply-price-level-shock":
             shock_result = apply_price_level_shock(
                 _read_bootstrap_paths_csv(args.paths), _read_price_level_config(args.config)
@@ -569,6 +628,7 @@ def main(argv: list[str] | None = None) -> int:
         BootstrapInputError,
         BootstrapDispatchInputError,
         PriceLevelShockInputError,
+        CustodyError,
         OSError,
     ) as exc:
         print(f"error: {exc}", file=sys.stderr)
@@ -625,16 +685,7 @@ def _sibling_path(output: Path, suffix: str) -> Path:
 
 
 def _read_canonical_csv(path: Path) -> pd.DataFrame:
-    frame = pd.read_csv(path)
-    frame["delivery_start_utc"] = pd.to_datetime(frame["delivery_start_utc"], utc=True)
-    frame["delivery_end_utc"] = pd.to_datetime(frame["delivery_end_utc"], utc=True)
-    frame["retrieved_at_utc"] = pd.to_datetime(frame["retrieved_at_utc"], utc=True)
-    frame["delivery_start_market"] = frame["delivery_start_utc"].dt.tz_convert(MARKET_TZ)
-    frame["delivery_start_greece"] = frame["delivery_start_utc"].dt.tz_convert(GREECE_TZ)
-    frame["quality_flags"] = frame["quality_flags"].map(
-        lambda value: json.loads(value) if isinstance(value, str) else []
-    )
-    return ensure_canonical(frame)
+    return read_canonical_csv(path)
 
 
 def _read_bootstrap_paths_csv(path: Path) -> pd.DataFrame:
