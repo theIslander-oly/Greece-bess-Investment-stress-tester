@@ -6,6 +6,11 @@ from .bootstrap import (
     BootstrapResult,
     generate_seasonal_bootstrap_paths,
 )
+from .bootstrap_dispatch import (
+    BootstrapDispatchInputError,
+    BootstrapDispatchResult,
+    dispatch_bootstrap_paths,
+)
 from .price_level import (
     PriceLevelShockConfig,
     PriceLevelShockInputError,
@@ -18,6 +23,9 @@ __all__ = [
     "BootstrapInputError",
     "BootstrapResult",
     "generate_seasonal_bootstrap_paths",
+    "BootstrapDispatchInputError",
+    "BootstrapDispatchResult",
+    "dispatch_bootstrap_paths",
     "PriceLevelShockConfig",
     "PriceLevelShockInputError",
     "PriceLevelShockResult",

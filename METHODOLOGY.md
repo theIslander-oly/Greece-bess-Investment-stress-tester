@@ -118,7 +118,21 @@ non-missing prices are required. An interval audit table records the UTC key, pa
 transformation ID, additive shift, original and shocked values, and input source/version. Outputs
 are synthetic sensitivities and not forecasts or investment evidence.
 
-## 9. Validation
+## 9. Independent bootstrap-path dispatch
+
+Every input path is validated independently for complete DST-aware market days, continuous
+canonical UTC intervals, unique path/UTC keys, and retained synthetic/non-forecast provenance.
+All paths must have exactly the same ordered canonical interval keys. One battery configuration
+and one scalar or interval-aligned availability profile are then reused unchanged for every
+independent full-horizon mixed-integer solve.
+
+Power, energy, efficiency, exclusivity, grid, SOC, optional daily cycle, and terminal-energy
+constraints therefore apply separately to every path; state never crosses path boundaries.
+Outputs retain `path_id`, canonical interval identity, source labels, interval operations and
+revenue decomposition. A separate table reports the existing optimizer summary for each path.
+These are perfect-foresight upper bounds on synthetic paths, not expected revenues or forecasts.
+
+## 10. Validation
 
 Code changes must pass Ruff, mypy, pytest and a clean wheel build. Tests use deterministic
 synthetic inputs or small purpose-built fixtures. Official-data acceptance is recorded as

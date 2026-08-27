@@ -3,6 +3,17 @@
 This file records decisions that materially affect interpretation or reproducibility. Add a
 dated entry when a milestone changes scope, assumptions, data handling or validation.
 
+## 2026-08-27 — Dispatch bootstrap paths independently under shared assumptions
+
+- **Decision:** Require equivalent complete canonical interval identities and retained synthetic
+  provenance across all paths, then run the existing deterministic optimizer separately for each
+  path with one unchanged battery configuration and common availability profile.
+- **Reason:** This preserves path boundaries and makes operational/revenue sensitivity auditable
+  without mixing state, constraints or assumptions between scenarios.
+- **Consequence:** Results are labelled perfect-foresight gross-margin upper bounds on synthetic
+  paths. No probabilities, percentiles, ranking, degradation, finance or investment conclusion
+  is added; negative-price-event transformations are deferred.
+
 ## 2026-08-27 — Use one additive constant for the first price-level shock
 
 - **Decision:** Apply a required finite EUR/MWh shift equally to every interval of each validated

@@ -41,6 +41,9 @@
   DST block positions can leave no compatible source block, which fails explicitly.
 - The bootstrap foundation does not model structural change, outages, cannibalisation, spreads,
   or negative-price shocks, and does not produce percentiles or loss probabilities.
+- Bootstrap dispatch knows every price within each synthetic path and is therefore only a
+  gross-margin upper bound. Paths are solved independently with shared assumptions; no path
+  probability, percentile, ranking, degradation, finance or investment conclusion is produced.
 
 - Current ML models use calendar and historical prices only; validated weather, demand, fuel,
   renewable and interconnector forecasts are not yet included.
