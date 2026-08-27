@@ -33,8 +33,6 @@ on:
         default: "bee557eaf4f2fa449fe9284bf2d80225e51350c622321cf921f3cbab033b816a"
         type: string
   push:
-    branches:
-      - claude/**
     paths:
       - .github/workflows/record-artifact-custody.yml
       - src/greek_bess/data/custody.py
