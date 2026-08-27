@@ -2,6 +2,24 @@
 
 All notable project changes are documented here.
 
+## [0.7.1] — 2026-08-27
+
+### Added
+
+- Strict additive price-level shock configuration with a finite EUR/MWh shift and required
+  transformation identifier.
+- Deterministic public Python API and `apply-price-level-shock` CLI workflow.
+- Interval provenance containing path identity, UTC key, original and shocked prices, method,
+  configured shift and input source metadata.
+- Synthetic tests for exact arithmetic, reproducibility, signed prices, CLI artifacts and
+  rejection of missing, duplicate or incomplete paths.
+
+### Interpretation limits
+
+- Shocked paths are synthetic sensitivities, not forecasts, probabilities, revenues or
+  investment evidence.
+- No spread, negative-price-event, outage or cannibalisation shocks are included.
+
 ## [0.7.0] — 2026-08-26
 
 ### Added

@@ -1,8 +1,17 @@
 # Project status
 
-**Version:** 0.7.0
-**Updated:** 26 August 2026  
-**Status:** First v0.7 bootstrap foundation implemented; broader stress testing remains pending
+**Version:** 0.7.1
+**Updated:** 27 August 2026
+**Status:** Deterministic bootstrap price-level shock implemented; broader stress testing pending
+
+## v0.7.1 price-level shock
+
+- One explicit additive constant EUR/MWh transformation operates only on validated bootstrap
+  paths and preserves canonical timezone-aware interval keys and path IDs.
+- Every output interval records its original price, shocked price, shift, transformation ID and
+  input source provenance in a separate audit table.
+- Missing prices, duplicate path intervals, incomplete market days and non-contiguous paths fail.
+- Public API and CLI outputs remain labelled synthetic, non-forecast and non-investment evidence.
 
 ## v0.7 seasonal block-bootstrap foundation
 
@@ -150,5 +159,5 @@ excluded from the repository.
 
 ## Immediate next milestone
 
-Review and accept the bootstrap foundation before adding any separate v0.7 shock, dispatch or
-probability-output layer. ENTSO-E reconciliation and ADMIE timing acceptance remain separate.
+Review the isolated price-level transformation before considering any other shock or probability
+layer. ENTSO-E reconciliation and ADMIE timing acceptance remain separate.
