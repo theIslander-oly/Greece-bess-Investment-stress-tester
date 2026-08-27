@@ -13,6 +13,57 @@ from greek_bess.cli import main
 
 
 class CliTests(unittest.TestCase):
+    def test_bootstrap_command_writes_paths_provenance_and_summary(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            prices = root / "prices.csv"
+            config = root / "bootstrap.json"
+            output = root / "paths.csv"
+            with redirect_stdout(io.StringIO()):
+                main(
+                    [
+                        "generate-synthetic",
+                        "--start-day",
+                        "2025-01-01",
+                        "--end-day",
+                        "2025-01-15",
+                        "--output",
+                        str(prices),
+                    ]
+                )
+            config.write_text(
+                json.dumps(
+                    {
+                        "start_day": "2026-01-01",
+                        "end_day": "2026-01-04",
+                        "path_count": 2,
+                        "block_days": 2,
+                        "random_seed": 7,
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            with redirect_stdout(io.StringIO()):
+                exit_code = main(
+                    [
+                        "generate-bootstrap-paths",
+                        str(prices),
+                        "--config",
+                        str(config),
+                        "--output",
+                        str(output),
+                    ]
+                )
+
+            paths = pd.read_csv(output)
+            provenance = pd.read_csv(root / "paths.provenance.csv")
+            summary = json.loads((root / "paths.summary.json").read_text())
+            self.assertEqual(exit_code, 0)
+            self.assertEqual(len(paths), 144)
+            self.assertEqual(len(provenance), 4)
+            self.assertIn("not forecasts", summary["result_label"])
+
     def test_synthetic_command_writes_data_and_quality_report(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "synthetic.csv"

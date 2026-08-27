@@ -45,6 +45,11 @@ from .forecast import (
     generate_ml_forecasts,
     generate_naive_forecasts,
 )
+from .stress import (
+    BootstrapConfig,
+    BootstrapInputError,
+    generate_seasonal_bootstrap_paths,
+)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -262,6 +267,20 @@ def build_parser() -> argparse.ArgumentParser:
     )
     finance.add_argument("--daily-output", type=Path)
     finance.add_argument("--summary", type=Path)
+
+    bootstrap = subparsers.add_parser(
+        "generate-bootstrap-paths",
+        help="Generate labelled synthetic seasonal block-bootstrap price paths",
+    )
+    bootstrap.add_argument("prices", type=Path, help="Canonical historical price CSV")
+    bootstrap.add_argument(
+        "--config", required=True, type=Path, help="Bootstrap assumptions JSON"
+    )
+    bootstrap.add_argument(
+        "--output", required=True, type=Path, help="Synthetic paths CSV"
+    )
+    bootstrap.add_argument("--provenance", type=Path, help="Sampled-block provenance CSV")
+    bootstrap.add_argument("--summary", type=Path, help="Method and configuration JSON")
     return parser
 
 
@@ -477,6 +496,21 @@ def main(argv: list[str] | None = None) -> int:
             _write_json(finance_result.summary, summary_path)
             print(json.dumps(finance_result.summary, indent=2))
             return 0
+        elif args.command == "generate-bootstrap-paths":
+            bootstrap_result = generate_seasonal_bootstrap_paths(
+                _read_canonical_csv(args.prices), _read_bootstrap_config(args.config)
+            )
+            provenance_path = args.provenance or _sibling_path(
+                args.output, ".provenance.csv"
+            )
+            summary_path = args.summary or args.output.with_suffix(".summary.json")
+            export = bootstrap_result.paths.copy()
+            export["quality_flags"] = export["quality_flags"].map(json.dumps)
+            _write_plain_csv(export, args.output)
+            _write_plain_csv(bootstrap_result.provenance, provenance_path)
+            _write_json(bootstrap_result.summary, summary_path)
+            print(json.dumps(bootstrap_result.summary, indent=2))
+            return 0
         else:  # pragma: no cover - argparse makes this unreachable.
             raise AssertionError(f"Unhandled command: {args.command}")
 
@@ -493,6 +527,7 @@ def main(argv: list[str] | None = None) -> int:
         HenexDailyError,
         AdmieError,
         OfficialDataDownloadError,
+        BootstrapInputError,
         OSError,
     ) as exc:
         print(f"error: {exc}", file=sys.stderr)
@@ -592,6 +627,11 @@ def _read_degradation_config(path: Path) -> DegradationConfig:
 def _read_finance_config(path: Path) -> FinanceConfig:
     payload = json.loads(path.read_text(encoding="utf-8"))
     return FinanceConfig.from_dict(payload)
+
+
+def _read_bootstrap_config(path: Path) -> BootstrapConfig:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    return BootstrapConfig.from_dict(payload)
 
 
 def _write_dispatch_csv(schedule: pd.DataFrame, output: Path) -> None:
