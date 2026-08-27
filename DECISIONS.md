@@ -3,6 +3,24 @@
 This file records decisions that materially affect interpretation or reproducibility. Add a
 dated entry when a milestone changes scope, assumptions, data handling or validation.
 
+## 2026-08-27 — Reconcile the two official sources inside GitHub Actions
+
+- **Decision:** Perform the HEnEx-to-ENTSO-E reconciliation in a dedicated manual workflow that
+  reads the accepted `greek-dam-official-history` artifact, retrieves ENTSO-E prices for the
+  window that history defines and classifies every interval, rather than comparing two files
+  downloaded to a workstation. The window is derived from the accepted history instead of being
+  typed in, and only interval counts, classification counts and aggregate difference statistics
+  are printed; interval-level detail stays inside the run artifact.
+- **Reason:** The personal ENTSO-E token exists only as an encrypted repository secret and the
+  accepted history exists only as a short-lived private artifact, so the single place where both
+  are available is the workflow runner. Deriving the window from the history removes the
+  market-clock boundary guesswork that a hand-typed UTC range invites, and keeps the two sources
+  on identical market days by construction.
+- **Consequence:** A reconciliation is reproducible from a run ID plus the repository secret, and
+  no official price ever reaches a commit or an ordinary log. The comparison result is a recorded
+  classification: mismatched or missing intervals are the finding, while a source that is not
+  deterministically valid on its own still fails the job.
+
 ## 2026-08-27 — Reposition as a Greek DAM battery replay and research benchmark
 
 - **Decision:** Present the project as a Greek Day-Ahead Market battery replay and research
