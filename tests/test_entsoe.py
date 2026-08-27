@@ -52,6 +52,56 @@ class EntsoeParserTests(unittest.TestCase):
             parse_entsoe_price_xml(rejection)
 
 
+VARIABLE_BLOCK_XML = b"""<?xml version="1.0" encoding="UTF-8"?>
+<Publication_MarketDocument xmlns="urn:iec62325.351:tc57wg16:451-3:publicationdocument:7:0">
+  <mRID>variable-block</mRID>
+  <revisionNumber>1</revisionNumber>
+  <TimeSeries>
+    <currency_Unit.name>EUR</currency_Unit.name>
+    <price_Measure_Unit.name>MWH</price_Measure_Unit.name>
+    <curveType>A03</curveType>
+    <Period>
+      <timeInterval>
+        <start>2026-01-01T00:00Z</start>
+        <end>2026-01-01T06:00Z</end>
+      </timeInterval>
+      <resolution>PT60M</resolution>
+      <Point><position>1</position><price.amount>40.00</price.amount></Point>
+      <Point><position>3</position><price.amount>0</price.amount></Point>
+      <Point><position>5</position><price.amount>-2.50</price.amount></Point>
+    </Period>
+  </TimeSeries>
+</Publication_MarketDocument>
+"""
+
+
+class EntsoeCurveTypeTests(unittest.TestCase):
+    def test_variable_block_positions_repeat_the_preceding_price(self) -> None:
+        frame = parse_entsoe_price_xml(VARIABLE_BLOCK_XML, retrieved_at_utc="2026-01-01T12:00Z")
+        self.assertEqual(len(frame), 6)
+        self.assertEqual(
+            frame["price_eur_per_mwh"].tolist(),
+            [40.0, 40.0, 0.0, 0.0, -2.5, -2.5],
+        )
+        self.assertEqual(
+            frame["quality_flags"].tolist(),
+            [[], ["entsoe_variable_block_repeat"]] * 3,
+        )
+        self.assertEqual(str(frame.iloc[-1]["delivery_end_utc"]), "2026-01-01 06:00:00+00:00")
+
+    def test_a_sequential_document_never_repeats_a_price(self) -> None:
+        sequential = VARIABLE_BLOCK_XML.replace(b"<curveType>A03</curveType>", b"")
+        frame = parse_entsoe_price_xml(sequential)
+        self.assertEqual(len(frame), 3)
+        self.assertEqual(frame["price_eur_per_mwh"].tolist(), [40.0, 0.0, -2.5])
+        self.assertTrue(all(not flags for flags in frame["quality_flags"]))
+
+    def test_an_unsupported_curve_type_is_rejected(self) -> None:
+        document = VARIABLE_BLOCK_XML.replace(b"A03", b"A02")
+        with self.assertRaisesRegex(EntsoeResponseError, "curve type"):
+            parse_entsoe_price_xml(document)
+
+
 class EntsoeRetryTests(unittest.TestCase):
     def _client(self, **overrides: object) -> tuple[EntsoeClient, list[float]]:
         waits: list[float] = []

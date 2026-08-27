@@ -11,7 +11,7 @@ import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
 from collections.abc import Callable
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import pandas as pd
@@ -23,6 +23,9 @@ from .timezones import GREECE_TZ, MARKET_TZ, UTC, as_utc_timestamp, parse_iso_du
 ENTSOE_API_ENDPOINT = "https://web-api.tp.entsoe.eu/api"
 GREECE_BIDDING_ZONE_EIC = "10YGR-HTSO-----Y"
 RETRYABLE_HTTP_STATUS = frozenset({429, 500, 502, 503, 504})
+CURVE_TYPE_SEQUENTIAL = "A01"
+CURVE_TYPE_VARIABLE_BLOCK = "A03"
+VARIABLE_BLOCK_REPEAT_FLAG = "entsoe_variable_block_repeat"
 
 
 class EntsoeError(RuntimeError):
@@ -239,9 +242,16 @@ def parse_entsoe_price_xml(
             raise EntsoeResponseError(f"Expected EUR prices, received {currency}")
         if measure.upper() not in {"MWH", "MAW"}:
             raise EntsoeResponseError(f"Unexpected price measure unit: {measure}")
+        curve_type = (
+            _first_text(series, "curveType", default=CURVE_TYPE_SEQUENTIAL)
+            or CURVE_TYPE_SEQUENTIAL
+        ).upper()
+        if curve_type not in {CURVE_TYPE_SEQUENTIAL, CURVE_TYPE_VARIABLE_BLOCK}:
+            raise EntsoeResponseError(f"Unsupported ENTSO-E curve type: {curve_type}")
 
         for period in _children(series, "Period"):
             start_text = _nested_text(period, ["timeInterval", "start"])
+            end_text = _nested_text(period, ["timeInterval", "end"])
             resolution_text = _first_text(period, "resolution")
             if start_text is None or resolution_text is None:
                 raise EntsoeResponseError("A price period lacks start time or resolution")
@@ -253,34 +263,80 @@ def parse_entsoe_price_xml(
                     f"Unsupported ENTSO-E price resolution: {resolution_text}"
                 )
 
-            for point in _children(period, "Point"):
-                position_text = _first_text(point, "position")
-                price_text = _first_text(point, "price.amount")
-                if position_text is None or price_text is None:
-                    raise EntsoeResponseError("A price point lacks position or price")
-                position = int(position_text)
-                if position < 1:
-                    raise EntsoeResponseError("ENTSO-E point positions must start at 1")
-                start = period_start + (position - 1) * resolution
-                end = start + resolution
-                rows.append(
-                    {
-                        "delivery_start_utc": start,
-                        "delivery_end_utc": end,
-                        "delivery_start_market": start.tz_convert(MARKET_TZ),
-                        "delivery_start_greece": start.tz_convert(GREECE_TZ),
-                        "duration_hours": duration_hours,
-                        "price_eur_per_mwh": float(price_text),
-                        "bidding_zone": "GR",
-                        "source": "entsoe",
-                        "source_version": source_version,
-                        "retrieved_at_utc": retrieved,
-                        "raw_sha256": digest,
-                        "quality_flags": [],
-                    }
-                )
+            points = _period_points(period)
+            final_position = _final_position(period_start, end_text, resolution, points[-1][0])
+            for index, (position, price) in enumerate(points):
+                if curve_type == CURVE_TYPE_SEQUENTIAL:
+                    last_position = position
+                elif index + 1 < len(points):
+                    # A03 omits a position whose price repeats the position before it.
+                    last_position = points[index + 1][0] - 1
+                else:
+                    last_position = final_position
+                for offset in range(position, last_position + 1):
+                    start = period_start + (offset - 1) * resolution
+                    rows.append(
+                        {
+                            "delivery_start_utc": start,
+                            "delivery_end_utc": start + resolution,
+                            "delivery_start_market": start.tz_convert(MARKET_TZ),
+                            "delivery_start_greece": start.tz_convert(GREECE_TZ),
+                            "duration_hours": duration_hours,
+                            "price_eur_per_mwh": price,
+                            "bidding_zone": "GR",
+                            "source": "entsoe",
+                            "source_version": source_version,
+                            "retrieved_at_utc": retrieved,
+                            "raw_sha256": digest,
+                            "quality_flags": (
+                                [] if offset == position else [VARIABLE_BLOCK_REPEAT_FLAG]
+                            ),
+                        }
+                    )
 
     return ensure_canonical(pd.DataFrame(rows))
+
+
+def _period_points(period: ET.Element) -> list[tuple[int, float]]:
+    """Return the period's (position, price) pairs in ascending position order."""
+
+    points: list[tuple[int, float]] = []
+    for point in _children(period, "Point"):
+        position_text = _first_text(point, "position")
+        price_text = _first_text(point, "price.amount")
+        if position_text is None or price_text is None:
+            raise EntsoeResponseError("A price point lacks position or price")
+        position = int(position_text)
+        if position < 1:
+            raise EntsoeResponseError("ENTSO-E point positions must start at 1")
+        points.append((position, float(price_text)))
+    if not points:
+        raise EntsoeResponseError("A price period contains no points")
+    points.sort(key=lambda item: item[0])
+    positions = [position for position, _ in points]
+    if len(set(positions)) != len(positions):
+        raise EntsoeResponseError("A price period repeats a point position")
+    return points
+
+
+def _final_position(
+    period_start: pd.Timestamp,
+    end_text: str | None,
+    resolution: timedelta,
+    last_declared_position: int,
+) -> int:
+    """Return the last position the period covers, from its declared time interval."""
+
+    if end_text is None:
+        return last_declared_position
+    period_end = as_utc_timestamp(end_text)
+    covered = (period_end - period_start).total_seconds() / resolution.total_seconds()
+    final = int(round(covered))
+    if abs(covered - final) > 1e-6 or final < last_declared_position:
+        raise EntsoeResponseError(
+            "An ENTSO-E period time interval disagrees with its resolution and points"
+        )
+    return final
 
 
 def _local_name(tag: str) -> str:
