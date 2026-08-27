@@ -10,6 +10,7 @@ from greek_bess.data.synthetic import generate_synthetic_prices
 from greek_bess.dispatch import (
     BatteryDispatchConfig,
     DispatchInputError,
+    optimize_daily_perfect_foresight,
     optimize_perfect_foresight,
 )
 
@@ -142,6 +143,102 @@ class PerfectForesightDispatchTests(unittest.TestCase):
                 pd.concat([first, third], ignore_index=True),
                 config(require_complete_market_days=True),
             )
+
+
+class DailyComposedDispatchTests(unittest.TestCase):
+    def multi_day_prices(self) -> pd.DataFrame:
+        frame = generate_synthetic_prices(
+            date(2025, 12, 30), date(2026, 1, 2), negative_price_share=0
+        )
+        slot = frame["delivery_start_market"].dt.hour
+        frame["price_eur_per_mwh"] = slot.map(lambda hour: 10.0 if hour < 12 else 100.0)
+        return frame
+
+    def daily_config(self, **overrides) -> BatteryDispatchConfig:
+        values = {
+            "charge_power_mw": 1.0,
+            "discharge_power_mw": 1.0,
+            "energy_capacity_mwh": 4.0,
+            "soc_min_fraction": 0.0,
+            "soc_max_fraction": 1.0,
+            "initial_soc_fraction": 0.0,
+            "terminal_soc_fraction": 0.0,
+            "charge_efficiency": 1.0,
+            "discharge_efficiency": 1.0,
+        }
+        values.update(overrides)
+        return BatteryDispatchConfig(**values)
+
+    def test_every_day_is_solved_independently_and_returns_to_initial_soc(self) -> None:
+        prices = self.multi_day_prices()
+        result = optimize_daily_perfect_foresight(prices, self.daily_config())
+
+        self.assertEqual(result.summary["solve_mode"], "daily_independent_solves")
+        self.assertEqual(result.summary["interval_count"], len(prices))
+        self.assertEqual(result.summary["market_day_count"], 3)
+        self.assertEqual(result.summary["solver_status_counts"], {"0": 3})
+        self.assertLess(result.summary["maximum_terminal_energy_error_mwh"], 1e-6)
+        self.assertEqual(
+            sorted(result.schedule["market_day"].unique()),
+            [date(2025, 12, 30), date(2025, 12, 31), date(2026, 1, 1)],
+        )
+        for _, day in result.schedule.groupby("market_day"):
+            self.assertAlmostEqual(float(day["energy_end_mwh"].iloc[-1]), 0.0, places=6)
+
+    def test_daily_composition_never_exceeds_the_full_horizon_bound(self) -> None:
+        prices = self.multi_day_prices()
+        config = self.daily_config()
+        daily = optimize_daily_perfect_foresight(prices, config)
+        horizon = optimize_perfect_foresight(prices, config)
+
+        self.assertLessEqual(
+            daily.summary["net_market_margin_eur"],
+            horizon.summary["net_market_margin_eur"] + 1e-6,
+        )
+
+    def test_daily_composition_requires_a_restored_terminal_soc(self) -> None:
+        prices = self.multi_day_prices()
+        with self.assertRaisesRegex(DispatchInputError, "terminal_soc_fraction"):
+            optimize_daily_perfect_foresight(
+                prices,
+                self.daily_config(initial_soc_fraction=0.0, terminal_soc_fraction=1.0),
+            )
+
+    def test_shuffled_input_keeps_availability_with_its_own_interval(self) -> None:
+        prices = self.multi_day_prices()
+        market_day = prices["delivery_start_market"].dt.date
+        availability = np.where(market_day.eq(date(2025, 12, 31)).to_numpy(), 0.0, 1.0)
+
+        order = np.random.default_rng(3).permutation(len(prices))
+        shuffled = prices.iloc[order].reset_index(drop=True)
+        shuffled_availability = availability[order]
+
+        ordered = optimize_daily_perfect_foresight(
+            prices, self.daily_config(), availability=availability
+        )
+        scrambled = optimize_daily_perfect_foresight(
+            shuffled, self.daily_config(), availability=shuffled_availability
+        )
+        self.assertAlmostEqual(
+            scrambled.summary["net_market_margin_eur"],
+            ordered.summary["net_market_margin_eur"],
+        )
+        idle = scrambled.schedule.loc[scrambled.schedule["market_day"] == date(2025, 12, 31)]
+        self.assertAlmostEqual(float(idle["discharge_grid_mwh"].sum()), 0.0)
+
+    def test_interval_availability_is_applied_to_its_own_day(self) -> None:
+        prices = self.multi_day_prices()
+        market_day = prices["delivery_start_market"].dt.date
+        availability = np.where(market_day.eq(date(2025, 12, 31)).to_numpy(), 0.0, 1.0)
+
+        result = optimize_daily_perfect_foresight(
+            prices, self.daily_config(), availability=availability
+        )
+        idle = result.schedule.loc[result.schedule["market_day"] == date(2025, 12, 31)]
+        active = result.schedule.loc[result.schedule["market_day"] == date(2025, 12, 30)]
+
+        self.assertAlmostEqual(float(idle["discharge_grid_mwh"].sum()), 0.0)
+        self.assertGreater(float(active["discharge_grid_mwh"].sum()), 0.0)
 
 
 if __name__ == "__main__":

@@ -22,6 +22,10 @@ UPPER_BOUND_LABEL = (
     "Perfect-foresight Greek DAM gross-margin upper bound; not expected or "
     "forecast investment revenue."
 )
+DAILY_SOLVE_LABEL = (
+    "Perfect-foresight Greek DAM gross-margin upper bound composed from independent "
+    "daily solves; not expected or forecast investment revenue."
+)
 NUMERICAL_THROUGHPUT_TIEBREAK_EUR_PER_MWH = 1e-7
 
 
@@ -366,6 +370,112 @@ def _build_summary(
             NUMERICAL_THROUGHPUT_TIEBREAK_EUR_PER_MWH
             * (charge_mwh + discharge_mwh)
         ),
+    }
+
+
+def optimize_daily_perfect_foresight(
+    prices: pd.DataFrame,
+    config: BatteryDispatchConfig,
+    *,
+    availability: float | Sequence[float] | pd.Series = 1.0,
+) -> DispatchResult:
+    """Solve every market day independently and compose the schedules.
+
+    This is the repository's established comparative convention and the ceiling the
+    forecast backtests are measured against: each market day starts and ends at the
+    configured SOC, so no energy is arbitraged across a day boundary. Because no day
+    borrows energy from another, every interval's margin belongs unambiguously to its
+    own market day, and therefore to its own delivery year.
+
+    The composed margin is necessarily at or below the single full-horizon solve,
+    which may move energy between days. Both remain labelled upper bounds.
+    """
+
+    if not np.isclose(config.initial_soc_fraction, config.effective_terminal_soc_fraction):
+        raise DispatchInputError(
+            "Daily composed dispatch requires terminal_soc_fraction to equal "
+            "initial_soc_fraction, so that independent days can be composed"
+        )
+
+    input_availability = _availability_array(availability, len(prices))
+    original_starts = pd.to_datetime(
+        prices["delivery_start_utc"], utc=True, errors="coerce"
+    )
+    sort_order = np.argsort(original_starts.astype("int64").to_numpy(), kind="stable")
+    availability_values = input_availability[sort_order]
+
+    data = ensure_canonical(prices, allow_empty=False).reset_index(drop=True)
+    market_days = data["delivery_start_market"].dt.date
+
+    schedules: list[pd.DataFrame] = []
+    solver_statuses: list[int] = []
+    terminal_errors: list[float] = []
+    target_energy = config.energy_capacity_mwh * config.effective_terminal_soc_fraction
+
+    for market_day in sorted(market_days.unique()):
+        selector = market_days.eq(market_day).to_numpy()
+        day = data.loc[selector].reset_index(drop=True)
+        result = optimize_perfect_foresight(
+            day, config, availability=availability_values[selector]
+        )
+        schedule = result.schedule.copy()
+        schedule.insert(0, "market_day", market_day)
+        schedules.append(schedule)
+        solver_statuses.append(int(result.summary["solver_status"]))
+        terminal_errors.append(
+            abs(float(result.summary["terminal_energy_mwh"]) - target_energy)
+        )
+
+    composed = pd.concat(schedules, ignore_index=True)
+    summary = _daily_summary(composed, config, solver_statuses, terminal_errors)
+    return DispatchResult(schedule=composed, summary=summary, config=config)
+
+
+def _daily_summary(
+    schedule: pd.DataFrame,
+    config: BatteryDispatchConfig,
+    solver_statuses: list[int],
+    terminal_errors: list[float],
+) -> dict[str, Any]:
+    charge_mwh = float(schedule["charge_grid_mwh"].sum())
+    discharge_mwh = float(schedule["discharge_grid_mwh"].sum())
+    charge_cost = float(schedule["charging_energy_cost_eur"].sum())
+    discharge_revenue = float(schedule["discharge_energy_revenue_eur"].sum())
+    status_counts: dict[str, int] = {}
+    for status in solver_statuses:
+        status_counts[str(status)] = status_counts.get(str(status), 0) + 1
+    return {
+        "result_label": DAILY_SOLVE_LABEL,
+        "solve_mode": "daily_independent_solves",
+        "interval_count": int(len(schedule)),
+        "market_day_count": len(solver_statuses),
+        "horizon_start_utc": str(schedule["delivery_start_utc"].min()),
+        "horizon_end_utc_exclusive": str(schedule["delivery_end_utc"].max()),
+        "gross_discharge_revenue_eur": discharge_revenue,
+        "charging_energy_cost_eur": charge_cost,
+        "buy_fees_eur": float(schedule["buy_fee_eur"].sum()),
+        "sell_fees_eur": float(schedule["sell_fee_eur"].sum()),
+        "degradation_cost_eur": float(schedule["degradation_cost_eur"].sum()),
+        "net_market_margin_eur": float(schedule["net_market_margin_eur"].sum()),
+        "grid_charge_mwh": charge_mwh,
+        "grid_discharge_mwh": discharge_mwh,
+        "equivalent_full_cycles": discharge_mwh / config.energy_capacity_mwh,
+        "average_charge_price_eur_per_mwh": (
+            charge_cost / charge_mwh if charge_mwh > 1e-9 else None
+        ),
+        "average_discharge_price_eur_per_mwh": (
+            discharge_revenue / discharge_mwh if discharge_mwh > 1e-9 else None
+        ),
+        "one_way_charge_efficiency": config.charge_efficiency,
+        "one_way_discharge_efficiency": config.discharge_efficiency,
+        "nominal_round_trip_efficiency": (
+            config.charge_efficiency * config.discharge_efficiency
+        ),
+        "solver_status_counts": status_counts,
+        "maximum_terminal_energy_error_mwh": (
+            max(terminal_errors) if terminal_errors else 0.0
+        ),
+        "terminal_soc_policy": "Initial SOC restored at the end of every market day",
     }
 
 
