@@ -3,6 +3,17 @@
 This file records decisions that materially affect interpretation or reproducibility. Add a
 dated entry when a milestone changes scope, assumptions, data handling or validation.
 
+## 2026-08-26 — Start v0.7 with an auditable seasonal block bootstrap
+
+- **Decision:** Sample complete contiguous market-day blocks with replacement from the same
+  meteorological season, require exact target/source daily interval-count patterns, and expose
+  the seed plus block-level candidate and selection provenance.
+- **Reason:** This provides a deterministic dependence-preserving foundation while keeping DST,
+  zero/negative prices and missing-data behavior explicit and testable.
+- **Consequence:** Paths are labelled synthetic scenarios rather than forecasts or investment
+  evidence. Missing observations are rejected, and dispatch, finance, probability summaries and
+  shock overlays remain outside this reviewable foundation.
+
 ## 2026-08-26 — Accept the complete official HEnEx acquisition baseline
 
 - **Decision:** Accept workflow run 32971677163 and its private

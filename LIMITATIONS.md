@@ -19,8 +19,8 @@
 
 ## Data
 
-- The live HEnEx annual archives from 1 November 2020 through 31 December 2025 pass continuity,
-  duplicate, DST and price-preservation checks. Incremental 2026 daily acceptance remains pending.
+- The accepted private HEnEx history from 1 November 2020 through 25 August 2026 passes
+  continuity, duplicate, DST and price-preservation checks; it is not committed to Git.
 - In 980 historical intervals, one or two cross-border asset rows differ from the dominant
   Greek-zone MCP by EUR 0.01/MWh. The bounded consensus is retained and explicitly flagged;
   larger or ambiguous disagreements remain errors.
@@ -34,6 +34,13 @@
 - Missing official prices are not silently interpolated; this can make a run incomplete.
 
 ## Forecasting and backtests
+
+- Seasonal bootstrap paths reuse historical price blocks and are synthetic scenarios, not
+  forecasts, probability-calibrated samples or evidence of future market behavior.
+- Meteorological-season matching is a coarse dependence assumption. Sparse histories or unusual
+  DST block positions can leave no compatible source block, which fails explicitly.
+- The bootstrap foundation does not model structural change, outages, cannibalisation, spreads,
+  or negative-price shocks, and does not produce percentiles or loss probabilities.
 
 - Current ML models use calendar and historical prices only; validated weather, demand, fuel,
   renewable and interconnector forecasts are not yet included.

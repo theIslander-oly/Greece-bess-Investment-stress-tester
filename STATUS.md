@@ -1,8 +1,19 @@
 # Project status
 
-**Version:** 0.6.3
+**Version:** 0.7.0
 **Updated:** 26 August 2026  
-**Status:** Official HEnEx history accepted through 25 August 2026; ready for v0.7
+**Status:** First v0.7 bootstrap foundation implemented; broader stress testing remains pending
+
+## v0.7 seasonal block-bootstrap foundation
+
+- Deterministic sampling with an explicit non-negative random seed.
+- Contiguous meteorological-season blocks sampled with replacement.
+- Exact target/source daily interval-count matching preserves DST market-day structure.
+- Prices are copied exactly; zero and negative prices remain valid.
+- Missing prices, gaps, overlaps and incomplete source days fail rather than being filled.
+- Every sampled block records target/source dates, candidate set size and selected index.
+- Public Python API and CLI produce explicitly synthetic, non-forecast-labelled artifacts.
+- Dispatch, finance, probability summaries and shock layers remain excluded.
 
 ## Repository foundation merged
 
@@ -139,5 +150,5 @@ excluded from the repository.
 
 ## Immediate next milestone
 
-Begin probabilistic stress testing on `stress-testing`. The official HEnEx acquisition baseline
-is accepted through 25 August 2026; ENTSO-E reconciliation remains a separate acceptance task.
+Review and accept the bootstrap foundation before adding any separate v0.7 shock, dispatch or
+probability-output layer. ENTSO-E reconciliation and ADMIE timing acceptance remain separate.
