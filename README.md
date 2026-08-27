@@ -1,14 +1,38 @@
 # Greek Battery Investment Stress Tester
 
-Transparent research and pre-feasibility tooling for a standalone grid-scale battery in Greece.
+**A Greek Day-Ahead Market battery replay and research benchmark.** The tool replays
+provenance-verified official Greek DAM prices against an explicitly configured standalone
+battery, computes the historical perfect-foresight gross-margin upper bound, and measures how
+much of that ceiling leakage-safe causal forecasts would have captured. Deterministic, named
+stress scenarios and transparent screening arithmetic (degradation, unlevered cash flows) build
+on that replay core.
 
-This is not financial advice, an investment-grade forecast, a bankable revenue study or a substitute for legal, tax, grid-connection and market-access diligence.
+This is not financial advice, an investment-grade forecast, a bankable revenue study or a
+substitute for legal, tax, grid-connection and market-access diligence.
 
 **Current release:** `v0.7.2` — independent deterministic dispatch across bootstrap paths.
 
+## What this tool cannot tell you
+
+Read this before interpreting any output:
+
+- **It does not predict prices or revenue.** Every result is either a historical
+  perfect-foresight upper bound or a historical forecast benchmark on one selected period.
+- **The replayed history predates battery competition.** Storage units were only integrated
+  into the Greek Day-Ahead and Intraday Markets in April 2026, so nearly all replayed prices
+  come from a market with no operating batteries. As the supported ~1 GW fleet and merchant
+  projects enter, price spreads are widely expected to compress, so historical replay tends to
+  overstate what a future merchant DAM-only battery could earn.
+- **It models one revenue stream only.** Real Greek battery projects typically combine DAM and
+  intraday arbitrage with balancing-market participation, and most near-term projects hold
+  state availability-support contracts from the 2023-2024 storage tenders. None of that is
+  modeled here, by design, until it can be independently validated.
+- **Illustrative inputs stay illustrative.** The example battery, degradation and finance
+  configurations are placeholders. Any number computed from them is arithmetic, not evidence.
+
 ## Current implementation
 
-Version 0.6 provides:
+The current implementation provides:
 
 - a canonical Greek Day-Ahead Market interval schema;
 - an ENTSO-E A44 day-ahead price client for the Greek bidding zone;
@@ -362,7 +386,10 @@ The optimizer uses these conventions:
 - the terminal SOC defaults to the initial SOC, preventing free end-of-horizon depletion;
 - an optional daily cycle cap limits grid-delivered discharge MWh divided by nameplate MWh;
 - availability scales battery power capability, while grid limits remain absolute;
-- negative charging costs are preserved when the battery is paid to consume energy.
+- negative charging costs are preserved when the battery is paid to consume energy;
+- the summary's `equivalent_full_cycles` is grid-side (grid discharge divided by nameplate
+  energy); the degradation model separately uses cell-side cycles (grid discharge divided by
+  discharge efficiency, then by nominal energy), so the two figures intentionally differ.
 
 Perfect foresight assumes every future price is known. Its result is therefore a
 deterministic gross-margin upper bound under the supplied constraints—not a forecast and
@@ -630,10 +657,14 @@ tests/
 
 ## Next phase
 
-The next modeling phase is probabilistic stress testing: reproducible seasonal price-path
-resampling, spread and negative-price shocks, availability/outage blocks, degradation and
-CAPEX sensitivities, battery-market cannibalisation, P5/P50/P95 outcomes, loss
-probability and worst paths. Tax, subsidy and leveraged financing remain excluded until
+The next modeling phase is deterministic scenario stress testing: an explicit bootstrap
+source-era/resolution policy, deterministic availability/outage paths, spread-compression
+transformations (the first-order cannibalisation risk, expressed as explicit judgmental
+scenarios), and scenario-ensemble range reporting that is labelled non-probabilistic.
+Percentile outputs (P5/P50/P95) and loss probabilities were removed from the roadmap because
+the seasonal bootstrap resamples a non-stationary 2020-2026 history uniformly and therefore
+supports no calibrated probability interpretation; see the 2026-08-27 decision entries.
+Tax, subsidy and leveraged financing remain excluded until
 their jurisdiction-specific assumptions are independently validated. HEnEx workbook and complete
 official-history acceptance have passed, and both the perfect-foresight optimizer and the
 forecast-dispatch backtests have now been accepted over that full history. Private-token ENTSO-E

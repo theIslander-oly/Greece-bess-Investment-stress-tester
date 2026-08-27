@@ -3,6 +3,42 @@
 This file records decisions that materially affect interpretation or reproducibility. Add a
 dated entry when a milestone changes scope, assumptions, data handling or validation.
 
+## 2026-08-27 — Reposition as a Greek DAM battery replay and research benchmark
+
+- **Decision:** Present the project as a Greek Day-Ahead Market battery replay and research
+  benchmark rather than an investment stress tester. The repository, package and CLI names are
+  unchanged for now; README framing, a reader-facing "what this tool cannot tell you" section
+  and the roadmap language carry the repositioning.
+- **Reason:** An independent review (27 August 2026) found the implemented capability is a
+  verified historical replay with leakage-safe forecast benchmarks and screening arithmetic.
+  "Investment stress testing" overstates that: batteries only entered the Greek DAM in April
+  2026, so the replayed history contains no storage competition; balancing-market and
+  availability-support revenues that dominate real Greek battery commerce are excluded; and
+  the only implemented shock is near-inert for arbitrage.
+- **Consequence:** Outputs keep their existing labels. The positioning change is documentation
+  only; no analytical behavior changed. A future full rename (repository/package/CLI) remains
+  open as a separate decision.
+
+## 2026-08-27 — Replace probabilistic v0.7 outputs with named deterministic scenarios
+
+- **Decision:** Remove P5/P50/P95 percentiles and loss-probability outputs from the v0.7
+  scope. v0.7 instead targets, in order: a documented bootstrap source-era/resolution policy,
+  deterministic availability/outage paths, spread-compression transformations about a daily
+  reference level, and scenario-ensemble range reporting explicitly labelled
+  non-probabilistic. Cannibalisation is represented only as explicit judgmental
+  spread-compression scenarios.
+- **Reason:** The seasonal block bootstrap samples uniformly with replacement from a
+  non-stationary 2020-2026 history (COVID trough, 2022 gas crisis, 2025-2026 negative-price
+  surge), so percentiles over its paths have no calibrated probability interpretation and
+  "loss probability" would be pseudo-statistical. A constant additive price-level shift leaves
+  within-path spreads unchanged, so further level shocks change arbitrage economics only
+  through efficiency losses and fees; spread transformations are the first-order stress. The
+  bootstrap also requires a single input resolution while the accepted official history mixes
+  hourly and quarter-hour regimes, so the sampling era must be an explicit decision.
+- **Consequence:** No probability, percentile or loss metric will be attached to scenario
+  outputs unless a defensible calibration methodology is independently justified first.
+  Scenario results are reported as labelled ranges across named assumptions.
+
 ## 2026-08-27 — Record both horizons in official operational acceptance
 
 - **Decision:** Accept the official multi-year history with the existing optimizer run twice: once

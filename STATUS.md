@@ -192,7 +192,12 @@ excluded from the repository.
 ## Immediate next milestone
 
 Official multi-year operational acceptance has passed for both the perfect-foresight and
-forecast-backtest paths. The next isolated v0.7 modeling milestone is deterministic
-availability/outage-path integration, which requires explicit approval before implementation.
-Negative-price-event transformations remain deferred. ENTSO-E reconciliation and ADMIE timing
-acceptance remain separate.
+forecast-backtest paths. On 2026-08-27 the project was repositioned as a Greek DAM battery
+replay and research benchmark, and the v0.7 scope was corrected to deterministic named
+scenarios: percentile and loss-probability outputs were removed pending a defensible
+calibration story. The next isolated v0.7 modeling milestone is deterministic
+availability/outage-path integration, which requires explicit approval before implementation,
+preceded by a documented bootstrap source-era/resolution policy. Negative-price-event
+transformations remain deferred. ENTSO-E reconciliation, ADMIE timing acceptance, durable
+private storage of the accepted history, and per-year replay decomposition remain parallel
+tasks.

@@ -112,6 +112,10 @@ the interval and \(k\) is the unchanged path ID. There is no random draw, clippi
 interpolation or calendar remapping. Consequently identical ordered inputs and configuration
 produce identical results, and zero or negative shocked prices remain valid.
 
+Because the shift is constant, within-path spreads are unchanged; dispatch schedules and gross
+margins therefore respond only through round-trip efficiency losses and per-MWh fees. The
+transformation is a level sensitivity, not a stress on the arbitrage opportunity itself.
+
 Validation is performed independently for every path: canonical timezone-aware columns, unique
 path/UTC keys, complete DST-aware market days, continuous intervals, one supported resolution and
 non-missing prices are required. An interval audit table records the UTC key, path ID,
