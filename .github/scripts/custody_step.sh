@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Record or verify the custody of one downloaded official artifact.
 #
-# Usage: custody_step.sh <artifact-name> <source-run-id> <source-workflow>
+# Usage: custody_step.sh <artifact-name> <source-run-id> <source-workflow> [published-digest]
 #
 # When docs/custody/<artifact-name>.json exists, the downloaded copy is verified against
 # it and a difference marks the job for failure. When it does not, a record is generated
@@ -12,6 +12,7 @@ set -euo pipefail
 artifact_name="$1"
 source_run_id="$2"
 source_workflow="$3"
+published_digest="${4:-}"
 
 directory="artifacts/${artifact_name}"
 committed="docs/custody/${artifact_name}.json"
@@ -46,10 +47,15 @@ if [[ -f "$committed" ]]; then
   esac
 else
   echo "No committed custody record for ${artifact_name}; recording one."
+  digest_args=()
+  if [[ -n "$published_digest" ]]; then
+    digest_args=(--published-digest "$published_digest")
+  fi
   greek-bess record-custody "$directory" \
     --artifact-name "$artifact_name" \
     --source-run-id "$source_run_id" \
     --source-workflow "$source_workflow" \
+    "${digest_args[@]}" \
     --output "custody/${artifact_name}.json"
   echo "${artifact_name}: custody record generated from run ${source_run_id}." \
     >> "$GITHUB_STEP_SUMMARY"

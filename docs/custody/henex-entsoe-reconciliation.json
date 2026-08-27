@@ -1,0 +1,68 @@
+{
+  "record_version": 1,
+  "artifact_name": "henex-entsoe-reconciliation",
+  "source_run_id": "33073631530",
+  "source_workflow": "Reconcile HEnEx and ENTSO-E prices",
+  "published_artifact_digest_sha256": "bee557eaf4f2fa449fe9284bf2d80225e51350c622321cf921f3cbab033b816a",
+  "recorded_at_utc": "2026-08-27T13:20:08.615692+00:00",
+  "file_count": 5,
+  "total_size_bytes": 26653544,
+  "files": [
+    {
+      "relative_path": "entsoe/entsoe_prices.csv",
+      "size_bytes": 19706482,
+      "sha256": "b87e7893a037c1216e5c463fe32d9adade6e6ddd6b4ffe64cd9d7d481a0ae4dc"
+    },
+    {
+      "relative_path": "entsoe/entsoe_prices.quality.json",
+      "size_bytes": 446,
+      "sha256": "44097021a30c1ecaf04833533ce20dbde96d4df1c29bd5a77e7a9d21641e9ac6"
+    },
+    {
+      "relative_path": "henex_prices.quality.json",
+      "size_bytes": 712,
+      "sha256": "a45f1ec9eb639c728b486edec9eeda5f689db6cd9e2d4a6059c07c4947b2a181"
+    },
+    {
+      "relative_path": "reconciliation_summary.json",
+      "size_bytes": 1270,
+      "sha256": "577bf8a67580284f0496be8d52fa950a0f940bce5f62f0ff01f4b42a277ac59f"
+    },
+    {
+      "relative_path": "source_comparison.csv",
+      "size_bytes": 6944634,
+      "sha256": "40787c6db7092f511cf04b11421e8455ff90ff293a6fcea92821959450abba5e"
+    }
+  ],
+  "content": {
+    "entsoe/entsoe_prices.csv": {
+      "interval_count": 74663,
+      "first_interval_utc": "2020-10-31T23:00:00+00:00",
+      "last_interval_utc": "2026-08-25T22:00:00+00:00",
+      "market_day_count": 2124,
+      "negative_price_count": 1767,
+      "zero_price_count": 1914,
+      "missing_price_count": 0,
+      "interval_counts_by_delivery_year": {
+        "2020": 1464,
+        "2021": 8760,
+        "2022": 8760,
+        "2023": 8760,
+        "2024": 8784,
+        "2025": 15387,
+        "2026": 22748
+      },
+      "interval_counts_by_duration_hours": {
+        "0.25": 31584,
+        "1.0": 43079
+      },
+      "interval_counts_by_source": {
+        "entsoe": 74663
+      },
+      "quality_flag_counts": {
+        "entsoe_variable_block_repeat": 4874
+      },
+      "price_series_sha256": "6bbb32037957ad88838f80ed1d6fb881d4b114b90a5dc39ec2ca0e1622db3668"
+    }
+  }
+}

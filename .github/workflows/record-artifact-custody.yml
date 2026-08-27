@@ -22,6 +22,16 @@ on:
         required: false
         default: "33073631530"
         type: string
+      history_digest:
+        description: SHA-256 GitHub publishes for the history artifact archive; recorded as provenance
+        required: false
+        default: "127915bc6e143a6bf2a4cb0a559b798e231062097bdaf9bf467a051260c4b198"
+        type: string
+      reconciliation_digest:
+        description: SHA-256 GitHub publishes for the reconciliation artifact archive
+        required: false
+        default: "bee557eaf4f2fa449fe9284bf2d80225e51350c622321cf921f3cbab033b816a"
+        type: string
   push:
     branches:
       - claude/**
@@ -41,6 +51,12 @@ jobs:
     env:
       HISTORY_RUN_ID: ${{ inputs.history_run_id || '32971677163' }}
       RECONCILIATION_RUN_ID: ${{ inputs.reconciliation_run_id || '33073631530' }}
+      HISTORY_DIGEST: >-
+        ${{ inputs.history_digest
+        || '127915bc6e143a6bf2a4cb0a559b798e231062097bdaf9bf467a051260c4b198' }}
+      RECONCILIATION_DIGEST: >-
+        ${{ inputs.reconciliation_digest
+        || 'bee557eaf4f2fa449fe9284bf2d80225e51350c622321cf921f3cbab033b816a' }}
 
     steps:
       - name: Check out repository
@@ -80,7 +96,8 @@ jobs:
           .github/scripts/custody_step.sh \
             greek-dam-official-history \
             "$HISTORY_RUN_ID" \
-            "Fetch official Greek market history"
+            "Fetch official Greek market history" \
+            "$HISTORY_DIGEST"
 
       - name: Record or verify the reconciliation custody
         if: ${{ env.RECONCILIATION_RUN_ID != '' }}
@@ -89,7 +106,8 @@ jobs:
           .github/scripts/custody_step.sh \
             henex-entsoe-reconciliation \
             "$RECONCILIATION_RUN_ID" \
-            "Reconcile HEnEx and ENTSO-E prices"
+            "Reconcile HEnEx and ENTSO-E prices" \
+            "$RECONCILIATION_DIGEST"
 
       - name: Upload the custody records
         if: always()

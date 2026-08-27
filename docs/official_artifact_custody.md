@@ -140,6 +140,37 @@ Missing prices digest as an empty field and are never replaced by a substituted 
 `-0.0` is normalized to `0.0` so that a signed zero cannot produce a spurious difference.
 Both follow the project's rule that zero and negative prices are preserved exactly.
 
+## The recorded records, and how to read their counts
+
+Both artifacts were recorded by run
+[`33076229042`](https://github.com/theIslander-oly/Greece-bess-Investment-stress-tester/actions/runs/33076229042).
+GitHub verified each download against its published digest before the record was built, and
+both matched the digests in the table above.
+
+The fingerprints independently reproduce figures accepted earlier by separate exercises, which
+is what makes them credible as a description of the accepted artifacts:
+
+| Fingerprint | Value | Previously accepted as |
+|---|---:|---|
+| `henex_archived_prices.csv` intervals | 51,915 | v0.6.2 archive acceptance |
+| `henex_daily_prices.csv` intervals | 22,748 | 2026 incremental acceptance |
+| Both files combined | 74,663 | The accepted official history |
+| `henex_mcp_rounding_consensus` flags | 980 | 2026-08-26 consensus bound |
+| `entsoe_prices.csv` intervals | 74,663 | Reconciliation compared count |
+| ENTSO-E negative / zero prices | 1,767 / 1,914 | Multi-year operational acceptance |
+| `entsoe_variable_block_repeat` flags | 4,874 | The A03 curve-type correction |
+| Market days | 2,124 | Multi-year operational acceptance |
+
+**`interval_counts_by_delivery_year` counts on the market clock, not in UTC.** A delivery year
+is the year of the interval's CET/CEST market-day start, which is the sense in which the Greek
+DAM has delivery years at all. One consequence is worth stating so it is not misread as a
+discrepancy: the custody records show **1,464** intervals for 2020, while
+`docs/official_source_reconciliation_2026-08-27.md` shows **1,465** for the same data. The
+reconciliation summary grouped by UTC year, which places the interval beginning
+`2020-12-31T23:00Z` in 2020; on the market clock that interval is the first hour of market day
+1 January 2021. 1,464 is exactly 61 days from 1 November to 31 December 2020 at 24 hours each.
+Both counts describe the same intervals under different groupings, and neither is an error.
+
 ## When verification fails
 
 A difference is a finding to investigate, never a check to re-run. Three causes are worth
