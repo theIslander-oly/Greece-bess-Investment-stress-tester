@@ -3,6 +3,22 @@
 This file records decisions that materially affect interpretation or reproducibility. Add a
 dated entry when a milestone changes scope, assumptions, data handling or validation.
 
+## 2026-08-27 — Read the ENTSO-E curve type instead of assuming one point per interval
+
+- **Decision:** Honor the `curveType` an A44 document declares. Under `A03` a point's price holds
+  until the next declared position, so the omitted positions are materialized and labelled
+  `entsoe_variable_block_repeat`. `A01` documents keep one interval per point, and an unknown
+  curve type is rejected rather than guessed.
+- **Reason:** The first complete reconciliation reported 4,874 official intervals as missing from
+  ENTSO-E across 1,042 market days while every interval present in both sources agreed. The
+  pattern was an artifact of the parser: it emitted one interval per point regardless of curve
+  type, so every `A03` repeat became a false gap. Correcting it reduced the missing count to zero
+  and produced exactly 4,874 labelled repeats.
+- **Consequence:** Materializing a declared repeat is not interpolation, and the distinction is
+  preserved in the data: an interval that ENTSO-E stated once carries no flag, and one implied by
+  the variable-block encoding is labelled. A genuine gap in an `A01` document still fails the
+  completeness check.
+
 ## 2026-08-27 — Reconcile the two official sources inside GitHub Actions
 
 - **Decision:** Perform the HEnEx-to-ENTSO-E reconciliation in a dedicated manual workflow that

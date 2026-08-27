@@ -36,8 +36,10 @@
   documented data API and may need maintenance when the site changes.
 - ADMIE catalog retrieval is implemented, but file-format and publication-time acceptance is
   pending before any exogenous field can enter forecasting.
-- The ENTSO-E client still requires private-token acceptance and overlapping-source
-  reconciliation.
+- The ENTSO-E series is reconciled against HEnEx for 1 November 2020 through 25 August 2026, with
+  one 29 October 2023 interval differing by EUR 0.01/MWh. ENTSO-E A44 `A03` documents state a
+  price once and imply its repeats; those implied intervals are materialized and flagged, not
+  interpolated.
 - Official publication revisions, terms and formats may change.
 - Missing official prices are not silently interpolated; this can make a run incomplete.
 

@@ -14,6 +14,14 @@ All notable project changes are documented here.
   from that history, retrieves ENTSO-E A44 prices for the same window with the encrypted
   repository secret, classifies every interval with `compare-sources` and uploads the interval
   detail as an artifact while keeping official prices out of the job log.
+- `docs/official_source_reconciliation_2026-08-27.md`, recording the passed live reconciliation
+  of the accepted HEnEx history against ENTSO-E A44 prices over market days 1 November 2020
+  through 25 August 2026: 74,662 of 74,663 intervals match within EUR 0.000001/MWh, neither
+  source omits an interval the other publishes, and one 29 October 2023 interval differs by
+  EUR 0.01/MWh.
+- Bounded retry with backoff for ENTSO-E timeouts, connection failures and 429/5xx responses,
+  with the socket timeout, attempt budget and backoff exposed on `fetch-entsoe`.
+- The request period and the acknowledgement reason in a rejected ENTSO-E request's error.
 - Reader-facing "What this tool cannot tell you" README section covering the April 2026 entry
   of batteries into the Greek DAM/IDM, expected spread compression from the arriving storage
   fleet, and the exclusion of balancing-market and availability-support revenues.
@@ -29,6 +37,14 @@ All notable project changes are documented here.
 
 ### Changed
 
+- ENTSO-E A44 parsing now honors the document's declared curve type. Under `A03` a point's price
+  holds until the next declared position, so those intervals are materialized and labelled
+  `entsoe_variable_block_repeat` instead of being reported as missing; `A01` documents are
+  unchanged and an unknown curve type is rejected. The previous behavior understated ENTSO-E
+  coverage of the accepted window by 4,874 intervals (decision entry 2026-08-27).
+- `PLAN.md` records private-token validation and overlapping-source reconciliation as accepted;
+  `STATUS.md` and `LIMITATIONS.md` record the reconciliation result and drop the pending items it
+  resolves.
 - Repositioned the project documentation as a Greek DAM battery replay and research benchmark;
   repository, package and CLI names are unchanged (decision entry 2026-08-27).
 - Corrected the v0.7 scope from "probabilistic stress testing" to deterministic named

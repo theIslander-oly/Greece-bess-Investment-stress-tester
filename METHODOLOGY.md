@@ -31,8 +31,11 @@ most two one-cent cross-border rounding outliers; accepted cases remain interval
 flags. Annual retrieval records outer and approved nested DAM ZIP hashes, member revisions and
 coverage. Incremental daily discovery is used only for years not yet in the annual archive and
 must pass the same parser and quality gates. ENTSO-E ingestion uses the A44 day-ahead document
-type for the Greek bidding zone. Overlapping normalized series can be compared interval by
-interval.
+type for the Greek bidding zone, honoring the declared curve type: an `A03` document states a
+price once and implies it until the next declared position, so those intervals are materialized
+and flagged rather than treated as missing. Overlapping normalized series can be compared interval
+by interval, and a reconciliation derives its window from the accepted history so that both
+sources cover identical market days.
 
 ADMIE retrieval preserves publication time independently from delivery coverage. Candidate load,
 RES, availability and interconnector variables are quarantined from forecast features until their
