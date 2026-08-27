@@ -1,0 +1,265 @@
+name: Reconcile HEnEx and ENTSO-E prices
+
+on:
+  workflow_dispatch:
+    inputs:
+      henex_run_id:
+        description: Run ID holding the greek-dam-official-history artifact
+        required: true
+        type: string
+      start_utc:
+        description: Optional inclusive UTC start; empty derives it from the HEnEx history
+        required: false
+        default: ""
+        type: string
+      end_utc:
+        description: Optional exclusive UTC end; empty derives it from the HEnEx history
+        required: false
+        default: ""
+        type: string
+      chunk_days:
+        description: ENTSO-E request window in days
+        required: false
+        default: "31"
+        type: string
+      tolerance:
+        description: Absolute price tolerance in EUR/MWh
+        required: false
+        default: "0.000001"
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      ENTSOE_SECURITY_TOKEN: ${{ secrets.ENTSOE_SECURITY_TOKEN }}
+      HENEX_RUN_ID: ${{ inputs.henex_run_id }}
+      START_UTC: ${{ inputs.start_utc }}
+      END_UTC: ${{ inputs.end_utc }}
+      CHUNK_DAYS: ${{ inputs.chunk_days }}
+      TOLERANCE: ${{ inputs.tolerance }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Verify the repository secret exists
+        shell: bash
+        run: |
+          if [[ -z "$ENTSOE_SECURITY_TOKEN" ]]; then
+            echo "ENTSOE_SECURITY_TOKEN is not configured as a repository secret."
+            exit 1
+          fi
+
+      - name: Install the project
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install .
+
+      - name: Download the accepted HEnEx history artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: greek-dam-official-history
+          run-id: ${{ inputs.henex_run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: henex
+
+      - name: Merge the archived and daily HEnEx history
+        shell: bash
+        run: |
+          mkdir -p acceptance/entsoe
+          inputs=()
+          for candidate in henex/henex_archived_prices.csv henex/henex_daily_prices.csv; do
+            if [[ -f "$candidate" ]]; then
+              inputs+=("$candidate")
+            fi
+          done
+          if [[ ${#inputs[@]} -eq 0 ]]; then
+            echo "The artifact contains no normalized HEnEx price files."
+            exit 1
+          fi
+          greek-bess merge-canonical "${inputs[@]}" --output acceptance/henex_prices.csv
+
+      - name: Resolve the reconciliation window
+        shell: bash
+        run: |
+          python - <<'PY' >> "$GITHUB_ENV"
+          import os
+
+          import pandas as pd
+
+          frame = pd.read_csv(
+              "acceptance/henex_prices.csv",
+              usecols=["delivery_start_utc", "delivery_end_utc"],
+          )
+          start = os.environ.get("START_UTC") or pd.to_datetime(
+              frame["delivery_start_utc"], utc=True
+          ).min().strftime("%Y-%m-%dT%H:%MZ")
+          end = os.environ.get("END_UTC") or pd.to_datetime(
+              frame["delivery_end_utc"], utc=True
+          ).max().strftime("%Y-%m-%dT%H:%MZ")
+          print(f"RECONCILIATION_START={start}")
+          print(f"RECONCILIATION_END={end}")
+          PY
+
+      - name: Fetch official ENTSO-E prices for the same window
+        shell: bash
+        run: |
+          set +e
+          greek-bess fetch-entsoe \
+            --start "$RECONCILIATION_START" \
+            --end "$RECONCILIATION_END" \
+            --chunk-days "$CHUNK_DAYS" \
+            --raw-cache-dir data/raw/entsoe \
+            --output acceptance/entsoe/entsoe_prices.csv
+          status=$?
+          set -e
+          echo "ENTSOE_FETCH_EXIT=$status" >> "$GITHUB_ENV"
+          # Exit code 2 is a recorded quality finding; the comparison still runs.
+          if [[ "$status" -ne 0 && "$status" -ne 2 ]]; then
+            exit "$status"
+          fi
+
+      - name: Compare the two official sources
+        shell: bash
+        run: |
+          set +e
+          greek-bess compare-sources \
+            acceptance/henex_prices.csv \
+            acceptance/entsoe/entsoe_prices.csv \
+            --tolerance "$TOLERANCE" \
+            --output acceptance/source_comparison.csv
+          status=$?
+          set -e
+          echo "COMPARE_EXIT=$status" >> "$GITHUB_ENV"
+          if [[ "$status" -ne 0 && "$status" -ne 2 ]]; then
+            exit "$status"
+          fi
+
+      - name: Summarize the reconciliation
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          import pandas as pd
+
+          tolerance = float(os.environ["TOLERANCE"])
+          comparison = pd.read_csv("acceptance/source_comparison.csv")
+          comparison["delivery_start_utc"] = pd.to_datetime(
+              comparison["delivery_start_utc"], utc=True
+          )
+          comparison["market_day"] = comparison["delivery_start_utc"].dt.tz_convert(
+              "Europe/Brussels"
+          ).dt.date
+          comparison["delivery_year"] = comparison["delivery_start_utc"].dt.year
+
+          entsoe_quality = json.loads(
+              Path("acceptance/entsoe/entsoe_prices.quality.json").read_text(encoding="utf-8")
+          )
+          henex_quality = json.loads(
+              Path("acceptance/henex_prices.quality.json").read_text(encoding="utf-8")
+          )
+
+          status_counts = comparison["comparison_status"].value_counts().sort_index()
+          both = comparison["comparison_status"].isin({"match", "price_mismatch"})
+          differences = comparison.loc[both, "difference_eur_per_mwh"].abs()
+          unmatched = comparison.loc[comparison["comparison_status"] != "match"]
+
+          summary = {
+              "window_start_utc": os.environ["RECONCILIATION_START"],
+              "window_end_utc": os.environ["RECONCILIATION_END"],
+              "tolerance_eur_per_mwh": tolerance,
+              "compared_interval_count": int(len(comparison)),
+              "status_counts": {str(k): int(v) for k, v in status_counts.items()},
+              "status_counts_by_delivery_year": {
+                  str(year): {str(k): int(v) for k, v in group.items()}
+                  for year, group in comparison.groupby("delivery_year")[
+                      "comparison_status"
+                  ].value_counts().unstack(fill_value=0).iterrows()
+              },
+              "intervals_present_in_both": int(both.sum()),
+              "max_absolute_difference_eur_per_mwh": (
+                  float(differences.max()) if len(differences) else None
+              ),
+              "mean_absolute_difference_eur_per_mwh": (
+                  float(differences.mean()) if len(differences) else None
+              ),
+              "affected_market_day_count": int(unmatched["market_day"].nunique()),
+              "henex_quality_valid": bool(henex_quality["is_valid"]),
+              "henex_interval_count": int(henex_quality["row_count"]),
+              "entsoe_quality_valid": bool(entsoe_quality["is_valid"]),
+              "entsoe_interval_count": int(entsoe_quality["row_count"]),
+              "entsoe_quality_issue_codes": sorted(
+                  {str(issue["code"]) for issue in entsoe_quality["issues"]}
+              ),
+              "entsoe_fetch_exit_code": int(os.environ["ENTSOE_FETCH_EXIT"]),
+              "compare_exit_code": int(os.environ["COMPARE_EXIT"]),
+              "full_match": bool(set(status_counts.index) <= {"match"}),
+          }
+          Path("acceptance/reconciliation_summary.json").write_text(
+              json.dumps(summary, indent=2) + "\n", encoding="utf-8"
+          )
+          print(json.dumps(summary, indent=2))
+
+          verdict = (
+              "Every overlapping interval matches."
+              if summary["full_match"]
+              else "The sources do not agree on every interval; see the classification below."
+          )
+          lines = [
+              "# HEnEx to ENTSO-E reconciliation",
+              "",
+              f"**{verdict}**",
+              "",
+              f"- Window: `{summary['window_start_utc']}` to `{summary['window_end_utc']}`",
+              f"- Tolerance: {tolerance} EUR/MWh",
+              f"- Compared intervals: {summary['compared_interval_count']}",
+              f"- HEnEx intervals: {summary['henex_interval_count']}"
+              f" (quality valid: {summary['henex_quality_valid']})",
+              f"- ENTSO-E intervals: {summary['entsoe_interval_count']}"
+              f" (quality valid: {summary['entsoe_quality_valid']})",
+              "",
+              "| Classification | Intervals |",
+              "| --- | ---: |",
+          ]
+          lines += [f"| {name} | {count} |" for name, count in summary["status_counts"].items()]
+          summary_path = os.environ.get("GITHUB_STEP_SUMMARY")
+          if summary_path:
+              Path(summary_path).write_text("\n".join(lines) + "\n", encoding="utf-8")
+          PY
+
+      - name: Upload the reconciliation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: henex-entsoe-reconciliation
+          path: |
+            acceptance/source_comparison.csv
+            acceptance/reconciliation_summary.json
+            acceptance/henex_prices.quality.json
+            acceptance/entsoe/entsoe_prices.csv
+            acceptance/entsoe/entsoe_prices.quality.json
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Fail when the ENTSO-E retrieval reported a quality failure
+        shell: bash
+        run: |
+          if [[ "$ENTSOE_FETCH_EXIT" != "0" ]]; then
+            echo "The ENTSO-E retrieval reported a quality failure; see the uploaded report."
+            exit 1
+          fi

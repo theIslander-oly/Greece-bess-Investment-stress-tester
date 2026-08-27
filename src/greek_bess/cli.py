@@ -27,7 +27,7 @@ from .data.henex_archive import (
 from .data.henex_daily import HenexDailyClient, HenexDailyError
 from .data.http import OfficialDataDownloadError
 from .data.quality import QualityReport, assess_quality, compare_sources
-from .data.schema import ensure_canonical
+from .data.schema import concat_canonical, ensure_canonical
 from .data.synthetic import generate_synthetic_prices
 from .data.timezones import GREECE_TZ, MARKET_TZ
 from .degradation import DegradationConfig
@@ -139,6 +139,14 @@ def build_parser() -> argparse.ArgumentParser:
     admie_files.add_argument("--raw-dir", type=Path, default=Path("data/raw/admie"))
     admie_files.add_argument("--manifest", type=Path)
     admie_files.add_argument("--all-revisions", action="store_true")
+
+    merge = subparsers.add_parser(
+        "merge-canonical",
+        help="Merge normalized CSV files from one official source into a single history",
+    )
+    merge.add_argument("inputs", nargs="+", type=Path)
+    merge.add_argument("--allow-partial-days", action="store_true")
+    merge.add_argument("--output", required=True, type=Path)
 
     compare = subparsers.add_parser(
         "compare-sources", help="Compare two normalized official-source CSV files"
@@ -384,6 +392,9 @@ def main(argv: list[str] | None = None) -> int:
                 )
             )
             return 0
+        elif args.command == "merge-canonical":
+            frame = concat_canonical(_read_canonical_csv(path) for path in args.inputs)
+            report = assess_quality(frame, require_complete_days=not args.allow_partial_days)
         elif args.command == "compare-sources":
             comparison = compare_sources(
                 _read_canonical_csv(args.left),

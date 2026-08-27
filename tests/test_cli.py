@@ -561,5 +561,53 @@ class CliTests(unittest.TestCase):
             self.assertIn("not a bankable", summary["result_label"])
 
 
+    def test_merge_canonical_command_combines_adjacent_history_files(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            first = root / "first.csv"
+            second = root / "second.csv"
+            merged = root / "merged.csv"
+            with redirect_stdout(io.StringIO()):
+                for output, start_day, end_day in (
+                    (first, "2026-02-01", "2026-02-03"),
+                    (second, "2026-02-03", "2026-02-05"),
+                ):
+                    self.assertEqual(
+                        main(
+                            [
+                                "generate-synthetic",
+                                "--start-day",
+                                start_day,
+                                "--end-day",
+                                end_day,
+                                "--output",
+                                str(output),
+                            ]
+                        ),
+                        0,
+                    )
+                stdout = io.StringIO()
+                with redirect_stdout(stdout):
+                    exit_code = main(
+                        [
+                            "merge-canonical",
+                            str(second),
+                            str(first),
+                            "--output",
+                            str(merged),
+                        ]
+                    )
+            self.assertEqual(exit_code, 0)
+            report = json.loads(stdout.getvalue())
+            self.assertTrue(report["is_valid"])
+            self.assertEqual(report["row_count"], 96)
+            frame = pd.read_csv(merged)
+            self.assertEqual(len(frame), 96)
+            self.assertTrue(
+                pd.to_datetime(frame["delivery_start_utc"], utc=True).is_monotonic_increasing
+            )
+            self.assertTrue(merged.with_suffix(".quality.json").exists())
+
+
 if __name__ == "__main__":
     unittest.main()
