@@ -356,6 +356,28 @@ greek-bess compare-sources \
 
 Each interval is classified as `match`, `price_mismatch`, `missing_henex` or `missing_entsoe`. A comparison containing anything other than matches exits with code `2` so it can fail an automated validation job.
 
+The accepted HEnEx history is normally produced in two parts: the annual archives and the
+unarchived daily results. Merge them into one series from a single source before comparing:
+
+```bash
+greek-bess merge-canonical \
+  data/curated/henex_archived_prices.csv \
+  data/curated/henex_daily_prices.csv \
+  --output data/curated/henex_prices.csv
+```
+
+`merge-canonical` refuses to mix two sources, never removes a repeated interval and reports the
+usual deterministic quality assessment, so an overlap or a gap between the two files fails
+loudly instead of being absorbed.
+
+If neither the personal ENTSO-E token nor the accepted history can leave GitHub, the manual
+[`Reconcile HEnEx and ENTSO-E prices`](.github/workflows/reconcile-henex-entsoe.yml) workflow
+performs the whole comparison inside Actions: it reads the accepted history artifact from an
+earlier run, derives the reconciliation window from that history, retrieves ENTSO-E prices for
+exactly the same window and uploads the interval-level classification. Only interval counts,
+classification counts and aggregate difference statistics reach the job log. See the
+[`secure GitHub retrieval guide`](docs/entsoe_github_retrieval.md).
+
 ## 5. Optimize perfect-foresight dispatch
 
 The included example battery configuration is deliberately illustrative. Replace every
