@@ -54,7 +54,8 @@ Suggested future branch sequence:
 - [ ] v0.7 — Probabilistic stress testing.
   - [x] Foundation: seasonal block bootstrap, reproducible seeds and sampled-block provenance.
   - [x] Deterministic additive price-level shock with interval provenance.
-  - Spread, negative-price-event, outage and cannibalisation shocks.
+  - [x] Independent deterministic dispatch across validated bootstrap paths.
+  - Spread, outage and cannibalisation shocks. Negative-price-event transformations are deferred.
   - P5/P50/P95, loss probability and worst-case paths.
 - [ ] v0.8 — Research interface and exportable reports.
 

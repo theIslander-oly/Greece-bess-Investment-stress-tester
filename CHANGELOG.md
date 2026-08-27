@@ -2,6 +2,23 @@
 
 All notable project changes are documented here.
 
+## [0.7.2] — 2026-08-27
+
+### Added
+
+- Strict multi-path bootstrap validation and independent deterministic dispatch using identical
+  battery and availability assumptions.
+- Interval schedules retaining path/canonical identity and path-level operational/revenue
+  summaries.
+- `dispatch-bootstrap-paths` CLI plus deterministic synthetic API, failure and CLI regressions.
+
+### Interpretation limits
+
+- Results remain synthetic perfect-foresight gross-margin upper bounds, not forecasts,
+  probabilities, expected revenues, finance outputs or investment evidence.
+- Degradation, percentiles, probability metrics, rankings and negative-price-event
+  transformations are not included.
+
 ## [0.7.1] — 2026-08-27
 
 ### Added

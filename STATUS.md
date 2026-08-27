@@ -1,8 +1,20 @@
 # Project status
 
-**Version:** 0.7.1
+**Version:** 0.7.2
 **Updated:** 27 August 2026
-**Status:** Deterministic bootstrap price-level shock implemented; broader stress testing pending
+**Status:** Deterministic bootstrap-path dispatch integrated; broader stress testing pending
+
+## v0.7.2 bootstrap-path dispatch integration
+
+- Validated synthetic multi-path input is solved independently under one battery configuration
+  and one common availability assumption.
+- Every path independently enforces the existing power, energy, efficiency, exclusivity, SOC,
+  grid, optional cycle and terminal-energy constraints.
+- Interval output preserves path ID, canonical identity and provenance; path-level output retains
+  the optimizer's operational and revenue decomposition.
+- Duplicate, incomplete, provenance-invalid or structurally inconsistent paths fail explicitly.
+- Outputs remain synthetic perfect-foresight upper bounds, not forecasts, probabilities,
+  expected revenue or investment evidence.
 
 ## v0.7.1 price-level shock
 
@@ -159,5 +171,6 @@ excluded from the repository.
 
 ## Immediate next milestone
 
-Review the isolated price-level transformation before considering any other shock or probability
-layer. ENTSO-E reconciliation and ADMIE timing acceptance remain separate.
+Review the isolated bootstrap-dispatch integration before considering any further shock or
+probability layer. Negative-price-event transformations remain deferred. ENTSO-E reconciliation
+and ADMIE timing acceptance remain separate.

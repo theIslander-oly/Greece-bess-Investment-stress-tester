@@ -14,6 +14,80 @@ from greek_bess.cli import main
 
 
 class CliTests(unittest.TestCase):
+    def test_bootstrap_dispatch_command_writes_interval_and_path_results(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            prices = root / "prices.csv"
+            bootstrap_config = root / "bootstrap.json"
+            paths = root / "paths.csv"
+            battery = root / "battery.json"
+            output = root / "dispatch.csv"
+            with redirect_stdout(io.StringIO()):
+                main(
+                    [
+                        "generate-synthetic",
+                        "--start-day",
+                        "2025-01-01",
+                        "--end-day",
+                        "2025-01-04",
+                        "--output",
+                        str(prices),
+                    ]
+                )
+            bootstrap_config.write_text(
+                json.dumps({"start_day": "2026-01-01", "end_day": "2026-01-02", "path_count": 2})
+            )
+            battery.write_text(
+                json.dumps(
+                    {
+                        "charge_power_mw": 1,
+                        "discharge_power_mw": 1,
+                        "energy_capacity_mwh": 1,
+                        "soc_min_fraction": 0,
+                        "soc_max_fraction": 1,
+                        "initial_soc_fraction": 0,
+                        "terminal_soc_fraction": 0,
+                        "charge_efficiency": 1,
+                        "discharge_efficiency": 1,
+                    }
+                )
+            )
+            with redirect_stdout(io.StringIO()):
+                self.assertEqual(
+                    main(
+                        [
+                            "generate-bootstrap-paths",
+                            str(prices),
+                            "--config",
+                            str(bootstrap_config),
+                            "--output",
+                            str(paths),
+                        ]
+                    ),
+                    0,
+                )
+                exit_code = main(
+                    [
+                        "dispatch-bootstrap-paths",
+                        str(paths),
+                        "--config",
+                        str(battery),
+                        "--availability",
+                        "0.8",
+                        "--output",
+                        str(output),
+                    ]
+                )
+
+            intervals = pd.read_csv(output)
+            path_results = pd.read_csv(root / "dispatch.paths.csv")
+            summary = json.loads((root / "dispatch.summary.json").read_text())
+            self.assertEqual(exit_code, 0)
+            self.assertEqual(len(intervals), 48)
+            self.assertEqual(len(path_results), 2)
+            self.assertEqual(summary["availability_assumption"]["fraction"], 0.8)
+            self.assertFalse(summary["is_forecast"])
+
     def test_price_level_shock_command_writes_auditable_outputs(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -74,9 +148,7 @@ class CliTests(unittest.TestCase):
             self.assertEqual(len(provenance), 24)
             self.assertEqual(output["path_id"].tolist(), original["path_id"].tolist())
             self.assertTrue(
-                np.allclose(
-                    output["price_eur_per_mwh"], original["price_eur_per_mwh"] - 20
-                )
+                np.allclose(output["price_eur_per_mwh"], original["price_eur_per_mwh"] - 20)
             )
             self.assertEqual(summary["configuration"]["transformation_id"], "down_20")
 
