@@ -2,7 +2,8 @@
 
 **Version:** 0.7.2
 **Updated:** 27 August 2026
-**Status:** Official multi-year operational acceptance passed; broader stress testing pending
+**Status:** Official multi-year operational acceptance and HEnEx-to-ENTSO-E cross-source
+reconciliation passed; broader stress testing pending
 
 ## Official cross-source reconciliation
 

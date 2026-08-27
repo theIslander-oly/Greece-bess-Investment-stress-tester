@@ -81,5 +81,9 @@ continuity result, not a forecast, revenue estimate or investment conclusion.
 
 ## Still pending
 
-- Reconcile overlapping HEnEx intervals against ENTSO-E A44 after a private token is configured.
+- ~~Reconcile overlapping HEnEx intervals against ENTSO-E A44 after a private token is
+  configured.~~ Completed on 27 August 2026; see
+  `docs/official_source_reconciliation_2026-08-27.md`. Every interval matches except one
+  29 October 2023 interval differing by EUR 0.01/MWh, and neither source omits an interval the
+  other publishes.
 - Keep ADMIE variables quarantined until pre-auction publication timing is proven.
