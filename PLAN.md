@@ -84,7 +84,9 @@ Suggested future branch sequence:
   - 74,662 of 74,663 intervals match exactly; one 29 October 2023 interval differs by
     EUR 0.01/MWh; neither source omits an interval the other publishes.
 - [x] Record the accepted HEnEx source versions, retrieval date and raw hashes.
-- [ ] Record the ENTSO-E retrieval metadata and raw-response hashes.
+- [~] Record the ENTSO-E retrieval metadata and raw-response hashes. The reconciliation
+  artifact from run `33073631530` carries them and is covered by the same custody procedure;
+  the operator upload remains outstanding.
 - [x] Run and accept the 2020-2025 HEnEx annual archives live.
 - [x] Run and accept the incremental 2026 HEnEx daily retrieval live.
   - Workflow run `32971677163` completed both retrieval stages successfully.
@@ -94,9 +96,14 @@ Suggested future branch sequence:
   - All four causal naïve baselines and both ML benchmarks accepted with leakage,
     settlement, coverage and determinism evidence.
 - [ ] Accept ADMIE load/RES file formats and prove pre-auction publication timing.
-- [ ] Store the accepted normalized official history durably and privately outside Git before
-  the seven-day workflow artifact expires (run `32971677163` artifact expires 2 September
-  2026); re-run the retrieval workflow if it lapses.
+- [~] Store the accepted normalized official history durably and privately outside Git before
+  the workflow artifact expires (run `32971677163` artifact expires 2 September 2026).
+  - [x] Storage procedure, custody-record format and verification tooling
+    (`docs/official_artifact_custody.md`, `record-custody`, `verify-custody`).
+  - [x] Artifact retention raised from 7 to 90 days on every official-data workflow.
+  - [ ] Operator upload of the encrypted copies and the committed custody records. Custody is
+    not complete until this is done; re-run the retrieval workflow if the artifact lapses
+    first, and treat any price-series digest difference as a recorded finding.
 - [ ] Add a per-calendar-year decomposition of the accepted replay (annual perfect-foresight
   ceiling and forecast capture), since aggregate 2020-2026 margins conceal regime dependence
   such as the 2022 gas-crisis year.
