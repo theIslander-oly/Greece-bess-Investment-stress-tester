@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+import json
 from collections.abc import Iterable
+from pathlib import Path
 
 import pandas as pd
+
+from .timezones import GREECE_TZ, MARKET_TZ
 
 CANONICAL_COLUMNS = [
     "delivery_start_utc",
@@ -107,6 +111,26 @@ def concat_canonical(frames: Iterable[pd.DataFrame]) -> pd.DataFrame:
             f"A canonical merge requires exactly one source, found: {', '.join(sources)}"
         )
     return ensure_canonical(pd.concat(populated, ignore_index=True))
+
+
+def read_canonical_csv(path: Path) -> pd.DataFrame:
+    """Read a normalized canonical CSV back into a validated canonical frame.
+
+    Timestamp columns are restored as timezone-aware values and the JSON-encoded
+    quality flags are decoded, so a written history round-trips without losing the
+    market-clock views or the flags an interval carries.
+    """
+
+    frame = pd.read_csv(path)
+    frame["delivery_start_utc"] = pd.to_datetime(frame["delivery_start_utc"], utc=True)
+    frame["delivery_end_utc"] = pd.to_datetime(frame["delivery_end_utc"], utc=True)
+    frame["retrieved_at_utc"] = pd.to_datetime(frame["retrieved_at_utc"], utc=True)
+    frame["delivery_start_market"] = frame["delivery_start_utc"].dt.tz_convert(MARKET_TZ)
+    frame["delivery_start_greece"] = frame["delivery_start_utc"].dt.tz_convert(GREECE_TZ)
+    frame["quality_flags"] = frame["quality_flags"].map(
+        lambda value: json.loads(value) if isinstance(value, str) else []
+    )
+    return ensure_canonical(frame)
 
 
 def _as_utc(series: pd.Series, name: str) -> pd.Series:

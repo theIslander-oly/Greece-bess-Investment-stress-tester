@@ -1,9 +1,31 @@
 # Project status
 
-**Version:** 0.7.2
+**Version:** 0.7.3
 **Updated:** 27 August 2026
 **Status:** Official multi-year operational acceptance and HEnEx-to-ENTSO-E cross-source
-reconciliation passed; broader stress testing pending
+reconciliation passed; artifact custody tooling in place awaiting the operator upload;
+broader stress testing pending
+
+## Durable custody of accepted official artifacts
+
+- Accepted official artifacts are stored as encrypted assets on a release in this private
+  repository, fingerprinted by a price-free custody record committed under `docs/custody/`.
+- A custody record holds per-file digests and content-level invariants of the normalized
+  series, including a digest of the interval and price series that is independent of CSV
+  formatting, column order and float repr.
+- `record-custody` builds a record; `verify-custody` re-derives it from a stored copy and
+  returns exit code 2 on any difference, so a copy can be proven to be the accepted artifact
+  and a re-retrieval that differs is detected rather than silently adopted.
+- The `Record official artifact custody` workflow performs the same check inside Actions,
+  recording when no committed record exists and verifying against it once one does.
+- Artifact retention on all official-data workflows is raised from 7 to 90 days, so a passed
+  acceptance no longer has a one-week shelf life.
+- Encryption keys and the release upload remain with the operator; no automation in this
+  repository holds a key that could decrypt an accepted artifact.
+- The procedure, the operator steps and the failure taxonomy are recorded in
+  `docs/official_artifact_custody.md`.
+- **Outstanding operator action:** the encrypted copies must be uploaded before the source
+  artifacts expire on 2 and 3 September 2026. Custody is not complete until they are.
 
 ## Official cross-source reconciliation
 
@@ -212,6 +234,6 @@ scenarios: percentile and loss-probability outputs were removed pending a defens
 calibration story. The next isolated v0.7 modeling milestone is deterministic
 availability/outage-path integration, which requires explicit approval before implementation,
 preceded by a documented bootstrap source-era/resolution policy. Negative-price-event
-transformations remain deferred. ENTSO-E reconciliation passed on 2026-08-27. ADMIE timing
-acceptance, durable private storage of the accepted history, and per-year replay decomposition
-remain parallel tasks.
+transformations remain deferred. ENTSO-E reconciliation passed on 2026-08-27. Custody tooling and the storage
+procedure landed on 2026-08-27 and await the operator upload. ADMIE timing acceptance and
+per-year replay decomposition remain parallel tasks.

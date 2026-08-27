@@ -6,6 +6,25 @@ All notable project changes are documented here.
 
 ### Added
 
+- `record-custody` and `verify-custody` commands and a `greek_bess.data.custody` module, which
+  fingerprint an accepted official artifact without recording any price. A custody record holds
+  per-file digests plus content-level invariants of the normalized series — interval count,
+  window, market-day count, negative/zero/missing price counts, counts by delivery year,
+  resolution and source, quality-flag counts by name — and a digest of the interval and price
+  series computed over sorted `(delivery_start_utc, delivery_end_utc, price)` triples at six
+  fixed decimals, so it is independent of CSV column order, file formatting and float repr.
+  `verify-custody` returns exit code 2 on any difference.
+- `Record official artifact custody` GitHub Actions workflow, which downloads an accepted
+  artifact inside Actions and either records a custody record when none is committed or
+  verifies the artifact against the committed one and fails on any difference.
+- `docs/official_artifact_custody.md`, recording the durable storage procedure for accepted
+  official artifacts: encrypted assets on a private repository release, fingerprinted by
+  committed custody records, with operator steps, a verification drill and a taxonomy
+  separating a corrupted copy, a revised official publication and a change in this project's
+  own normalization.
+- `read_canonical_csv` in `greek_bess.data.schema`, which restores a written canonical history
+  with its timezone-aware views and decoded quality flags. The CLI's private reader now
+  delegates to it.
 - `merge-canonical` command and `concat_canonical` helper, which join normalized CSV files
   from one official source into a single quality-assessed history and refuse to mix sources or
   to drop a repeated interval.
@@ -36,6 +55,10 @@ All notable project changes are documented here.
   including the accepted artifact SHA-256, solver identity and software versions.
 
 ### Changed
+
+- Artifact retention on `Fetch official Greek market history`, `Fetch ENTSO-E prices` and
+  `Reconcile HEnEx and ENTSO-E prices` is raised from 7 to 90 days, so a passed acceptance no
+  longer has a one-week shelf life.
 
 - ENTSO-E A44 parsing now honors the document's declared curve type. Under `A03` a point's price
   holds until the next declared position, so those intervals are materialized and labelled
