@@ -74,6 +74,9 @@ Suggested future branch sequence:
 
 ## Parallel acceptance track
 
+- [x] Keep tracked development configuration contributor-neutral and make the custody workflow's
+  path-filtered validation independent of feature-branch naming conventions.
+
 - [x] Validate real HEnEx workbooks.
   - Official `20260824` and `20260825` English v01 result workbooks.
   - 96 quarter-hour intervals per day and 192 contiguous intervals combined.

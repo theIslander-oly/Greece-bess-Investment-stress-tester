@@ -31,3 +31,11 @@ No generated paths or official data are committed. Every solve uses perfect fore
 synthetic gross-margin upper bound—not a forecast, expected revenue, calibrated probability or
 investment conclusion. Degradation, finance, NPV, percentiles, probabilities, rankings, shocks
 and UI are excluded. Negative-price-event transformations remain deferred.
+
+## Repository maintenance
+
+Project-wide development requirements remain in the package metadata and shared contribution
+documents. Contributor-specific session bootstrap files are not tracked, and the path-filtered
+artifact-custody workflow is eligible to validate changes on any branch rather than only branches
+following one contributor-specific naming convention. This maintenance does not alter analytical
+behavior or any result interpretation.

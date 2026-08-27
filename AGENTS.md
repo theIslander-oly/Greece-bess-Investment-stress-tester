@@ -1,4 +1,4 @@
-# Codex project instructions
+# Project contribution instructions
 
 ## Mission
 

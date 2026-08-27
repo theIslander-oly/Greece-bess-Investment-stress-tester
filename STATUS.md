@@ -24,6 +24,8 @@ broader stress testing pending
   repository holds a key that could decrypt an accepted artifact.
 - The procedure, the operator steps and the failure taxonomy are recorded in
   `docs/official_artifact_custody.md`.
+- The custody workflow now runs for matching changes on any branch rather than depending on a
+  contributor-specific branch naming convention.
 - **Outstanding operator action:** the encrypted copies must be uploaded before the source
   artifacts expire on 2 and 3 September 2026. Custody is not complete until they are.
 

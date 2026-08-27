@@ -726,6 +726,12 @@ retrieval and the cross-source reconciliation passed on 27 August 2026: 74,662 o
 intervals match exactly and neither source omits an interval the other publishes. Publication-time
 acceptance for ADMIE exogenous variables remains a parallel acceptance task.
 
+## Development
+
+Development setup is intentionally contributor-neutral. The supported environment and validation
+commands are defined in `pyproject.toml`, `AGENTS.md` and `CONTRIBUTING.md`; editor- or
+service-specific session configuration is not tracked.
+
 ## Project records
 
 - [Changelog](CHANGELOG.md)

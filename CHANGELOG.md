@@ -44,8 +44,6 @@ All notable project changes are documented here.
 - Reader-facing "What this tool cannot tell you" README section covering the April 2026 entry
   of batteries into the Greek DAM/IDM, expected spread compression from the arriving storage
   fleet, and the exclusion of balancing-market and availability-support revenues.
-- `CLAUDE.md` and a `.claude/` SessionStart hook that prepares a Python 3.12 virtual
-  environment so Claude Code on the web sessions can run Ruff, mypy and the test suite.
 - Explicit documentation that the dispatch summary's equivalent full cycles are grid-side while
   the degradation model uses cell-side cycles.
 - `docs/official_multiyear_operational_acceptance_2026-08-27.md`, recording live acceptance of the

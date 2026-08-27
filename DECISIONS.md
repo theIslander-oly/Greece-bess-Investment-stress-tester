@@ -1,5 +1,20 @@
 # Decision log
 
+## 2026-08-27 — Keep repository development configuration contributor-neutral
+
+**Decision:** Track only project-wide setup, validation and contribution instructions. Do not
+track editor-, service- or contributor-specific session bootstrap configuration. Automation must
+also avoid contributor-specific branch naming conventions.
+
+**Reason:** Project requirements belong in the package metadata and shared contribution files.
+Personal environment automation adds duplicate instructions, makes the repository appear tied to
+one development environment and can prevent workflows from validating otherwise equivalent
+feature branches.
+
+**Consequence:** Contributors create a Python 3.12+ environment using their preferred tooling and
+run the commands in `AGENTS.md` or `CONTRIBUTING.md`. The custody workflow's path-filtered push
+trigger applies consistently to every branch.
+
 This file records decisions that materially affect interpretation or reproducibility. Add a
 dated entry when a milestone changes scope, assumptions, data handling or validation.
 
