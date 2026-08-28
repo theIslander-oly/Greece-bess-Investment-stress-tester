@@ -6,6 +6,11 @@ All notable project changes are documented here.
 
 ### Added
 
+- `docs/official_annual_decomposition_2026-08-28.md`, recording the accepted per-delivery-year
+  decomposition of the official replay from workflow run `33147448666`. Custody verification of
+  the source artifact passed, and every per-year figure reconciles with previously accepted
+  aggregates to the euro, including the EUR 0.00 common-day ceiling spread within each year.
+
 - An explicit bootstrap source-era and resolution policy. A source era is a maximal contiguous
   run of market days at one delivery resolution; a resolution change or a market-day gap ends
   one. `BootstrapConfig` gains `source_resolution_minutes`, `source_start_day` and
