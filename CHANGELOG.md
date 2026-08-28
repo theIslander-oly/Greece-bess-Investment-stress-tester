@@ -6,6 +6,11 @@ All notable project changes are documented here.
 
 ### Added
 
+- `scripts/bootstrap-dev-env.sh`, a tracked, editor-neutral development environment bootstrap.
+  It creates or updates `.venv` on Python 3.12, installs the project with its development
+  extras, and optionally appends `VIRTUAL_ENV`/`PATH` exports to a file for callers that source
+  an environment file. Local session tooling should call it rather than reimplement the steps.
+
 - A decision entry scoping custody to retrieved official artifacts. Derived evidence such as
   the `annual-replay-decomposition` artifact gets no custody record: it carries no
   interval-level price and no provider that could revise it, and its inputs — the custodied
@@ -104,6 +109,12 @@ All notable project changes are documented here.
   including the accepted artifact SHA-256, solver identity and software versions.
 
 ### Changed
+
+- Repository content is contributor-neutral: no tool or assistant attribution in commit
+  messages, pull requests, comments, documentation or tracked configuration (decision entry
+  2026-08-28). Editor- and service-specific session configuration is untracked and ignored.
+- `CONTRIBUTING.md` now states the real Python 3.12 requirement and the four validation gates;
+  it previously described a `python -m unittest` invocation the project does not use.
 
 - The bootstrap no longer refuses a mixed-resolution history with a bare "must use one
   interval resolution" message. It reports the eras the history contains and requires one

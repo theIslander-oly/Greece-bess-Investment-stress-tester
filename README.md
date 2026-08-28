@@ -823,6 +823,19 @@ retrieval and the cross-source reconciliation passed on 27 August 2026: 74,662 o
 intervals match exactly and neither source omits an interval the other publishes. Publication-time
 acceptance for ADMIE exogenous variables remains a parallel acceptance task.
 
+## Development
+
+Development setup is deliberately contributor-neutral. The supported environment and the
+validation gates are defined by `pyproject.toml`, `scripts/bootstrap-dev-env.sh`, `AGENTS.md`
+and `CONTRIBUTING.md`; editor- and service-specific session configuration is not tracked.
+Repository content — commits, pull requests, comments and documentation — carries no tool or
+assistant attribution, a record-keeping convention described in `CONTRIBUTING.md`.
+
+```bash
+scripts/bootstrap-dev-env.sh
+ruff check . && mypy && pytest -v && python -m build --wheel
+```
+
 ## Project records
 
 - [Changelog](CHANGELOG.md)

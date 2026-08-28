@@ -48,3 +48,11 @@ solver_artifacts/
 *.xlsx
 *.xls
 *.xml
+
+# Editor- and service-specific local session configuration. Development environment
+# setup lives in scripts/bootstrap-dev-env.sh, which such tooling should call.
+.claude/
+CLAUDE.md
+AGENT.md
+.cursor/
+.aider*
