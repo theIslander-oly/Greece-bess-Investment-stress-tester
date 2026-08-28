@@ -7,8 +7,7 @@ from dataclasses import asdict, dataclass
 
 import pandas as pd
 
-from greek_bess.data.quality import assess_quality
-from greek_bess.data.schema import CANONICAL_COLUMNS, ensure_canonical
+from ._paths import validate_bootstrap_paths
 
 
 class PriceLevelShockInputError(ValueError):
@@ -120,27 +119,4 @@ def apply_price_level_shock(
 
 
 def _validated_paths(frame: pd.DataFrame) -> pd.DataFrame:
-    required = ["path_id", *CANONICAL_COLUMNS]
-    missing = [column for column in required if column not in frame.columns]
-    if missing:
-        raise PriceLevelShockInputError(f"Missing bootstrap path columns: {', '.join(missing)}")
-    paths = frame.loc[:, required].copy()
-    if paths.empty:
-        raise PriceLevelShockInputError("Bootstrap paths must not be empty")
-    if paths["path_id"].isna().any() or not pd.api.types.is_integer_dtype(paths["path_id"]):
-        raise PriceLevelShockInputError("path_id must contain non-negative integers")
-    if (paths["path_id"] < 0).any():
-        raise PriceLevelShockInputError("path_id must contain non-negative integers")
-    if paths.duplicated(["path_id", "delivery_start_utc"]).any():
-        raise PriceLevelShockInputError("Duplicate path_id and delivery_start_utc intervals")
-
-    validated: list[pd.DataFrame] = []
-    for path_id, path in paths.groupby("path_id", sort=True):
-        canonical = ensure_canonical(path.loc[:, CANONICAL_COLUMNS], allow_empty=False)
-        report = assess_quality(canonical, require_complete_days=True)
-        if not report.is_valid:
-            errors = ", ".join(issue.code for issue in report.issues if issue.severity == "error")
-            raise PriceLevelShockInputError(f"Path {path_id} failed quality validation: {errors}")
-        canonical.insert(0, "path_id", path_id)
-        validated.append(canonical)
-    return pd.concat(validated, ignore_index=True)
+    return validate_bootstrap_paths(frame, PriceLevelShockInputError)

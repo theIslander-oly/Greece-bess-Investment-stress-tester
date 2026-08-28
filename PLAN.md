@@ -62,9 +62,12 @@ Suggested future branch sequence:
     the selection is recorded in the summary and on every provenance row, and candidate
     scarcity is reported. Policy in `docs/bootstrap_source_era_policy.md`.
   - [ ] Deterministic availability/outage-path integration (requires explicit approval).
-  - [ ] Spread-compression transformations about a daily reference level, as explicit
+  - [x] Spread-compression transformations about a daily reference level, as explicit
     judgmental scenarios; this is how cannibalisation pressure is represented, since a causal
-    cannibalisation model is not buildable from price history alone.
+    cannibalisation model is not buildable from price history alone. `compress-spread` scales
+    every within-day range by a declared factor in [0, 1] about a declared daily reference
+    basis with no default, preserves zero and negative results without clipping, and reports
+    the intervals whose sign changes. Widening is out of scope (decision entry 2026-08-28).
   - [ ] Scenario-ensemble range reporting (minimum/maximum/spread across named scenarios),
     explicitly labelled non-probabilistic.
   - Removed from scope on 2026-08-27: P5/P50/P95 percentiles and loss probabilities. Uniform

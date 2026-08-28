@@ -6,6 +6,20 @@ All notable project changes are documented here.
 
 ### Added
 
+- `compress-spread` command and `greek_bess.stress.apply_spread_compression`, a deterministic
+  compression of within-day spread about a declared daily reference level:
+  `compressed = reference + factor * (price - reference)` over each path's CET/CEST market day.
+  Every within-day range is scaled by exactly the factor; a factor of 1.0 is the identity and 0.0
+  flattens each day onto its reference. `reference_basis` is declared with no default
+  (`daily_mean` preserves each daily mean exactly, `daily_median` does not and the summary
+  reports the resulting shift), the factor is bounded to [0, 1], and spread widening is out of
+  scope. Zero and negative results are preserved and never clipped, so intervals can cross zero;
+  the count is reported as `sign_change_interval_count`. The summary also reports mean and
+  maximum daily range and negative and zero interval counts, before and after. Interval
+  provenance records the market day, reference level, factor, basis, original and compressed
+  prices and input source metadata. Missing prices are refused explicitly, because one would
+  propagate through its market day's reference level.
+
 - `scripts/bootstrap-dev-env.sh`, a tracked, editor-neutral development environment bootstrap.
   It creates or updates `.venv` on Python 3.12, installs the project with its development
   extras, and optionally appends `VIRTUAL_ENV`/`PATH` exports to a file for callers that source
@@ -110,6 +124,9 @@ All notable project changes are documented here.
 
 ### Changed
 
+- The price-level and spread-compression transformations now share one bootstrap-path validation
+  contract (`greek_bess.stress._paths.validate_bootstrap_paths`), so two transformations cannot
+  drift apart on what counts as an acceptable path. Behaviour is unchanged.
 - Repository content is contributor-neutral: no tool or assistant attribution in commit
   messages, pull requests, comments, documentation or tracked configuration (decision entry
   2026-08-28). Editor- and service-specific session configuration is untracked and ignored.

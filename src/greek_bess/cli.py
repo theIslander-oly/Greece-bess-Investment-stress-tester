@@ -59,7 +59,9 @@ from .stress import (
     BootstrapInputError,
     PriceLevelShockConfig,
     PriceLevelShockInputError,
+    SpreadCompressionConfig,
     apply_price_level_shock,
+    apply_spread_compression,
     dispatch_bootstrap_paths,
     generate_seasonal_bootstrap_paths,
 )
@@ -321,6 +323,18 @@ def build_parser() -> argparse.ArgumentParser:
     shock.add_argument("--output", required=True, type=Path, help="Shocked paths CSV")
     shock.add_argument("--provenance", type=Path, help="Interval provenance CSV")
     shock.add_argument("--summary", type=Path, help="Method and configuration JSON")
+
+    compression = subparsers.add_parser(
+        "compress-spread",
+        help="Compress within-day spread of synthetic bootstrap paths about a daily reference",
+    )
+    compression.add_argument("paths", type=Path, help="Synthetic bootstrap paths CSV")
+    compression.add_argument(
+        "--config", required=True, type=Path, help="Spread compression assumptions JSON"
+    )
+    compression.add_argument("--output", required=True, type=Path, help="Compressed paths CSV")
+    compression.add_argument("--provenance", type=Path, help="Interval provenance CSV")
+    compression.add_argument("--summary", type=Path, help="Method and configuration JSON")
 
     annual = subparsers.add_parser(
         "decompose-annual-replay",
@@ -684,6 +698,19 @@ def main(argv: list[str] | None = None) -> int:
             _write_json(shock_result.summary, summary_path)
             print(json.dumps(shock_result.summary, indent=2))
             return 0
+        elif args.command == "compress-spread":
+            compression_result = apply_spread_compression(
+                _read_bootstrap_paths_csv(args.paths), _read_spread_compression_config(args.config)
+            )
+            provenance_path = args.provenance or _sibling_path(args.output, ".provenance.csv")
+            summary_path = args.summary or args.output.with_suffix(".summary.json")
+            export = compression_result.paths.copy()
+            export["quality_flags"] = export["quality_flags"].map(json.dumps)
+            _write_plain_csv(export, args.output)
+            _write_plain_csv(compression_result.provenance, provenance_path)
+            _write_json(compression_result.summary, summary_path)
+            print(json.dumps(compression_result.summary, indent=2))
+            return 0
         else:  # pragma: no cover - argparse makes this unreachable.
             raise AssertionError(f"Unhandled command: {args.command}")
 
@@ -844,6 +871,11 @@ def _read_bootstrap_config(path: Path) -> BootstrapConfig:
 def _read_price_level_config(path: Path) -> PriceLevelShockConfig:
     payload = json.loads(path.read_text(encoding="utf-8"))
     return PriceLevelShockConfig.from_dict(payload)
+
+
+def _read_spread_compression_config(path: Path) -> SpreadCompressionConfig:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    return SpreadCompressionConfig.from_dict(payload)
 
 
 def _write_dispatch_csv(schedule: pd.DataFrame, output: Path) -> None:

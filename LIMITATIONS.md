@@ -138,6 +138,32 @@
 - No probability, percentile, loss metric or ranking of delivery years is produced, and a year
   ordering by margin is not a ranking of anything about the future.
 
+## Spread-compression limitations
+
+- The compression factor is a declared judgmental scenario, not an estimate, a calibration or a
+  probability-weighted view. Nothing in the replayed history estimates it: the 2020-2026 record
+  predates operating battery competition in the Greek DAM almost entirely, so it contains no
+  episode from which a competitive spread response could be inferred. A factor of 0.7 is a
+  statement of what to examine, not a claim that spreads will compress by 30 %.
+- The transformation represents cannibalisation pressure only in the loose sense that
+  cannibalisation compresses spreads. It is not a causal model of entry, bidding behaviour,
+  fleet size or market clearing, and it says nothing about when or whether compression occurs.
+- Compression scales every within-day range by the same factor. Real spread compression would
+  not be uniform across days, seasons, hours or price regimes, and it would interact with the
+  negative-price and duck-curve structure the accepted history shows growing since 2023.
+- The daily reference level is a declared choice with no default. A daily mean preserves each
+  day's mean exactly; a daily median does not, and the summary reports the resulting daily-mean
+  shift. Neither is a claim about which level a compressing market would converge on.
+- Zero and negative prices are preserved and never clipped. Because compression pulls prices
+  toward the daily reference, intervals can cross zero and change sign; the count is reported.
+  A scenario that materially changes the number of negative intervals is changing the market's
+  character, not only its spread, and should be read accordingly.
+- Spread widening is out of scope, so the accepted factor range is closed at 1. This is a
+  deliberate scope limit, not a judgment that widening is unlikely — the per-delivery-year
+  decomposition found mean daily range rising every year since 2023.
+- Compressed paths are synthetic scenarios. No likelihood, percentile, loss metric or ranking
+  is attached to a factor, and no dispatch, finance or investment conclusion follows from one.
+
 ## Price-level shock limitations
 
 - The additive constant is a user-configured sensitivity, not an estimated price process or a
