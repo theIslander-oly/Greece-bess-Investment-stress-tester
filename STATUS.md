@@ -1,10 +1,10 @@
 # Project status
 
 **Version:** 0.7.5
-**Updated:** 27 August 2026
+**Updated:** 28 August 2026
 **Status:** Official multi-year operational acceptance and HEnEx-to-ENTSO-E cross-source
 reconciliation passed; artifact custody tooling in place awaiting the operator upload;
-per-delivery-year replay decomposition implemented and awaiting its first official run;
+per-delivery-year replay decomposition accepted against the official history;
 bootstrap source-era policy landed; availability/outage integration awaiting approval
 
 ## Bootstrap source-era and resolution policy
@@ -290,6 +290,6 @@ calibration story. The bootstrap source-era/resolution policy landed on 2026-08-
 modeling milestone is deterministic availability/outage-path integration, which still requires
 explicit approval before implementation. Negative-price-event
 transformations remain deferred. ENTSO-E reconciliation passed on 2026-08-27. Custody tooling and the storage
-procedure landed on 2026-08-27 and await the operator upload. ADMIE timing acceptance and
-per-year replay decomposition remain parallel tasks. The per-year decomposition surface and
-workflow landed on 2026-08-27; only its official run is outstanding.
+procedure landed on 2026-08-27 and await the operator upload. ADMIE timing acceptance remains a parallel
+task. The per-year decomposition surface and workflow landed on 2026-08-27 and its official run
+was accepted on 2026-08-28, so that track is complete.
