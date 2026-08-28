@@ -1,11 +1,42 @@
 # Project status
 
-**Version:** 0.7.5
+**Version:** 0.7.6
 **Updated:** 28 August 2026
 **Status:** Official multi-year operational acceptance and HEnEx-to-ENTSO-E cross-source
 reconciliation passed; artifact custody tooling in place awaiting the operator upload;
 per-delivery-year replay decomposition accepted against the official history;
-bootstrap source-era policy landed; availability/outage integration awaiting approval
+bootstrap source-era policy and spread compression landed; scenario-ensemble range reporting and
+availability/outage integration awaiting approval
+
+## Spread compression about a daily reference level
+
+- `compress-spread` and `greek_bess.stress.apply_spread_compression` transform within-day spread
+  rather than level: `compressed = reference + factor * (price - reference)` over each path's
+  CET/CEST market day, so every within-day range is scaled by exactly the declared factor.
+- This is the economically first-order storage stress and the way cannibalisation pressure is
+  represented. A constant level shift leaves spreads untouched and moves margin only through
+  round-trip losses and fees; compression changes the quantity being arbitraged.
+- The factor is bounded to [0, 1]: 1.0 is the identity, 0.0 flattens each day onto its reference.
+  Spread widening is deliberately out of scope, which is a scope limit and not a judgment that
+  widening is unlikely.
+- `reference_basis` is declared with no default, following the source-era precedent. `daily_mean`
+  preserves each daily mean exactly, so the result is a pure spread change; `daily_median` does
+  not, and the summary reports the maximum absolute daily-mean shift it causes.
+- Zero and negative results are preserved and never clipped. Compression pulls prices toward the
+  reference, so intervals can cross zero and change sign; the count is reported rather than
+  suppressed, because a scenario that materially changes the negative-interval count is changing
+  the market's character and not only its spread.
+- Missing prices are refused explicitly: one would propagate through its market day's reference
+  level and corrupt every interval of that day.
+- The summary reports mean and maximum daily range and negative and zero interval counts, before
+  and after. Interval provenance records the market day, reference level, factor, basis, original
+  and compressed prices and input source metadata.
+- The factor is a declared judgmental scenario, not an estimate. The replayed history predates
+  operating battery competition almost entirely, so no competitive spread response is estimable
+  from it. No probability, percentile, loss metric or ranking attaches to a factor.
+- The per-delivery-year decomposition is the direct evidence for prioritising this over level:
+  2026 shows the highest ceiling per market day of any non-crisis year on the lowest mean price
+  since 2020, because mean daily range rose every year since 2023 while mean price fell.
 
 ## Bootstrap source-era and resolution policy
 
@@ -289,8 +320,11 @@ Official multi-year operational acceptance has passed for both the perfect-fores
 forecast-backtest paths. On 2026-08-27 the project was repositioned as a Greek DAM battery
 replay and research benchmark, and the v0.7 scope was corrected to deterministic named
 scenarios: percentile and loss-probability outputs were removed pending a defensible
-calibration story. The bootstrap source-era/resolution policy landed on 2026-08-27, so the next isolated v0.7
-modeling milestone is deterministic availability/outage-path integration, which still requires
+calibration story. The bootstrap source-era/resolution policy landed on 2026-08-27 and spread compression on
+2026-08-28, prioritised over availability/outage integration because the per-delivery-year
+decomposition showed spread, not level, driving the ceiling. The remaining v0.7 modeling
+milestones are scenario-ensemble range reporting across named scenarios, labelled
+non-probabilistic, and deterministic availability/outage-path integration; both still require
 explicit approval before implementation. Negative-price-event
 transformations remain deferred. ENTSO-E reconciliation passed on 2026-08-27. Custody tooling and the storage
 procedure landed on 2026-08-27 and await the operator upload. ADMIE timing acceptance remains a parallel

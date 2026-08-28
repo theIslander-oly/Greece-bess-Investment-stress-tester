@@ -21,6 +21,14 @@ from .price_level import (
     PriceLevelShockResult,
     apply_price_level_shock,
 )
+from .spread import (
+    REFERENCE_BASES,
+    SPREAD_COMPRESSION_POLICY,
+    SpreadCompressionConfig,
+    SpreadCompressionInputError,
+    SpreadCompressionResult,
+    apply_spread_compression,
+)
 
 __all__ = [
     "BootstrapConfig",
@@ -38,4 +46,10 @@ __all__ = [
     "PriceLevelShockInputError",
     "PriceLevelShockResult",
     "apply_price_level_shock",
+    "REFERENCE_BASES",
+    "SPREAD_COMPRESSION_POLICY",
+    "SpreadCompressionConfig",
+    "SpreadCompressionInputError",
+    "SpreadCompressionResult",
+    "apply_spread_compression",
 ]

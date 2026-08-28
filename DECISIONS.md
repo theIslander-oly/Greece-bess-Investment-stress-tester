@@ -3,6 +3,37 @@
 This file records decisions that materially affect interpretation or reproducibility. Add a
 dated entry when a milestone changes scope, assumptions, data handling or validation.
 
+## 2026-08-28 — Compress spread about a declared daily reference, with no default basis
+
+- **Decision:** Represent cannibalisation pressure as a deterministic compression of within-day
+  spread about a declared daily reference level: `compressed = reference + factor * (price -
+  reference)`, where the reference is that path's CET/CEST market day. The compression factor is
+  bounded to [0, 1] and the reference basis (`daily_mean` or `daily_median`) is declared with no
+  default, matching the source-era precedent. Zero and negative results are preserved and never
+  clipped, and the number of intervals whose sign changes is reported. Spread widening — a factor
+  above 1 — is out of scope.
+- **Reason:** Spread, not level, is what a battery earns from. The 2026-08-27 price-level shock
+  changes arbitrage economics only through round-trip losses and per-MWh fees, which makes it a
+  near-inert stress; compressing the spread changes the quantity being arbitraged. The
+  per-delivery-year decomposition supplied the evidence directly: 2026 shows the highest ceiling
+  per market day of any non-crisis year (EUR 14,431) on the lowest mean price since 2020, because
+  mean daily range rose every year since 2023 while mean price fell. A causal cannibalisation
+  model is not buildable from this history — it predates operating battery competition almost
+  entirely, so no competitive response is estimable from it — which is exactly why the factor is
+  a declared scenario rather than a fitted parameter. The reference basis gets no default because
+  it decides whether the transformation is a pure spread change (daily mean preserves the daily
+  mean) or also moves the level (daily median does not), and defaulting would settle that
+  silently.
+- **Consequence:** Every within-day range is scaled by exactly the factor, which is a testable
+  property rather than an approximate intent. A daily-mean basis leaves each daily mean
+  unchanged, so level and spread sensitivities stay separable and can be reasoned about
+  independently. Compression can pull an interval across zero and change its sign; that is a
+  real consequence of the transformation and is counted in the summary rather than suppressed,
+  because a scenario that materially changes the count of negative intervals is changing the
+  market's character and not only its spread. Missing prices are refused explicitly, since one
+  would propagate through its market day's reference level and corrupt every interval of that
+  day. No probability, percentile, loss metric or ranking attaches to a factor.
+
 ## 2026-08-28 — Keep the repository record contributor-neutral
 
 - **Decision:** Repository content carries no tool or assistant attribution. No commit message,

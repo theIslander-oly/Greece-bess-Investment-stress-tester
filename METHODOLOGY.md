@@ -206,7 +206,47 @@ manufacture revenue the replay does not contain. Zero, negative and missing pric
 per year and never filled. No probability, percentile, loss metric or ranking of delivery years
 is produced.
 
-## 12. Validation
+## 12. Bootstrap spread-compression transformation
+
+The second shock layer transforms within-day spread rather than level. For a compression factor
+\(f\in[0,1]\) and a declared daily reference level \(r_{k,d}\) for path \(k\) on CET/CEST market
+day \(d\), each interval price is transformed as
+
+\[p'_{i,k}=r_{k,d(i)}+f\,\bigl(p_{i,k}-r_{k,d(i)}\bigr).\]
+
+A factor of 1 is the identity and a factor of 0 flattens each market day onto its reference
+level. Every within-day range is scaled by exactly \(f\), which is the property the tests assert.
+
+This is the economically first-order storage stress, and it is the transformation that
+represents cannibalisation pressure. A causal cannibalisation model is not buildable from price
+history alone: the replayed 2020-2026 history predates operating battery competition almost
+entirely, so it contains no episode from which a competitive response could be estimated. The
+compression factor is therefore a declared judgmental scenario, not an estimate, and carries no
+probability, percentile or likelihood.
+
+The reference basis is **declared with no default**, following the source-era precedent: a daily
+mean preserves each day's mean exactly, so the transformation is a pure spread change; a daily
+median does not, and the summary reports the resulting maximum absolute daily-mean shift so the
+difference is visible rather than assumed away. Choosing the basis silently would hide the most
+consequential assumption in the transformation.
+
+Zero and negative results are preserved and never clipped or floored. Because compression pulls
+prices toward the reference level, an interval on the far side of that level can cross zero and
+change sign; this is a real consequence of compressing spread, not a defect, and the count of
+such intervals is reported in the summary rather than suppressed. Spread widening — a factor
+above 1 — is out of scope, so the accepted range is closed at 1.
+
+Validation is performed independently for every path, sharing one contract with the price-level
+transformation: canonical timezone-aware columns, unique path/UTC keys, complete DST-aware market
+days, continuous intervals, one supported resolution and non-missing prices. Missing prices are
+refused explicitly here rather than merely by the shared quality gate, because a missing price
+would propagate through its market day's reference level and silently corrupt every interval of
+that day. An interval audit table records the UTC key, path ID, market day, transformation ID,
+compression factor, reference basis, the reference level applied, original and compressed values,
+and input source/version. Outputs are synthetic scenarios and not forecasts or investment
+evidence.
+
+## 13. Validation
 
 Code changes must pass Ruff, mypy, pytest and a clean wheel build. Tests use deterministic
 synthetic inputs or small purpose-built fixtures. Official-data acceptance is recorded as

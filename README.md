@@ -10,7 +10,7 @@ on that replay core.
 This is not financial advice, an investment-grade forecast, a bankable revenue study or a
 substitute for legal, tax, grid-connection and market-access diligence.
 
-**Current release:** `v0.7.2` — independent deterministic dispatch across bootstrap paths.
+**Current release:** `v0.7.6` — deterministic spread compression about a daily reference level.
 
 ## What this tool cannot tell you
 
@@ -79,7 +79,9 @@ The current implementation provides:
 - mandatory operating-margin labels that preserve upper-bound and backtest limitations;
 - a daily-composed perfect-foresight mode that restores SOC at every day end;
 - a per-delivery-year decomposition of an accepted replay on the CET/CEST market clock, with
-  partial-year labelling, per-method capture and a like-for-like common-day comparison.
+  partial-year labelling, per-method capture and a like-for-like common-day comparison;
+- a deterministic spread compression about a declared daily reference level, with a declared
+  basis, exact per-day range scaling and preserved zero and negative prices.
 
 The first v0.7 foundation also provides deterministic, seeded seasonal block-bootstrap price
 paths with sampled-block provenance. Each validated path can now be dispatched independently
@@ -168,6 +170,53 @@ one-to-one with intervals and retains path ID, canonical UTC key, original price
 shift, transformation ID and input source metadata. Inputs with missing prices, duplicate keys,
 gaps or incomplete DST-aware market days are rejected. These synthetic shocked paths are not
 forecasts, calibrated scenarios or investment evidence.
+
+## Compress within-day spread
+
+The `compress-spread` command pulls every interval of a market day toward that day's reference
+level, which is what makes it the first-order stress for a battery: a level shift leaves spreads
+untouched, while compression changes the quantity being arbitraged. For example,
+`config/spread-compression.json` may contain:
+
+```json
+{
+  "compression_factor": 0.7,
+  "reference_basis": "daily_mean",
+  "transformation_id": "spreads_down_30_percent"
+}
+```
+
+```bash
+greek-bess compress-spread data/processed/bootstrap_paths.csv \
+  --config config/spread-compression.json \
+  --output data/processed/compressed_paths.csv
+```
+
+Each interval becomes `reference + factor * (price - reference)`, so every within-day range is
+scaled by exactly the factor. A factor of 1.0 is the identity and 0.0 flattens each day onto its
+reference level; widening (above 1.0) is out of scope.
+
+`reference_basis` is **declared with no default**, like the source era. `daily_mean` preserves
+each day's mean exactly, making the result a pure spread change; `daily_median` does not, and the
+summary reports the resulting maximum daily-mean shift so the difference is visible.
+
+Zero and negative results are preserved and never clipped. Compression pulls prices toward the
+reference level, so an interval on the far side can cross zero and change sign — a real
+consequence of compressing spread, counted in the summary as `sign_change_interval_count` rather
+than suppressed. The summary also reports mean and maximum daily range before and after, and
+negative and zero interval counts before and after.
+
+The command writes sibling `.provenance.csv` and `.summary.json` artifacts. Provenance is
+one-to-one with intervals and retains path ID, canonical UTC key, market day, transformation ID,
+compression factor, reference basis, the reference level applied, original and compressed prices,
+and input source metadata. Inputs with missing prices, duplicate keys, gaps or incomplete
+DST-aware market days are rejected.
+
+**The compression factor is a declared judgmental scenario, not an estimate.** Nothing in the
+replayed history calibrates it: the 2020-2026 record predates operating battery competition
+almost entirely, so it contains no episode from which a competitive spread response could be
+inferred. No probability, percentile, loss metric or ranking attaches to a factor. See
+[`LIMITATIONS.md`](LIMITATIONS.md).
 
 ## Repository guide
 
@@ -862,6 +911,7 @@ ruff check . && mypy && pytest -v && python -m build --wheel
 - [Implementation report v0.7.2 bootstrap dispatch](docs/implementation_report_v0.7.2.md)
 - [Implementation report v0.7.4 per-year replay decomposition](docs/implementation_report_v0.7.4.md)
 - [Implementation report v0.7.5 bootstrap source-era policy](docs/implementation_report_v0.7.5.md)
+- [Implementation report v0.7.6 spread compression](docs/implementation_report_v0.7.6.md)
 - [Official annual-history acceptance](docs/official_history_acceptance_2026-08-26.md)
 - [Official multi-year operational acceptance](docs/official_multiyear_operational_acceptance_2026-08-27.md)
 - [Official HEnEx to ENTSO-E reconciliation](docs/official_source_reconciliation_2026-08-27.md)

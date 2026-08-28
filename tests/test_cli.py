@@ -152,6 +152,85 @@ class CliTests(unittest.TestCase):
             )
             self.assertEqual(summary["configuration"]["transformation_id"], "down_20")
 
+    def test_compress_spread_command_writes_auditable_outputs(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            prices = root / "prices.csv"
+            bootstrap_config = root / "bootstrap.json"
+            paths = root / "paths.csv"
+            compression_config = root / "compression.json"
+            compressed = root / "compressed.csv"
+            with redirect_stdout(io.StringIO()):
+                main(
+                    [
+                        "generate-synthetic",
+                        "--start-day",
+                        "2025-01-01",
+                        "--end-day",
+                        "2025-01-04",
+                        "--output",
+                        str(prices),
+                    ]
+                )
+            bootstrap_config.write_text(
+                json.dumps({"start_day": "2026-01-01", "end_day": "2026-01-02"}), encoding="utf-8"
+            )
+            with redirect_stdout(io.StringIO()):
+                main(
+                    [
+                        "generate-bootstrap-paths",
+                        str(prices),
+                        "--config",
+                        str(bootstrap_config),
+                        "--output",
+                        str(paths),
+                    ]
+                )
+            compression_config.write_text(
+                json.dumps(
+                    {
+                        "compression_factor": 0.5,
+                        "reference_basis": "daily_mean",
+                        "transformation_id": "half_spread",
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            with redirect_stdout(io.StringIO()):
+                exit_code = main(
+                    [
+                        "compress-spread",
+                        str(paths),
+                        "--config",
+                        str(compression_config),
+                        "--output",
+                        str(compressed),
+                    ]
+                )
+
+            output = pd.read_csv(compressed)
+            original = pd.read_csv(paths)
+            provenance = pd.read_csv(root / "compressed.provenance.csv")
+            summary = json.loads((root / "compressed.summary.json").read_text())
+            self.assertEqual(exit_code, 0)
+            self.assertEqual(len(output), 24)
+            self.assertEqual(len(provenance), 24)
+            self.assertEqual(output["path_id"].tolist(), original["path_id"].tolist())
+            # The daily mean is preserved and the daily range is halved.
+            self.assertTrue(
+                np.isclose(output["price_eur_per_mwh"].mean(), original["price_eur_per_mwh"].mean())
+            )
+            self.assertTrue(
+                np.isclose(
+                    output["price_eur_per_mwh"].max() - output["price_eur_per_mwh"].min(),
+                    (original["price_eur_per_mwh"].max() - original["price_eur_per_mwh"].min())
+                    * 0.5,
+                )
+            )
+            self.assertEqual(summary["configuration"]["transformation_id"], "half_spread")
+            self.assertEqual(summary["configuration"]["reference_basis"], "daily_mean")
+
     def test_bootstrap_command_writes_paths_provenance_and_summary(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -560,7 +639,6 @@ class CliTests(unittest.TestCase):
             self.assertEqual(summary["initial_capex_eur"], 1_000.0)
             self.assertIn("not a bankable", summary["result_label"])
 
-
     def test_merge_canonical_command_combines_adjacent_history_files(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -732,6 +810,7 @@ class CliTests(unittest.TestCase):
                     ]
                 )
             self.assertEqual(exit_code, 1)
+
 
 if __name__ == "__main__":
     unittest.main()
