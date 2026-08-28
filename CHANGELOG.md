@@ -6,6 +6,17 @@ All notable project changes are documented here.
 
 ### Added
 
+- A decision entry scoping custody to retrieved official artifacts. Derived evidence such as
+  the `annual-replay-decomposition` artifact gets no custody record: it carries no
+  interval-level price and no provider that could revise it, and its inputs — the custodied
+  history, the pinned commit and the recorded configuration — are already fingerprinted, so
+  reproducibility is the guarantee that fits it.
+
+- `docs/official_annual_decomposition_2026-08-28.md`, recording the accepted per-delivery-year
+  decomposition of the official replay from workflow run `33147448666`. Custody verification of
+  the source artifact passed, and every per-year figure reconciles with previously accepted
+  aggregates to the euro, including the EUR 0.00 common-day ceiling spread within each year.
+
 - An explicit bootstrap source-era and resolution policy. A source era is a maximal contiguous
   run of market days at one delivery resolution; a resolution change or a market-day gap ends
   one. `BootstrapConfig` gains `source_resolution_minutes`, `source_start_day` and

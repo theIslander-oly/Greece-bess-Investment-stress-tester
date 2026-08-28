@@ -107,7 +107,7 @@ Suggested future branch sequence:
   - [ ] Operator upload of the encrypted copies and the committed custody records. Custody is
     not complete until this is done; re-run the retrieval workflow if the artifact lapses
     first, and treat any price-series digest difference as a recorded finding.
-- [~] Add a per-calendar-year decomposition of the accepted replay (annual perfect-foresight
+- [x] Add a per-calendar-year decomposition of the accepted replay (annual perfect-foresight
   ceiling and forecast capture), since aggregate 2020-2026 margins conceal regime dependence
   such as the 2022 gas-crisis year.
   - [x] `decompose-annual-replay` surface, delivery years on the CET/CEST market clock,
@@ -116,6 +116,7 @@ Suggested future branch sequence:
     capture ratio share the daily terminal-energy basis and no trade spans a year boundary.
   - [x] `Decompose the accepted replay by delivery year` workflow, which verifies the accepted
     artifact against its committed custody record before consuming it.
-  - [ ] Run the workflow against run `32971677163` and record the accepted per-year evidence.
-    This must happen before that artifact expires on 2 September 2026, or from the operator's
-    decrypted custody copy afterwards.
+  - [x] Ran the workflow against run `32971677163` on 2026-08-28 (run `33147448666`). Custody
+    verification passed, every per-year figure reconciles with the previously accepted
+    aggregates, and the evidence is recorded in
+    `docs/official_annual_decomposition_2026-08-28.md`.

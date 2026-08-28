@@ -852,6 +852,7 @@ acceptance for ADMIE exogenous variables remains a parallel acceptance task.
 - [Official annual-history acceptance](docs/official_history_acceptance_2026-08-26.md)
 - [Official multi-year operational acceptance](docs/official_multiyear_operational_acceptance_2026-08-27.md)
 - [Official HEnEx to ENTSO-E reconciliation](docs/official_source_reconciliation_2026-08-27.md)
+- [Per-delivery-year replay decomposition](docs/official_annual_decomposition_2026-08-28.md)
 - [Durable custody of accepted official artifacts](docs/official_artifact_custody.md)
 - [Bootstrap source-era and resolution policy](docs/bootstrap_source_era_policy.md)
 - [Current status](STATUS.md)

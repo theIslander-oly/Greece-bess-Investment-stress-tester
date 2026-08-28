@@ -1,10 +1,10 @@
 # Project status
 
 **Version:** 0.7.5
-**Updated:** 27 August 2026
+**Updated:** 28 August 2026
 **Status:** Official multi-year operational acceptance and HEnEx-to-ENTSO-E cross-source
 reconciliation passed; artifact custody tooling in place awaiting the operator upload;
-per-delivery-year replay decomposition implemented and awaiting its first official run;
+per-delivery-year replay decomposition accepted against the official history;
 bootstrap source-era policy landed; availability/outage integration awaiting approval
 
 ## Bootstrap source-era and resolution policy
@@ -48,9 +48,18 @@ bootstrap source-era policy landed; availability/outage integration awaiting app
 - The `Decompose the accepted replay by delivery year` workflow verifies the accepted artifact
   against its committed custody record before consuming it, then runs the daily ceiling, the
   four causal naïve backtests and the decomposition inside Actions.
-- **Outstanding:** the workflow has not yet been run against run `32971677163`, so no accepted
-  per-year evidence is recorded. Running it before 2 September 2026 avoids depending on the
-  operator's decrypted custody copy.
+- **Accepted on 2026-08-28** by workflow run `33147448666` against artifact run `32971677163`.
+  Custody verification passed, so no official publication has been revised since acceptance.
+  Every per-year figure reconciles with previously accepted aggregates: the annual ceilings sum
+  to EUR 24,974,729.59 over 2,124 market days, the four methods' realized margins, own-days
+  ceilings, day counts and loss-day counts all match, and the 2,098-day common-day ceiling of
+  EUR 24,665,532.17 is identical across methods with a spread of EUR 0.00 in every year.
+- The decomposition shows regime dependence the aggregate conceals: 2022 contributes 23.5 % of
+  the six-year ceiling from 17.2 % of the days; mean daily price range has risen every year
+  since 2023 while the mean price fell, so 2026 has the second-widest range on the lowest mean
+  price since 2020; ensemble capture spans 0.6937 to 0.8724 against an aggregate of 0.7814; and
+  the method ranking reverses in 2026, where `rolling_mean` overtakes the ensemble.
+- Evidence is recorded in `docs/official_annual_decomposition_2026-08-28.md`.
 
 ## Durable custody of accepted official artifacts
 
@@ -70,6 +79,9 @@ bootstrap source-era policy landed; availability/outage integration awaiting app
   repository holds a key that could decrypt an accepted artifact.
 - The procedure, the operator steps and the failure taxonomy are recorded in
   `docs/official_artifact_custody.md`.
+- Custody covers retrieved official artifacts only. Derived evidence computed from a custodied
+  history, such as the `annual-replay-decomposition` artifact, is guaranteed by reproduction
+  from the recorded history, commit and configuration instead.
 - **Outstanding operator action:** the encrypted copies must be uploaded before the source
   artifacts expire on 2 and 3 September 2026. Custody is not complete until they are.
 
@@ -281,6 +293,6 @@ calibration story. The bootstrap source-era/resolution policy landed on 2026-08-
 modeling milestone is deterministic availability/outage-path integration, which still requires
 explicit approval before implementation. Negative-price-event
 transformations remain deferred. ENTSO-E reconciliation passed on 2026-08-27. Custody tooling and the storage
-procedure landed on 2026-08-27 and await the operator upload. ADMIE timing acceptance and
-per-year replay decomposition remain parallel tasks. The per-year decomposition surface and
-workflow landed on 2026-08-27; only its official run is outstanding.
+procedure landed on 2026-08-27 and await the operator upload. ADMIE timing acceptance remains a parallel
+task. The per-year decomposition surface and workflow landed on 2026-08-27 and its official run
+was accepted on 2026-08-28, so that track is complete.
