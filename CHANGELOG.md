@@ -6,6 +6,12 @@ All notable project changes are documented here.
 
 ### Added
 
+- A decision entry scoping custody to retrieved official artifacts. Derived evidence such as
+  the `annual-replay-decomposition` artifact gets no custody record: it carries no
+  interval-level price and no provider that could revise it, and its inputs — the custodied
+  history, the pinned commit and the recorded configuration — are already fingerprinted, so
+  reproducibility is the guarantee that fits it.
+
 - `docs/official_annual_decomposition_2026-08-28.md`, recording the accepted per-delivery-year
   decomposition of the official replay from workflow run `33147448666`. Custody verification of
   the source artifact passed, and every per-year figure reconciles with previously accepted

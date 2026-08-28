@@ -41,6 +41,11 @@ and zero degradation cost. These values are illustrative and are not project evi
 Evidence artifact: `annual-replay-decomposition` (ID `9676575888`), zip SHA-256
 `119e2465c272fdc4e6259d94813478360ee26520d23f0eef33d0909ec65d0291`, 90-day retention.
 
+This artifact carries **no custody record**, deliberately. It holds no interval-level price and
+has no provider that could revise it, and the three things that determine it — the custodied
+history, `main` at `65e61f9` and the configuration named above — are already fingerprinted. If
+it lapses it is regenerated, not recovered (decision entry 2026-08-28).
+
 ## Reconciliation against previously accepted figures
 
 The decomposition is only credible if it sums back to results accepted independently. Every

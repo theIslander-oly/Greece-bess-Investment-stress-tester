@@ -79,6 +79,9 @@ bootstrap source-era policy landed; availability/outage integration awaiting app
   repository holds a key that could decrypt an accepted artifact.
 - The procedure, the operator steps and the failure taxonomy are recorded in
   `docs/official_artifact_custody.md`.
+- Custody covers retrieved official artifacts only. Derived evidence computed from a custodied
+  history, such as the `annual-replay-decomposition` artifact, is guaranteed by reproduction
+  from the recorded history, commit and configuration instead.
 - **Outstanding operator action:** the encrypted copies must be uploaded before the source
   artifacts expire on 2 and 3 September 2026. Custody is not complete until they are.
 

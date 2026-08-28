@@ -194,6 +194,12 @@ separating:
   or a commit.
 - Custody proves that a copy is the accepted artifact. It proves nothing about whether the
   accepted artifact is a good basis for any conclusion; the acceptance reports do that.
+- Derived evidence this project computes from an already-custodied history is out of scope.
+  The `annual-replay-decomposition` artifact of run `33147448666` is the worked case: it holds
+  no interval-level price, has no provider that could revise it, and is fully determined by the
+  custodied history, the pinned commit and the recorded configuration. It is guaranteed by
+  reproduction, not by custody (decision entry 2026-08-28). Custody is for what cannot be
+  reproduced.
 - The procedure does not automate the upload. Encryption keys and release publication stay
   with the operator, so no automation in this repository holds a key that could decrypt an
   accepted artifact.
