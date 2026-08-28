@@ -77,6 +77,12 @@ Suggested future branch sequence:
 
 ## Parallel acceptance track
 
+- [x] Keep the repository record contributor-neutral: no tool or assistant attribution in
+  commits, pull requests, comments, documentation or tracked configuration, from 2026-08-28
+  forward, with existing history deliberately not rewritten (decision entry 2026-08-28).
+  Editor- and service-specific session configuration is untracked; the development environment
+  bootstrap it performed now lives in the tracked `scripts/bootstrap-dev-env.sh`.
+
 - [x] Validate real HEnEx workbooks.
   - Official `20260824` and `20260825` English v01 result workbooks.
   - 96 quarter-hour intervals per day and 192 contiguous intervals combined.
