@@ -55,9 +55,12 @@ Suggested future branch sequence:
   - [x] Foundation: seasonal block bootstrap, reproducible seeds and sampled-block provenance.
   - [x] Deterministic additive price-level shock with interval provenance.
   - [x] Independent deterministic dispatch across validated bootstrap paths.
-  - [ ] Explicit bootstrap source-era/resolution policy (the accepted official history mixes
+  - [x] Explicit bootstrap source-era/resolution policy (the accepted official history mixes
     hourly and quarter-hour regimes; the bootstrap requires one resolution, so the sampling
-    era must be a documented decision rather than an accident).
+    era must be a documented decision rather than an accident). A source era is a maximal
+    contiguous single-resolution run; a multi-era history must declare one, with no default;
+    the selection is recorded in the summary and on every provenance row, and candidate
+    scarcity is reported. Policy in `docs/bootstrap_source_era_policy.md`.
   - [ ] Deterministic availability/outage-path integration (requires explicit approval).
   - [ ] Spread-compression transformations about a daily reference level, as explicit
     judgmental scenarios; this is how cannibalisation pressure is represented, since a causal
@@ -104,6 +107,15 @@ Suggested future branch sequence:
   - [ ] Operator upload of the encrypted copies and the committed custody records. Custody is
     not complete until this is done; re-run the retrieval workflow if the artifact lapses
     first, and treat any price-series digest difference as a recorded finding.
-- [ ] Add a per-calendar-year decomposition of the accepted replay (annual perfect-foresight
+- [~] Add a per-calendar-year decomposition of the accepted replay (annual perfect-foresight
   ceiling and forecast capture), since aggregate 2020-2026 margins conceal regime dependence
   such as the 2022 gas-crisis year.
+  - [x] `decompose-annual-replay` surface, delivery years on the CET/CEST market clock,
+    partial-year labelling, per-method and common-day capture tables.
+  - [x] `optimize-perfect-foresight --daily-solves`, so the annual ceiling and the annual
+    capture ratio share the daily terminal-energy basis and no trade spans a year boundary.
+  - [x] `Decompose the accepted replay by delivery year` workflow, which verifies the accepted
+    artifact against its committed custody record before consuming it.
+  - [ ] Run the workflow against run `32971677163` and record the accepted per-year evidence.
+    This must happen before that artifact expires on 2 September 2026, or from the operator's
+    decrypted custody copy afterwards.

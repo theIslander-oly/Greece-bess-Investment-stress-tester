@@ -76,7 +76,10 @@ The current implementation provides:
 - exact-date discounted unlevered cash flows, NPV and IRR;
 - simple and discounted payback;
 - maximum initial CAPEX and market-margin break-even outputs;
-- mandatory operating-margin labels that preserve upper-bound and backtest limitations.
+- mandatory operating-margin labels that preserve upper-bound and backtest limitations;
+- a daily-composed perfect-foresight mode that restores SOC at every day end;
+- a per-delivery-year decomposition of an accepted replay on the CET/CEST market clock, with
+  partial-year labelling, per-method capture and a like-for-like common-day comparison.
 
 The first v0.7 foundation also provides deterministic, seeded seasonal block-bootstrap price
 paths with sampled-block provenance. Each validated path can now be dispatched independently
@@ -93,9 +96,26 @@ Create a JSON configuration (the end day is exclusive):
   "end_day": "2028-01-01",
   "path_count": 100,
   "block_days": 7,
-  "random_seed": 42
+  "random_seed": 42,
+  "source_resolution_minutes": 15,
+  "source_start_day": "2025-10-01",
+  "source_end_day": "2026-08-26"
 }
 ```
+
+The three `source_*` fields declare the **source era** to sample from. An era is a maximal
+contiguous run of market days at one delivery resolution, and the bootstrap samples from exactly
+one. A history with a single era needs no declaration; the accepted 2020-2026 history holds two,
+because the Greek DAM moved from hourly to quarter-hour delivery on 1 October 2025, so it must
+be declared. There is no default: passing an undeclared multi-era history fails with a message
+listing the available eras and their windows.
+
+Neither era is the right answer on its own. The quarter-hour era is the operating regime but
+contains exactly one occurrence of each meteorological season, so resampling it expresses no
+inter-annual variation; the hourly era spans five or six occurrences of every season but is a
+superseded delivery regime. Read
+[the source-era policy](docs/bootstrap_source_era_policy.md) before choosing, and use
+`greek_bess.stress.detect_source_eras` to list what a history contains.
 
 Then run the generator against a complete canonical price history held outside Git:
 
@@ -121,7 +141,11 @@ forecasts, probabilities, expected revenue, or investment evidence.
 
 The command writes the labelled synthetic paths, a block-level `.provenance.csv`, and a
 `.summary.json`. It samples with replacement from contiguous blocks in the same meteorological
-season and requires the source block to have the target block's exact interval-count pattern.
+season, inside the declared source era only, and requires the source block to have the target
+block's exact interval-count pattern. The summary records every available era, the selected
+era and whether it was declared; the provenance records the era on every sampled block, and the
+summary reports minimum and median block-candidate counts so scarcity is visible rather than
+smoothed.
 It copies prices without smoothing or interpolation, including zero and negative values. Missing
 prices, gaps, overlaps, incomplete market days and unavailable DST-compatible blocks fail
 explicitly. These paths are synthetic scenarios—not forecasts, probability-calibrated outcomes,
@@ -406,6 +430,24 @@ This produces:
 - `outputs/perfect_foresight_dispatch.summary.json`, with aggregate energy,
   equivalent cycles, captured prices and margin components.
 
+Add `--daily-solves` to solve every market day independently and compose the schedules
+instead of optimizing the whole horizon in one solve:
+
+```bash
+greek-bess optimize-perfect-foresight \
+  data/curated/henex_prices.csv \
+  --config examples/battery_50mw_100mwh.json \
+  --daily-solves \
+  --output outputs/perfect_foresight_daily.csv
+```
+
+Each day then starts and ends at the configured SOC, which is the convention the forecast
+backtests are measured against, and requires `terminal_soc_fraction` to equal
+`initial_soc_fraction`. The composed margin is necessarily at or below the single
+full-horizon margin, because restoring SOC every day removes inter-day arbitrage. Both
+remain labelled upper bounds. The composed schedule carries a `market_day` column and its
+summary records the per-day solver statuses and the largest terminal-energy error.
+
 The optimizer uses these conventions:
 
 - charge MW and MWh are grid imports settled at the DAM price;
@@ -635,6 +677,59 @@ financing fees, working capital, grid feasibility, bid acceptance and revenues f
 Intraday, Balancing or reserve markets. A positive NPV flag is a mathematical result under
 the inputs—not a build recommendation.
 
+## 12. Decompose an accepted replay by delivery year
+
+Aggregate multi-year margins conceal regime dependence: a gas-crisis year, a low-price year
+and a negative-price year average into one number. `decompose-annual-replay` splits an
+already-computed replay into delivery years without adding a model, a market or a
+transformation.
+
+```bash
+greek-bess decompose-annual-replay \
+  data/curated/henex_prices.csv \
+  --perfect-foresight-schedule outputs/perfect_foresight_daily.csv \
+  --daily-results ensemble=outputs/forecast_dispatch.daily.csv \
+  --daily-results rolling_mean=outputs/rolling_mean_dispatch.daily.csv \
+  --energy-capacity-mwh 100 \
+  --output outputs/annual_overview.csv
+```
+
+This produces:
+
+- `outputs/annual_overview.csv`, one row per delivery year with market-day coverage, a
+  partial-year flag, interval counts by resolution, preserved negative, zero and missing
+  price counts, price context including the mean daily price range, and the
+  perfect-foresight ceiling for that year;
+- `outputs/annual_overview.forecast.csv`, one row per delivery year and forecast method, with
+  backtested-day coverage, realized margin, that method's own-days ceiling, regret, capture
+  and loss-making days;
+- `outputs/annual_overview.common_day.csv`, the same per-year comparison restricted to the
+  market days every supplied method backtested, where the ceiling must be identical and the
+  recorded spread proves it;
+- `outputs/annual_overview.summary.json`, with the year list, the partial years, the
+  ceiling-reconciliation residual and the labels below.
+
+Conventions:
+
+- **A delivery year is the calendar year of the interval's CET/CEST market-day start**, the
+  same convention the committed custody records use. Grouping by UTC year instead moves the
+  interval beginning 31 December 23:00Z into the earlier year.
+- Partial years are labelled and carry their market-day count. Per-market-day figures are
+  within-period averages; **no annual figure is annualized, extrapolated or scaled to a full
+  year**.
+- The supplied schedule must settle every interval at the price the supplied history
+  publishes, otherwise the decomposition is refused: that is what proves the schedule was
+  solved on this history.
+- Use `--daily-solves` for the schedule. A full-horizon solve may charge on 31 December and
+  discharge on 1 January, which splits one trade across two delivery years.
+- Annual perfect-foresight figures remain labelled gross-margin upper bounds and annual
+  forecast figures remain historical backtest outcomes. No probability, percentile, loss
+  metric or ranking of years is produced.
+
+The `Decompose the accepted replay by delivery year` GitHub Actions workflow runs the whole
+sequence against an accepted `greek-dam-official-history` artifact, after verifying it
+against its committed custody record, and uploads the per-year tables as a private artifact.
+
 ## Record and verify custody of an accepted official artifact
 
 An accepted official artifact lives outside Git, so the repository holds a fingerprint of it
@@ -691,6 +786,8 @@ src/greek_bess/
     timezones.py
   dispatch/
     perfect_foresight.py
+  analysis/
+    annual.py
   forecast/
     naive.py
     ml.py
@@ -750,10 +847,13 @@ acceptance for ADMIE exogenous variables remains a parallel acceptance task.
 - [Implementation report v0.7 foundation](docs/implementation_report_v0.7.md)
 - [Implementation report v0.7.1 price-level shock](docs/implementation_report_v0.7.1.md)
 - [Implementation report v0.7.2 bootstrap dispatch](docs/implementation_report_v0.7.2.md)
+- [Implementation report v0.7.4 per-year replay decomposition](docs/implementation_report_v0.7.4.md)
+- [Implementation report v0.7.5 bootstrap source-era policy](docs/implementation_report_v0.7.5.md)
 - [Official annual-history acceptance](docs/official_history_acceptance_2026-08-26.md)
 - [Official multi-year operational acceptance](docs/official_multiyear_operational_acceptance_2026-08-27.md)
 - [Official HEnEx to ENTSO-E reconciliation](docs/official_source_reconciliation_2026-08-27.md)
 - [Durable custody of accepted official artifacts](docs/official_artifact_custody.md)
+- [Bootstrap source-era and resolution policy](docs/bootstrap_source_era_policy.md)
 - [Current status](STATUS.md)
 - [Implementation plan](PLAN.md)
 - [Contributing guidance](CONTRIBUTING.md)

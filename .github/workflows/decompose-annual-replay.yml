@@ -1,0 +1,266 @@
+name: Decompose the accepted replay by delivery year
+
+on:
+  workflow_dispatch:
+    inputs:
+      henex_run_id:
+        description: Run ID holding the greek-dam-official-history artifact
+        required: true
+        type: string
+      battery_config:
+        description: Battery assumptions JSON, relative to the repository root
+        required: false
+        default: examples/battery_50mw_100mwh.json
+        type: string
+      forecast_methods:
+        description: Space-separated causal forecast methods to decompose
+        required: false
+        default: daily_persistence weekly_persistence rolling_mean ensemble
+        type: string
+      rolling_window_days:
+        description: Rolling-window length for the rolling-mean and ensemble baselines
+        required: false
+        default: "28"
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  decompose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      HENEX_RUN_ID: ${{ inputs.henex_run_id }}
+      BATTERY_CONFIG: ${{ inputs.battery_config }}
+      FORECAST_METHODS: ${{ inputs.forecast_methods }}
+      ROLLING_WINDOW_DAYS: ${{ inputs.rolling_window_days }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install the project
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install .
+
+      - name: Download the accepted HEnEx history artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: greek-dam-official-history
+          run-id: ${{ inputs.henex_run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: artifacts/greek-dam-official-history
+
+      - name: Verify the artifact against its committed custody record
+        shell: bash
+        run: |
+          .github/scripts/custody_step.sh \
+            greek-dam-official-history \
+            "$HENEX_RUN_ID" \
+            "Fetch official Greek DAM history"
+          if [[ -f custody/verification_failed ]]; then
+            echo "The downloaded history is not the accepted artifact; refusing to"
+            echo "decompose it. A difference is a finding to record, not a check to re-run."
+            exit 1
+          fi
+
+      - name: Merge the archived and daily HEnEx history
+        shell: bash
+        run: |
+          mkdir -p replay
+          inputs=()
+          for candidate in \
+            artifacts/greek-dam-official-history/henex_archived_prices.csv \
+            artifacts/greek-dam-official-history/henex_daily_prices.csv; do
+            if [[ -f "$candidate" ]]; then
+              inputs+=("$candidate")
+            fi
+          done
+          if [[ ${#inputs[@]} -eq 0 ]]; then
+            echo "The artifact contains no normalized HEnEx price files."
+            exit 1
+          fi
+          greek-bess merge-canonical "${inputs[@]}" --output replay/henex_prices.csv
+
+      - name: Read the battery energy capacity
+        shell: bash
+        run: |
+          python - <<'PY' >> "$GITHUB_ENV"
+          import json
+          import os
+
+          config = json.loads(open(os.environ["BATTERY_CONFIG"], encoding="utf-8").read())
+          print(f"ENERGY_CAPACITY_MWH={float(config['energy_capacity_mwh'])}")
+          PY
+
+      - name: Solve the perfect-foresight ceiling day by day
+        shell: bash
+        run: |
+          greek-bess optimize-perfect-foresight replay/henex_prices.csv \
+            --config "$BATTERY_CONFIG" \
+            --daily-solves \
+            --output replay/perfect_foresight_daily.csv \
+            --summary replay/perfect_foresight_daily.summary.json
+
+      - name: Backtest every requested forecast method
+        shell: bash
+        run: |
+          for method in $FORECAST_METHODS; do
+            echo "Backtesting $method"
+            greek-bess backtest-forecast-dispatch replay/henex_prices.csv \
+              --config "$BATTERY_CONFIG" \
+              --method "$method" \
+              --rolling-window-days "$ROLLING_WINDOW_DAYS" \
+              --output "replay/backtest_${method}.csv" \
+              --daily-output "replay/backtest_${method}.daily.csv" \
+              --summary "replay/backtest_${method}.summary.json"
+          done
+
+      - name: Decompose the replay by delivery year
+        shell: bash
+        run: |
+          daily_args=()
+          for method in $FORECAST_METHODS; do
+            daily_args+=(--daily-results "${method}=replay/backtest_${method}.daily.csv")
+          done
+          greek-bess decompose-annual-replay replay/henex_prices.csv \
+            --perfect-foresight-schedule replay/perfect_foresight_daily.csv \
+            --energy-capacity-mwh "$ENERGY_CAPACITY_MWH" \
+            "${daily_args[@]}" \
+            --output replay/annual_overview.csv \
+            --forecast-output replay/annual_forecast.csv \
+            --common-day-output replay/annual_common_day.csv \
+            --summary replay/annual_summary.json
+
+      - name: Report the annual decomposition
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          import pandas as pd
+
+          overview = pd.read_csv("replay/annual_overview.csv")
+          forecast = pd.read_csv("replay/annual_forecast.csv")
+          common = pd.read_csv("replay/annual_common_day.csv")
+          summary = json.loads(Path("replay/annual_summary.json").read_text(encoding="utf-8"))
+
+          def euro(value: object) -> str:
+              return "—" if pd.isna(value) else f"{float(value):,.0f}"
+
+          def ratio(value: object) -> str:
+              return "—" if pd.isna(value) else f"{float(value):.4f}"
+
+          def price(value: object) -> str:
+              return "—" if pd.isna(value) else f"{float(value):.2f}"
+
+          def exact(key: str) -> str:
+              value = summary.get(key)
+              return "—" if value is None else f"EUR {float(value):.6f}"
+
+          lines = [
+              "# Per-delivery-year decomposition of the accepted replay",
+              "",
+              "Delivery years use the CET/CEST market clock. Annual perfect-foresight",
+              "figures are labelled gross-margin upper bounds; annual forecast figures are",
+              "historical backtest outcomes. Neither is expected revenue or a forecast.",
+              "",
+              f"- Market days: {summary['market_day_count']}"
+              f" ({summary['first_market_day']} to {summary['last_market_day']})",
+              f"- Intervals: {summary['interval_count']}",
+              f"- Partial delivery years: {summary['partial_delivery_years']}",
+              "- Ceiling reconciliation residual: "
+              + exact("perfect_foresight_margin_reconciliation_residual_eur"),
+              "- Maximum common-day ceiling spread: "
+              + exact("maximum_common_day_ceiling_spread_eur"),
+              "",
+              "## Market context and daily-composed ceiling",
+              "",
+              "| Year | Market days | Partial | Mean price | Mean daily range | Negative |"
+              " Zero | Ceiling EUR | Ceiling EUR/day |",
+              "| ---: | ---: | :---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+          ]
+          for row in overview.to_dict("records"):
+              lines.append(
+                  f"| {int(row['delivery_year'])} | {int(row['market_day_count'])} |"
+                  f" {'yes' if row['is_partial_year'] else 'no'} |"
+                  f" {price(row['mean_price_eur_per_mwh'])} |"
+                  f" {price(row['mean_daily_price_range_eur_per_mwh'])} |"
+                  f" {int(row['negative_price_interval_count'])} |"
+                  f" {int(row['zero_price_interval_count'])} |"
+                  f" {euro(row.get('perfect_foresight_net_market_margin_eur'))} |"
+                  f" {euro(row.get('perfect_foresight_net_market_margin_eur_per_market_day'))} |"
+              )
+
+          lines += [
+              "",
+              "## Forecast capture on each method's own backtested days",
+              "",
+              "| Year | Method | Days | Realized EUR | Ceiling EUR | Regret EUR | Capture |"
+              " Loss days |",
+              "| ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: |",
+          ]
+          for row in forecast.to_dict("records"):
+              lines.append(
+                  f"| {int(row['delivery_year'])} | {row['forecast_method']} |"
+                  f" {int(row['backtested_market_day_count'])} |"
+                  f" {euro(row['realized_margin_eur'])} |"
+                  f" {euro(row['perfect_foresight_margin_eur'])} |"
+                  f" {euro(row['perfect_foresight_regret_eur'])} |"
+                  f" {ratio(row['perfect_foresight_capture_ratio'])} |"
+                  f" {int(row['loss_making_day_count'])} |"
+              )
+
+          lines += [
+              "",
+              "## Like-for-like capture on the days every method backtested",
+              "",
+              "| Year | Common days | Method | Realized EUR | Shared ceiling EUR | Capture |"
+              " Ceiling spread EUR |",
+              "| ---: | ---: | --- | ---: | ---: | ---: | ---: |",
+          ]
+          for row in common.to_dict("records"):
+              lines.append(
+                  f"| {int(row['delivery_year'])} | {int(row['common_market_day_count'])} |"
+                  f" {row['forecast_method']} | {euro(row['realized_margin_eur'])} |"
+                  f" {euro(row['perfect_foresight_margin_eur'])} |"
+                  f" {ratio(row['perfect_foresight_capture_ratio'])} |"
+                  f" {euro(row['perfect_foresight_margin_spread_eur'])} |"
+              )
+
+          text = "\n".join(lines) + "\n"
+          print(text)
+          step_summary = os.environ.get("GITHUB_STEP_SUMMARY")
+          if step_summary:
+              # Append: the custody verification step already wrote its result here.
+              with open(step_summary, "a", encoding="utf-8") as handle:
+                  handle.write("\n" + text)
+          PY
+
+      - name: Upload the annual decomposition evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: annual-replay-decomposition
+          path: |
+            replay/annual_overview.csv
+            replay/annual_forecast.csv
+            replay/annual_common_day.csv
+            replay/annual_summary.json
+            replay/perfect_foresight_daily.summary.json
+            replay/backtest_*.summary.json
+            replay/henex_prices.quality.json
+            custody/greek-dam-official-history.verification.json
+          if-no-files-found: error
+          retention-days: 90

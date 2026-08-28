@@ -6,6 +6,44 @@ All notable project changes are documented here.
 
 ### Added
 
+- An explicit bootstrap source-era and resolution policy. A source era is a maximal contiguous
+  run of market days at one delivery resolution; a resolution change or a market-day gap ends
+  one. `BootstrapConfig` gains `source_resolution_minutes`, `source_start_day` and
+  `source_end_day`; `detect_source_eras` and `select_source_era` are public. A single-era
+  history needs no declaration, a multi-era history must declare one, and there is no default,
+  because the accepted 2020-2026 history holds an hourly and a quarter-hour era and a default
+  would settle that trade-off silently. The refusal lists the available eras and their windows,
+  the selection is recorded in the run summary and on every provenance row, sampling is confined
+  to the selected era so no block straddles a regime boundary, and minimum and median
+  block-candidate counts are reported so scarcity is visible.
+- `docs/bootstrap_source_era_policy.md`, recording the policy, the two eras of the accepted
+  history with their season coverage, what each choice costs, and the deliberate exclusions:
+  no resampling between resolutions, no blending of eras and no likelihood attached to either.
+
+- `decompose-annual-replay` command and a `greek_bess.analysis` package, which regroup an
+  already-accepted replay into delivery years without adding a model, market or
+  transformation. A delivery year is the calendar year of the interval's CET/CEST market-day
+  start, matching the committed custody records. The per-year overview carries market-day
+  coverage, an explicit partial-year flag, interval counts by resolution, preserved negative,
+  zero and missing price counts, price context including the mean daily price range, and the
+  perfect-foresight ceiling; a second table reports forecast capture per method on that
+  method's own backtested days; a third restricts every method to the days all methods
+  backtested and records the ceiling spread that proves the comparison is like-for-like.
+  Per-market-day figures are within-period averages and nothing is annualized. No probability,
+  percentile, loss metric or ranking of years is produced. A duplicated accepted history, a
+  schedule settled on prices the history does not publish and a daily-results table describing
+  another history are each refused explicitly.
+- `optimize-perfect-foresight --daily-solves` and `optimize_daily_perfect_foresight`, which
+  solve every market day independently and compose the schedules. This publishes the
+  daily-composed mode the 2026-08-27 acceptance ran through a temporary runner, requires the
+  terminal SOC to equal the initial SOC, and is the basis on which no trade can span a
+  delivery-year boundary. The composed schedule carries a `market_day` column and its summary
+  records per-day solver statuses and the largest terminal-energy error.
+- `Decompose the accepted replay by delivery year` GitHub Actions workflow, which verifies an
+  accepted `greek-dam-official-history` artifact against its committed custody record before
+  consuming it, then runs the daily-composed ceiling, the requested causal naïve backtests and
+  the decomposition inside Actions, publishing only per-year aggregates to the job summary.
+
 - `record-custody` and `verify-custody` commands and a `greek_bess.data.custody` module, which
   fingerprint an accepted official artifact without recording any price. A custody record holds
   per-file digests plus content-level invariants of the normalized series — interval count,
@@ -56,6 +94,9 @@ All notable project changes are documented here.
 
 ### Changed
 
+- The bootstrap no longer refuses a mixed-resolution history with a bare "must use one
+  interval resolution" message. It reports the eras the history contains and requires one
+  to be chosen.
 - Artifact retention on `Fetch official Greek market history`, `Fetch ENTSO-E prices` and
   `Reconcile HEnEx and ENTSO-E prices` is raised from 7 to 90 days, so a passed acceptance no
   longer has a one-week shelf life.

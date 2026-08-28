@@ -57,6 +57,17 @@
   DST block positions can leave no compatible source block, which fails explicitly.
 - The bootstrap foundation does not model structural change, outages, cannibalisation, spreads,
   or negative-price shocks, and does not produce percentiles or loss probabilities.
+- The bootstrap samples one declared source era and cannot mix delivery regimes. Neither era of
+  the accepted history is a good basis on its own: the quarter-hour era (1 October 2025 to
+  25 August 2026) is the operating regime but contains exactly one occurrence of each
+  meteorological season, so resampling it expresses no inter-annual variation at all, and its
+  autumn is only 61 days; the hourly era (1 November 2020 to 30 September 2025) spans five or
+  six occurrences of every season but is a superseded delivery regime whose blocks can only be
+  mapped onto hourly target days. The era is a declared judgment about relevance and carries no
+  probability.
+- Block-candidate scarcity is reported, not corrected. A minimum candidate count of 1 means
+  every path repeats the same source block at that position, which is a property of the chosen
+  era rather than of the random seed.
 - Bootstrap dispatch knows every price within each synthetic path and is therefore only a
   gross-margin upper bound. Paths are solved independently with shared assumptions; no path
   probability, percentile, ranking, degradation, finance or investment conclusion is produced.
@@ -68,6 +79,10 @@
   quarter-hour delivery later in the held-out test period. This is disclosed rather than corrected.
 - Accepted historical dispatch assumes constant full availability. No outage, derating or
   auxiliary-load path exists, so the accepted margins do not reflect unavailability.
+- The daily-composed perfect-foresight mode restores the configured SOC at every day end, so
+  it is at or below the single full-horizon bound by construction. Neither is achievable
+  revenue; the composed mode exists because it is the ceiling the forecast backtests are
+  measured against and the only basis on which a trade cannot span a year boundary.
 - Daily backtests restore initial SOC at day end and do not optimize energy across days.
 - Daylight-saving slot differences can make persistence forecasts incomplete; exclusions are
   disclosed.
@@ -99,6 +114,29 @@
 - The command-line interface is research-oriented; no user interface exists yet.
 - The first GitHub snapshot imports already completed v0.1-v0.6 work, so earlier development
   history is represented by implementation reports rather than fabricated Git commits.
+
+## Per-delivery-year decomposition limitations
+
+- A delivery year is a regrouping of an already-accepted replay, not new evidence. Splitting a
+  historical upper bound by year does not make any year's figure a forecast, an expectation or
+  a probable outcome for a comparable future year.
+- Years of unequal coverage are not comparable on totals alone. Partial years are flagged and
+  carry their market-day count; per-market-day figures are within-period averages and are
+  deliberately not annualized.
+- A year's figures are conditioned on that year's market regime, on the illustrative battery
+  and fee assumptions, and on the fixed availability of 1.0. A high-spread year says what the
+  replayed battery would have captured in that regime under those assumptions, not what a
+  battery operating in that year would have earned.
+- The 2020-2026 accepted history mixes hourly and quarter-hour delivery, with the change on
+  1 October 2025. Years on either side of that change differ in interval structure as well as
+  in price regime, and the per-year interval counts by resolution disclose this rather than
+  correcting for it.
+- Annual capture ratios compare a method against the ceiling on the days that method
+  backtested. Methods exclude different days for structural reasons, so cross-method
+  comparison uses the common-day table, whose recorded ceiling spread is the like-for-like
+  evidence.
+- No probability, percentile, loss metric or ranking of delivery years is produced, and a year
+  ordering by margin is not a ranking of anything about the future.
 
 ## Price-level shock limitations
 

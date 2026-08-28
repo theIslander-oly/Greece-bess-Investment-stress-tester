@@ -107,6 +107,27 @@ and continuous-horizon validation occurs before sampling, and a target block fai
 seasonal source block has a compatible 23/25-hour or 92/100-quarter-hour structure. Outputs are
 labelled synthetic scenarios and are not forecasts or probability-calibrated market evidence.
 
+### 7.1 Source era and resolution
+
+Mapping a sampled block onto target days requires one delivery resolution, and the accepted
+history holds two because the Greek DAM moved from hourly to quarter-hour delivery on
+1 October 2025. A source era is a maximal contiguous run of market days at one resolution; a
+resolution change or a gap in market days ends one. The bootstrap samples from exactly one era.
+
+A history with one era needs no declaration. A history with several requires an explicit
+declaration, with no default and no "most recent" rule, because a default would make the
+sampled regime an accident of the input. The refusal lists the available eras and their
+windows. The selected era is recorded in the run summary and on every provenance row, and days
+outside it are absent from the candidate search, so no block can straddle a regime boundary.
+
+The choice is a judgment about relevance and carries a cost either way: the quarter-hour era is
+the operating regime but contains one occurrence of each meteorological season and therefore
+expresses no inter-annual variation, while the hourly era spans five or six occurrences of every
+season but is a superseded delivery regime. Minimum and median block-candidate counts are
+reported so scarcity is visible. Resampling one resolution into another, blending eras and
+attaching any likelihood to an era are all excluded. The full policy is in
+`docs/bootstrap_source_era_policy.md`.
+
 ## 8. Additive bootstrap price-level transformation
 
 The first shock layer accepts only complete canonical bootstrap paths. For configured shift
@@ -152,7 +173,40 @@ settlement against realized official prices, like-for-like ceilings on shared da
 with every excluded day attributed to a structural cause. Both paths must reproduce identical
 results on an immediate second run. Interval prices and schedules are never recorded in the report.
 
-## 11. Validation
+## 11. Per-delivery-year replay decomposition
+
+An accepted replay is decomposed into delivery years so that regime dependence is visible
+rather than averaged away. The decomposition adds no model, market or transformation: it
+regroups results the dispatch and backtest stages already produced.
+
+A delivery year is the calendar year of the interval's CET/CEST market-day start. This is the
+sense in which the Greek DAM has delivery years and the convention the committed custody
+records use; grouping by UTC year instead places the interval beginning 31 December 23:00Z in
+the earlier year, which is a different grouping of identical intervals rather than an error.
+
+The perfect-foresight ceiling is decomposed from a schedule composed of independent daily
+solves, so that no trade spans a year boundary and every interval's margin belongs
+unambiguously to its own delivery year. A single full-horizon solve may charge in one
+delivery year and discharge in the next, and is therefore not the basis for annual
+attribution. The schedule must settle every interval at the price the supplied history
+publishes; a difference means the schedule was solved on other data and the decomposition is
+refused rather than reported.
+
+Forecast capture is decomposed per method against that method's own backtested days, because
+each method excludes different days for structural reasons, and separately over the days every
+supplied method backtested, where the ceiling must be identical. The recorded spread across
+methods on that common set is the like-for-like evidence. Annual error metrics are recomposed
+from the daily tables by interval weighting: mean absolute error is interval-weighted and root
+mean squared error is recomposed from interval-weighted squared daily values.
+
+Every year carries its market-day count, its coverage against the calendar year and an explicit
+partial-year flag. Per-market-day figures are within-period averages over the days present; no
+annual figure is annualized, extrapolated or scaled to a full year, because doing so would
+manufacture revenue the replay does not contain. Zero, negative and missing prices are counted
+per year and never filled. No probability, percentile, loss metric or ranking of delivery years
+is produced.
+
+## 12. Validation
 
 Code changes must pass Ruff, mypy, pytest and a clean wheel build. Tests use deterministic
 synthetic inputs or small purpose-built fixtures. Official-data acceptance is recorded as
