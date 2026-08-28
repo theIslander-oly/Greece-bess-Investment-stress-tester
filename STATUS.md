@@ -94,8 +94,9 @@ availability/outage integration awaiting approval
 
 ## Durable custody of accepted official artifacts
 
-- Accepted official artifacts are stored as encrypted assets on a release in this private
-  repository, fingerprinted by a price-free custody record committed under `docs/custody/`.
+- Accepted official artifacts are intended to be stored as encrypted assets on a release in this
+  private repository and are already fingerprinted by price-free custody records committed under
+  `docs/custody/`; the operator upload remains outstanding.
 - A custody record holds per-file digests and content-level invariants of the normalized
   series, including a digest of the interval and price series that is independent of CSV
   formatting, column order and float repr.
@@ -115,6 +116,10 @@ availability/outage integration awaiting approval
   from the recorded history, commit and configuration instead.
 - **Outstanding operator action:** the encrypted copies must be uploaded before the source
   artifacts expire on 2 and 3 September 2026. Custody is not complete until they are.
+- The test suite treats every warning as an error. Deprecated generic-unit `pd.Timedelta`
+  construction was replaced with explicit units across production and test code, preventing a
+  future pandas/NumPy upgrade from turning the previously repeated warning into a surprise CI
+  failure.
 
 ## Official cross-source reconciliation
 

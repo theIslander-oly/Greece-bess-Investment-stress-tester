@@ -65,7 +65,7 @@ class BootstrapDispatchTests(unittest.TestCase):
         incomplete = frame.drop(frame.index[frame["path_id"] == 1][0]).reset_index(drop=True)
         inconsistent = frame.copy()
         index = inconsistent.index[inconsistent["path_id"] == 1][0]
-        inconsistent.loc[index, "delivery_start_utc"] += pd.Timedelta(hours=1)
+        inconsistent.loc[index, "delivery_start_utc"] += pd.Timedelta(1, unit="h")
 
         with self.assertRaisesRegex(BootstrapDispatchInputError, "Duplicate"):
             dispatch_bootstrap_paths(duplicate, battery())

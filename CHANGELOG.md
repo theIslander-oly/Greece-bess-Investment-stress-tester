@@ -4,6 +4,15 @@ All notable project changes are documented here.
 
 ## [Unreleased]
 
+### Fixed
+
+- Replaced deprecated generic-unit `pd.Timedelta` construction with explicit units in synthetic,
+  HEnEx and ENTSO-E ingestion and in affected tests. Pytest now treats warnings as errors so a
+  future dependency upgrade cannot silently turn a known deprecation into a CI failure.
+- Corrected custody documentation that described encrypted release uploads as complete while the
+  operator action is still outstanding, and aligned the limitations with the decision to exclude
+  probability estimates unless an independently validated calibration is approved.
+
 ### Added
 
 - `compress-spread` command and `greek_bess.stress.apply_spread_compression`, a deterministic

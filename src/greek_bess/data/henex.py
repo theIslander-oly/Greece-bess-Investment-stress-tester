@@ -126,7 +126,7 @@ def parse_henex_results(
             )
         start_market = starts[record.SORT - 1]
         start_utc = start_market.tz_convert(UTC)
-        duration = pd.Timedelta(minutes=record.DELIVERY_DURATION)
+        duration = pd.Timedelta(record.DELIVERY_DURATION, unit="min")
         rows.append(
             {
                 "delivery_start_utc": start_utc,

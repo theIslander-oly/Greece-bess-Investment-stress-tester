@@ -146,7 +146,7 @@ class AnnualPerfectForesightTests(unittest.TestCase):
         schedule = optimize_perfect_foresight(prices, battery()).schedule
         schedule.loc[0, "delivery_start_utc"] = schedule.loc[
             0, "delivery_start_utc"
-        ] - pd.Timedelta("400D")
+        ] - pd.Timedelta(400, unit="D")
 
         with self.assertRaisesRegex(AnnualDecompositionError, "absent from the"):
             decompose_annual_replay(prices, perfect_foresight_schedule=schedule)
