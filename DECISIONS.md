@@ -3,6 +3,18 @@
 This file records decisions that materially affect interpretation or reproducibility. Add a
 dated entry when a milestone changes scope, assumptions, data handling or validation.
 
+## 2026-08-28 — Treat test warnings as failures
+
+- **Decision:** Run pytest with warnings promoted to errors and use explicit units when building
+  pandas timedeltas from numeric values.
+- **Reason:** The full suite passed while emitting 173 copies of a pandas/NumPy deprecation from
+  generic-unit timedelta construction. The warning states that the behavior will become an error;
+  carrying it would make dependency resolution, rather than a reviewed code change, decide when
+  CI breaks.
+- **Consequence:** New dependency warnings fail locally and in CI. A warning must be corrected or,
+  if it is proven unavoidable and harmless, narrowed by category and source with a recorded
+  justification rather than suppressed globally.
+
 ## 2026-08-28 — Compress spread about a declared daily reference, with no default basis
 
 - **Decision:** Represent cannibalisation pressure as a deterministic compression of within-day

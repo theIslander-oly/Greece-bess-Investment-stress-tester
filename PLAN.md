@@ -80,6 +80,9 @@ Suggested future branch sequence:
 
 ## Parallel acceptance track
 
+- [x] Make validation warning-free and promote pytest warnings to errors; correct custody wording
+  so committed fingerprints are not mistaken for the still-outstanding encrypted operator upload,
+  and align limitations with the approved exclusion of uncalibrated probability estimates.
 - [x] Keep the repository record contributor-neutral: no tool or assistant attribution in
   commits, pull requests, comments, documentation or tracked configuration, from 2026-08-28
   forward, with existing history deliberately not rewritten (decision entry 2026-08-28).

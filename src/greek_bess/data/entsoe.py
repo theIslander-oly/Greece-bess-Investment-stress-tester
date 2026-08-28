@@ -91,7 +91,7 @@ class EntsoeClient:
         frames: list[pd.DataFrame] = []
         cursor = start_utc
         while cursor < end_utc:
-            chunk_end = min(cursor + pd.Timedelta(days=chunk_days), end_utc)
+            chunk_end = min(cursor + pd.Timedelta(chunk_days, unit="D"), end_utc)
             raw = self._fetch_document(cursor, chunk_end)
             digest = hashlib.sha256(raw).hexdigest()
             retrieved = pd.Timestamp.now(tz=UTC)

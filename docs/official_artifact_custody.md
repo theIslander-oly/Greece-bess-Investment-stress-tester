@@ -36,8 +36,9 @@ Actions API. The history digest is identical to the SHA-256 accepted in `DECISIO
 
 ## The store
 
-Accepted artifacts are stored as **encrypted assets attached to a release in this private
-repository** (decision entry 2026-08-27).
+Accepted artifacts are to be stored as **encrypted assets attached to a release in this private
+repository** (decision entry 2026-08-27). Until the operator completes the upload, the committed
+fingerprints have no durable stored copy to verify and custody is incomplete.
 
 The assets are encrypted before upload with a key held by the operator. This matters: a
 release asset is durable and easy to re-fetch, but an unencrypted one would place official

@@ -55,7 +55,7 @@ def generate_synthetic_prices(
         prices[lowest] = -rng.uniform(1, 35, negative_count)
 
     starts_utc = starts.tz_convert(UTC)
-    duration = pd.Timedelta(minutes=resolution_minutes)
+    duration = pd.Timedelta(resolution_minutes, unit="min")
     retrieved = pd.Timestamp.now(tz=UTC)
     frame = pd.DataFrame(
         {
