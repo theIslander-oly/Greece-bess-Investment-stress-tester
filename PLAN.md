@@ -80,9 +80,12 @@ Suggested future branch sequence:
 
 ## Parallel acceptance track
 
-- [x] Make validation warning-free and promote pytest warnings to errors; correct custody wording
-  so committed fingerprints are not mistaken for the still-outstanding encrypted operator upload,
-  and align limitations with the approved exclusion of uncalibrated probability estimates.
+- [x] Make validation warning-free: build pandas timedeltas with explicit units, and scope the
+  pytest warning gate to warnings attributed to `greek_bess` or to the project's own tests so an
+  upstream release cannot fail CI on this project's behalf. Correct custody wording so committed
+  fingerprints are not mistaken for a durable encrypted copy whose upload the repository record
+  does not verify as complete, align limitations with the approved exclusion of uncalibrated
+  probability estimates, and lock the declared project version to a single value.
 - [x] Keep the repository record contributor-neutral: no tool or assistant attribution in
   commits, pull requests, comments, documentation or tracked configuration, from 2026-08-28
   forward, with existing history deliberately not rewritten (decision entry 2026-08-28).

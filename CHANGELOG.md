@@ -6,12 +6,27 @@ All notable project changes are documented here.
 
 ### Fixed
 
-- Replaced deprecated generic-unit `pd.Timedelta` construction with explicit units in synthetic,
-  HEnEx and ENTSO-E ingestion and in affected tests. Pytest now treats warnings as errors so a
-  future dependency upgrade cannot silently turn a known deprecation into a CI failure.
-- Corrected custody documentation that described encrypted release uploads as complete while the
-  operator action is still outstanding, and aligned the limitations with the decision to exclude
-  probability estimates unless an independently validated calibration is approved.
+- Replaced generic-unit `pd.Timedelta` construction with explicit units in synthetic, HEnEx and
+  ENTSO-E ingestion and in the two affected tests, removing the NumPy generic-unit deprecation
+  the suite had been emitting.
+- Scoped the pytest warning gate instead of promoting every warning to an error. `filterwarnings`
+  now fails on warnings attributed to `greek_bess` or to the project's own test modules and
+  reports the rest: dependencies are installed from ranges, so a blanket policy would let an
+  upstream release rather than a reviewed change decide when validation breaks. The narrowed gate
+  still catches the deprecation above, because pandas attributes it to the constructing line.
+  `tests/test_warning_policy.py` covers the deprecation at each call site and the policy's scope.
+- Repaired the declared project version, which had drifted between `pyproject.toml` (`0.7.6`) and
+  `greek_bess.__version__` (`0.7.2`). The package version is sent as the `User-Agent` on official
+  HEnEx and ENTSO-E retrievals, so the stale value mislabelled the client that fetched an accepted
+  artifact. `tests/test_project_metadata.py` locks `pyproject.toml`, `greek_bess.__version__`, the
+  README release line and that header together. The version stays at `0.7.6`, because this is a
+  maintenance correction and not a milestone; the changelog's released sections still stop at
+  `[0.7.2]`, with `0.7.3`-`0.7.6` content under `[Unreleased]`.
+- Corrected custody wording that read as a claim about stored copies. The records committed under
+  `docs/custody/` are fingerprints, not durable encrypted copies; the operator upload is not
+  verified complete in the repository record, and nothing here reads live GitHub release state.
+- Aligned the limitations with the decision to exclude scenario probability estimates unless an
+  independently validated calibration methodology is approved.
 
 ### Added
 

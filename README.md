@@ -10,7 +10,7 @@ on that replay core.
 This is not financial advice, an investment-grade forecast, a bankable revenue study or a
 substitute for legal, tax, grid-connection and market-access diligence.
 
-**Current release:** `v0.7.7` — warning-free validation and corrected custody records.
+**Current release:** `v0.7.6` — deterministic spread compression about a daily reference level.
 
 ## What this tool cannot tell you
 
@@ -879,8 +879,10 @@ validation gates are defined by `pyproject.toml`, `scripts/bootstrap-dev-env.sh`
 and `CONTRIBUTING.md`; editor- and service-specific session configuration is not tracked.
 Repository content — commits, pull requests, comments and documentation — carries no tool or
 assistant attribution, a record-keeping convention described in `CONTRIBUTING.md`.
-Pytest treats warnings as errors, so dependency deprecations must be resolved rather than carried
-as latent failures.
+Pytest fails on warnings attributed to `greek_bess` or to the tests, because those are the
+project's to fix; a warning attributed to a dependency is reported without failing the run, since
+dependencies are installed from ranges and an upstream release should not decide when validation
+breaks.
 
 ```bash
 scripts/bootstrap-dev-env.sh
@@ -914,7 +916,6 @@ ruff check . && mypy && pytest -v && python -m build --wheel
 - [Implementation report v0.7.4 per-year replay decomposition](docs/implementation_report_v0.7.4.md)
 - [Implementation report v0.7.5 bootstrap source-era policy](docs/implementation_report_v0.7.5.md)
 - [Implementation report v0.7.6 spread compression](docs/implementation_report_v0.7.6.md)
-- [Implementation report v0.7.7 warning-free validation](docs/implementation_report_v0.7.7.md)
 - [Official annual-history acceptance](docs/official_history_acceptance_2026-08-26.md)
 - [Official multi-year operational acceptance](docs/official_multiyear_operational_acceptance_2026-08-27.md)
 - [Official HEnEx to ENTSO-E reconciliation](docs/official_source_reconciliation_2026-08-27.md)

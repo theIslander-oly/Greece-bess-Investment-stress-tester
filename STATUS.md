@@ -94,9 +94,10 @@ availability/outage integration awaiting approval
 
 ## Durable custody of accepted official artifacts
 
-- Accepted official artifacts are intended to be stored as encrypted assets on a release in this
-  private repository and are already fingerprinted by price-free custody records committed under
-  `docs/custody/`; the operator upload remains outstanding.
+- Accepted official artifacts are to be stored as encrypted assets on a release in this private
+  repository, and are already fingerprinted by price-free custody records committed under
+  `docs/custody/`. A committed record is a fingerprint, not a durable copy: the operator upload is
+  not verified complete in the repository record, so custody is not recorded as complete.
 - A custody record holds per-file digests and content-level invariants of the normalized
   series, including a digest of the interval and price series that is independent of CSV
   formatting, column order and float repr.
@@ -116,10 +117,6 @@ availability/outage integration awaiting approval
   from the recorded history, commit and configuration instead.
 - **Outstanding operator action:** the encrypted copies must be uploaded before the source
   artifacts expire on 2 and 3 September 2026. Custody is not complete until they are.
-- The test suite treats every warning as an error. Deprecated generic-unit `pd.Timedelta`
-  construction was replaced with explicit units across production and test code, preventing a
-  future pandas/NumPy upgrade from turning the previously repeated warning into a surprise CI
-  failure.
 
 ## Official cross-source reconciliation
 
@@ -289,6 +286,10 @@ availability/outage integration awaiting approval
   outputs.
 - `evaluate-project-finance` CLI with daily, annual and JSON summary artifacts.
 - End-to-end degradation-dispatch-to-finance integration coverage.
+- Explicit-unit pandas timedelta construction in synthetic, HEnEx and ENTSO-E ingestion, with a
+  pytest warning policy scoped to warnings attributed to `greek_bess` or to the project's tests.
+- One declared project version, with `pyproject.toml`, `greek_bess.__version__` and the README
+  release line locked together by test.
 
 ## Validation still required
 

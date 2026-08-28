@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "greek-bess-investment-stress-tester"
-version = "0.7.7"
+version = "0.7.6"
 description = "Transparent research and pre-feasibility tooling for Greek standalone BESS projects."
 readme = "README.md"
 requires-python = ">=3.12"
@@ -38,7 +38,16 @@ greek_bess = ["py.typed"]
 [tool.pytest.ini_options]
 addopts = "--strict-config --strict-markers"
 testpaths = ["tests"]
-filterwarnings = ["error"]
+# A warning attributed to this project's own modules is a defect this project can fix, so it
+# fails the suite. A warning attributed to a dependency stays visible in the pytest summary
+# without failing the run: `[project].dependencies` declares ranges rather than exact versions
+# and CI resolves them at install time, so a blanket `error` would let an upstream release,
+# rather than a reviewed change here, decide when validation breaks. A third-party warning that
+# must fail is added below by category and module with a recorded reason; there are none today.
+filterwarnings = [
+  "error:::greek_bess",
+  "error:::tests",
+]
 
 [tool.ruff]
 target-version = "py312"
