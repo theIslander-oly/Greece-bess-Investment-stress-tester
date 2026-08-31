@@ -26,10 +26,10 @@ ADMIE_BASE_URL = "https://www.admie.gr"
 ADMIE_ALLOWED_HOSTS = frozenset({"www.admie.gr", "admie.gr"})
 LEAKAGE_RELEVANT_FILETYPES = frozenset(
     {
-        "DayAheadLoadForecast",
-        "DayAheadRESForecast",
         "ISP1DayAheadLoadForecast",
         "ISP1DayAheadRESForecast",
+        "ISP2DayAheadLoadForecast",
+        "ISP2DayAheadRESForecast",
     }
 )
 _REVISION = re.compile(r"_(?P<revision>\d+)\.(?:xlsx?|csv|zip)$", re.IGNORECASE)
@@ -229,4 +229,3 @@ def _record_sort_key(record: AdmieFileRecord) -> tuple[str, date, date, str]:
         record.file_todate,
         record.file_path,
     )
-

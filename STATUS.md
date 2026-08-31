@@ -256,17 +256,17 @@ presentation layer
 - **This establishes publication timing only.** It accepts no file format, proves no forecasting
   skill, and does not lift the forecast-feature quarantine; the summary states that in its own
   output. Policy in `docs/admie_publication_timing_policy.md`.
-- **First live run (2026-08-31, run `33390328722`)** exercised the whole path — retrieval, audit
-  and evidence upload all succeeded — but discovered **zero** ADMIE files for
-  `DayAheadLoadForecast` and `DayAheadRESForecast` over 26-28 August 2026. No publication
-  timestamp has been audited yet. The leakage-relevant filetype names have never been confirmed
-  against the live catalog and are the first thing to check.
+- **Filetype acceptance (2026-08-31):** the 74-entry live catalog identifies ISP1 and ISP2
+  day-ahead load/RES forecast pairs. A 26-28 August retrieval discovered 12 ISP1 files (six load,
+  six RES) and six ISP2 files (three load, three RES). The catalog-valid
+  `DayAheadLoadForecast`/`DayAheadRESForecast` pair returned none over that window, so it is no
+  longer declared leakage-relevant. Evidence in `docs/admie_filetype_acceptance_2026-08-31.md`.
 - Retrieval no longer writes an empty manifest on an empty discovery: it refuses and names the
   live catalog's actual filetypes, so a wrong name cannot impersonate `no_record`, which reads as
   a publisher that published nothing.
-- **Outstanding:** the correct ADMIE filetype names, the operator's declared gate-closure schedule
+- **Outstanding:** the operator's verified gate-closure schedule
   (`config/admie_gate_closure.example.json` ships the format with a placeholder reference), a
-  live audited window that actually retrieves files, and file-format acceptance.
+  publication-timing audit over the confirmed ISP1/ISP2 names, and file-format acceptance.
 
 ## Official cross-source reconciliation
 

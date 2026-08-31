@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "reviewed_on": "2026-08-26",
+  "reviewed_on": "2026-08-31",
   "sources": [
     {
       "source_id": "henex_dam_results",
@@ -19,6 +19,12 @@
       "api_documentation": "https://www.admie.gr/en/market/market-statistics/file-download-api",
       "filetype_endpoint": "https://www.admie.gr/getFiletypeInfoEN",
       "range_endpoint": "https://www.admie.gr/getOperationMarketFilewRange",
+      "leakage_relevant_filetypes": [
+        "ISP1DayAheadLoadForecast",
+        "ISP1DayAheadRESForecast",
+        "ISP2DayAheadLoadForecast",
+        "ISP2DayAheadRESForecast"
+      ],
       "role": "candidate load, RES, availability and system-context features",
       "availability_classification": "requires dataset-by-dataset publication-time validation",
       "forecast_feature_policy": "prohibited until pre-auction availability is proven"
@@ -33,4 +39,3 @@
     }
   ]
 }
-

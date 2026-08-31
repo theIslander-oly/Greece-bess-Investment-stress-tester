@@ -12,6 +12,7 @@ from urllib.parse import parse_qs, urlsplit
 
 from greek_bess.cli import main
 from greek_bess.data.admie import (
+    LEAKAGE_RELEVANT_FILETYPES,
     AdmieClient,
     AdmieError,
     select_latest_admie_revisions,
@@ -37,25 +38,25 @@ def _api_record(filename: str, published: str) -> dict[str, str]:
 class AdmieClientTests(unittest.TestCase):
     def test_find_select_latest_download_and_manifest(self) -> None:
         file_payloads = {
-            "20260826_DayAheadLoadForecast_01.xlsx": b"revision-one",
-            "20260826_DayAheadLoadForecast_02.xlsx": b"revision-two",
+            "20260826_ISP2DayAheadLoadForecast_01.xlsx": b"revision-one",
+            "20260826_ISP2DayAheadLoadForecast_02.xlsx": b"revision-two",
         }
         api_payload = [
-            _api_record("20260826_DayAheadLoadForecast_01.xlsx", "25.08.2026 09:00"),
-            _api_record("20260826_DayAheadLoadForecast_02.xlsx", "25.08.2026 11:00"),
+            _api_record("20260826_ISP2DayAheadLoadForecast_01.xlsx", "25.08.2026 09:00"),
+            _api_record("20260826_ISP2DayAheadLoadForecast_02.xlsx", "25.08.2026 11:00"),
         ]
 
         def fetcher(url: str) -> bytes:
             parsed = urlsplit(url)
             if parsed.path == "/getOperationMarketFilewRange":
                 query = parse_qs(parsed.query)
-                self.assertEqual(query["FileCategory"], ["DayAheadLoadForecast"])
+                self.assertEqual(query["FileCategory"], ["ISP2DayAheadLoadForecast"])
                 return json.dumps(api_payload).encode()
             return file_payloads[Path(parsed.path).name]
 
         client = AdmieClient(fetcher=fetcher)
         discovered = client.find_files(
-            "DayAheadLoadForecast", date(2026, 8, 26), date(2026, 8, 26)
+            "ISP2DayAheadLoadForecast", date(2026, 8, 26), date(2026, 8, 26)
         )
         selected = select_latest_admie_revisions(discovered)
         with tempfile.TemporaryDirectory() as directory:
@@ -78,6 +79,17 @@ class AdmieClientTests(unittest.TestCase):
         self.assertEqual(
             payload["records"][0]["availability_classification"],
             "requires_pre_auction_timing_validation",
+        )
+
+    def test_leakage_relevant_filetypes_match_live_catalog_acceptance(self) -> None:
+        self.assertEqual(
+            LEAKAGE_RELEVANT_FILETYPES,
+            {
+                "ISP1DayAheadLoadForecast",
+                "ISP1DayAheadRESForecast",
+                "ISP2DayAheadLoadForecast",
+                "ISP2DayAheadRESForecast",
+            },
         )
 
     def test_foreign_download_host_is_rejected(self) -> None:
@@ -168,4 +180,3 @@ class EmptyDiscoveryTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

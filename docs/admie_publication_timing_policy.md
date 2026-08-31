@@ -136,7 +136,8 @@ the per-day verdicts, the per-observation evidence and the summary for 90 days. 
 ```bash
 greek-bess audit-admie-publication-timing data/raw/admie/retrieval_manifest.json \
   --gate-closure config/admie_gate_closure.json \
-  --filetypes DayAheadLoadForecast DayAheadRESForecast \
+  --filetypes ISP1DayAheadLoadForecast ISP1DayAheadRESForecast \
+    ISP2DayAheadLoadForecast ISP2DayAheadRESForecast \
   --start-day 2026-08-01 --end-day 2026-08-25 \
   --output acceptance/admie/delivery_days.csv
 ```
