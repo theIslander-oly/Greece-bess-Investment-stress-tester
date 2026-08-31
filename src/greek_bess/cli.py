@@ -54,6 +54,8 @@ from .forecast import (
     generate_naive_forecasts,
 )
 from .stress import (
+    AvailabilityInputError,
+    AvailabilityScheduleConfig,
     BootstrapConfig,
     BootstrapDispatchInputError,
     BootstrapInputError,
@@ -64,6 +66,7 @@ from .stress import (
     SpreadCompressionConfig,
     apply_price_level_shock,
     apply_spread_compression,
+    build_availability_profile,
     dispatch_bootstrap_paths,
     generate_seasonal_bootstrap_paths,
     report_scenario_ensemble,
@@ -308,7 +311,25 @@ def build_parser() -> argparse.ArgumentParser:
     )
     bootstrap_dispatch.add_argument("paths", type=Path, help="Synthetic bootstrap paths CSV")
     bootstrap_dispatch.add_argument("--config", required=True, type=Path, help="Battery JSON")
-    bootstrap_dispatch.add_argument("--availability", type=float, default=1.0)
+    bootstrap_dispatch.add_argument(
+        "--availability",
+        type=float,
+        default=None,
+        help="Constant available fraction applied to every interval of every path",
+    )
+    bootstrap_dispatch.add_argument(
+        "--availability-schedule",
+        type=Path,
+        help=(
+            "Declared availability schedule JSON: a baseline fraction with no default plus "
+            "declared outage windows. Mutually exclusive with --availability"
+        ),
+    )
+    bootstrap_dispatch.add_argument(
+        "--availability-provenance",
+        type=Path,
+        help="Per-interval availability provenance CSV; defaults beside output",
+    )
     bootstrap_dispatch.add_argument(
         "--output", required=True, type=Path, help="Interval dispatch CSV"
     )
@@ -653,15 +674,36 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps(bootstrap_result.summary, indent=2))
             return 0
         elif args.command == "dispatch-bootstrap-paths":
+            if args.availability is not None and args.availability_schedule is not None:
+                raise AvailabilityInputError(
+                    "Declare either --availability or --availability-schedule, not both; "
+                    "two availability assumptions for one run have no resolution"
+                )
+            dispatch_paths = _read_bootstrap_paths_csv(args.paths)
+            availability_profile = None
+            if args.availability_schedule is not None:
+                availability_profile = build_availability_profile(
+                    dispatch_paths, _read_availability_config(args.availability_schedule)
+                )
             bootstrap_dispatch_result = dispatch_bootstrap_paths(
-                _read_bootstrap_paths_csv(args.paths),
+                dispatch_paths,
                 _read_battery_config(args.config),
-                availability=args.availability,
+                availability=(
+                    availability_profile
+                    if availability_profile is not None
+                    else (1.0 if args.availability is None else args.availability)
+                ),
             )
             path_summary_path = args.path_summary or _sibling_path(args.output, ".paths.csv")
             summary_path = args.summary or args.output.with_suffix(".summary.json")
             _write_dispatch_csv(bootstrap_dispatch_result.interval_results, args.output)
             _write_plain_csv(bootstrap_dispatch_result.path_summaries, path_summary_path)
+            if availability_profile is not None:
+                _write_plain_csv(
+                    availability_profile.provenance,
+                    args.availability_provenance
+                    or _sibling_path(args.output, ".availability.csv"),
+                )
             _write_json(bootstrap_dispatch_result.summary, summary_path)
             print(json.dumps(bootstrap_dispatch_result.summary, indent=2))
             return 0
@@ -766,6 +808,7 @@ def main(argv: list[str] | None = None) -> int:
         AdmieError,
         OfficialDataDownloadError,
         BootstrapInputError,
+        AvailabilityInputError,
         BootstrapDispatchInputError,
         PriceLevelShockInputError,
         ScenarioEnsembleInputError,
@@ -910,6 +953,11 @@ def _read_bootstrap_config(path: Path) -> BootstrapConfig:
 def _read_price_level_config(path: Path) -> PriceLevelShockConfig:
     payload = json.loads(path.read_text(encoding="utf-8"))
     return PriceLevelShockConfig.from_dict(payload)
+
+
+def _read_availability_config(path: Path) -> AvailabilityScheduleConfig:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    return AvailabilityScheduleConfig.from_dict(payload)
 
 
 def _read_scenario_manifest(path: Path) -> list[ScenarioRun]:

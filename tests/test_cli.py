@@ -1044,5 +1044,140 @@ class CliTests(unittest.TestCase):
             self.assertFalse((root / "ensemble.csv").exists())
 
 
+    def _availability_fixture(self, root: Path) -> Path:
+        battery = root / "battery.json"
+        battery.write_text(
+            json.dumps(
+                {
+                    "charge_power_mw": 1,
+                    "discharge_power_mw": 1,
+                    "energy_capacity_mwh": 1,
+                    "soc_min_fraction": 0,
+                    "soc_max_fraction": 1,
+                    "initial_soc_fraction": 0,
+                    "terminal_soc_fraction": 0,
+                    "charge_efficiency": 1,
+                    "discharge_efficiency": 1,
+                }
+            ),
+            encoding="utf-8",
+        )
+        (root / "bootstrap.json").write_text(
+            json.dumps({"start_day": "2026-01-01", "end_day": "2026-01-02"}), encoding="utf-8"
+        )
+        with redirect_stdout(io.StringIO()):
+            main(
+                [
+                    "generate-synthetic",
+                    "--start-day",
+                    "2025-01-01",
+                    "--end-day",
+                    "2025-01-04",
+                    "--output",
+                    str(root / "prices.csv"),
+                ]
+            )
+            main(
+                [
+                    "generate-bootstrap-paths",
+                    str(root / "prices.csv"),
+                    "--config",
+                    str(root / "bootstrap.json"),
+                    "--output",
+                    str(root / "paths.csv"),
+                ]
+            )
+        return battery
+
+    def test_dispatch_accepts_a_declared_availability_schedule(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            battery = self._availability_fixture(root)
+            (root / "availability.json").write_text(
+                json.dumps(
+                    {
+                        "schedule_id": "planned_maintenance",
+                        "baseline_available_fraction": 1.0,
+                        "windows": [
+                            {
+                                "outage_id": "morning_outage",
+                                "start_utc": "2025-12-31T23:00:00+00:00",
+                                "end_utc": "2026-01-01T05:00:00+00:00",
+                                "available_fraction": 0.0,
+                            }
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            with redirect_stdout(io.StringIO()):
+                exit_code = main(
+                    [
+                        "dispatch-bootstrap-paths",
+                        str(root / "paths.csv"),
+                        "--config",
+                        str(battery),
+                        "--availability-schedule",
+                        str(root / "availability.json"),
+                        "--output",
+                        str(root / "dispatch.csv"),
+                    ]
+                )
+
+            summary = json.loads((root / "dispatch.summary.json").read_text())
+            availability = pd.read_csv(root / "dispatch.availability.csv")
+            intervals = pd.read_csv(root / "dispatch.csv")
+            self.assertEqual(exit_code, 0)
+            self.assertEqual(summary["availability_assumption"]["type"], "declared_schedule")
+            self.assertEqual(
+                summary["availability_assumption"]["schedule_id"], "planned_maintenance"
+            )
+            self.assertEqual(summary["availability_assumption"]["derated_hours"], 6.0)
+            self.assertEqual(len(availability), 24)
+            self.assertEqual(int(availability["outage_id"].notna().sum()), 6)
+            # The battery cannot trade while it is declared unavailable.
+            idle = intervals.loc[intervals["availability_fraction"] == 0.0]
+            self.assertEqual(len(idle), 6)
+            self.assertTrue(np.allclose(idle["charge_grid_mwh"], 0.0))
+            self.assertTrue(np.allclose(idle["discharge_grid_mwh"], 0.0))
+
+    def test_dispatch_refuses_two_availability_assumptions_for_one_run(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            battery = self._availability_fixture(root)
+            (root / "availability.json").write_text(
+                json.dumps(
+                    {
+                        "schedule_id": "planned",
+                        "baseline_available_fraction": 1.0,
+                        "windows": [],
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            errors = io.StringIO()
+            with redirect_stdout(io.StringIO()), redirect_stderr(errors):
+                exit_code = main(
+                    [
+                        "dispatch-bootstrap-paths",
+                        str(root / "paths.csv"),
+                        "--config",
+                        str(battery),
+                        "--availability",
+                        "0.9",
+                        "--availability-schedule",
+                        str(root / "availability.json"),
+                        "--output",
+                        str(root / "dispatch.csv"),
+                    ]
+                )
+
+            self.assertEqual(exit_code, 1)
+            self.assertIn("not both", errors.getvalue())
+            self.assertFalse((root / "dispatch.csv").exists())
+
+
 if __name__ == "__main__":
     unittest.main()

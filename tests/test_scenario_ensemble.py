@@ -272,21 +272,6 @@ class EquivalentBasisTests(unittest.TestCase):
             "terminal-energy constraint",
         )
 
-    def test_mismatched_availability_assumptions_are_refused(self) -> None:
-        self._assert_refused(
-            [
-                _baseline(),
-                _run(
-                    "derated",
-                    {0: 1.0, 1: 2.0},
-                    dispatch_summary=_dispatch_summary(
-                        availability_assumption={"type": "constant", "fraction": 0.9}
-                    ),
-                ),
-            ],
-            "availability assumption",
-        )
-
     def test_mismatched_source_eras_are_refused(self) -> None:
         other = dict(ERA, resolution_minutes=15, first_day="2025-10-01", last_day="2026-08-25")
         self._assert_refused(
@@ -344,6 +329,81 @@ class EquivalentBasisTests(unittest.TestCase):
                 ]
             )
         self.assertIn("equivalent physical and terminal-energy constraints", str(raised.exception))
+
+
+class DeclaredAvailabilityTests(unittest.TestCase):
+    """Availability is the judgment under examination, not part of the comparison basis.
+
+    An ensemble that refused a differing availability schedule could never place a declared
+    outage against a baseline, which is the comparison an outage scenario exists to make.
+    """
+
+    def _outage_scenario(self) -> ScenarioRun:
+        return _run(
+            "july_outage",
+            {0: 600.0, 1: 500.0},
+            run_id="run-outage",
+            dispatch_summary=_dispatch_summary(
+                availability_assumption={
+                    "type": "declared_schedule",
+                    "schedule_id": "july_outage",
+                    "baseline_available_fraction": 1.0,
+                    "declared_window_count": 1,
+                    "derated_hours": 168.0,
+                    "minimum_available_fraction": 0.0,
+                }
+            ),
+        )
+
+    def test_a_declared_outage_ranges_against_a_baseline(self) -> None:
+        result = report_scenario_ensemble([_baseline(), self._outage_scenario()])
+        ranges = result.scenario_ranges.set_index("path_id")
+
+        self.assertEqual(ranges.loc[0, "minimum_scenario_name"], "july_outage")
+        self.assertEqual(ranges.loc[0, "maximum_scenario_name"], "baseline_replay")
+        self.assertEqual(ranges.loc[0, "spread_net_market_margin_eur"], 400.0)
+        self.assertEqual(ranges.loc[1, "spread_net_market_margin_eur"], 300.0)
+        self.assertEqual(
+            ranges.loc[0, "minimum_scenario_availability_schedule_id"], "july_outage"
+        )
+        self.assertEqual(ranges.loc[0, "maximum_scenario_availability_type"], "constant")
+
+    def test_the_declared_availability_reaches_every_margin_row(self) -> None:
+        margins = report_scenario_ensemble(
+            [_baseline(), self._outage_scenario()]
+        ).scenario_margins
+
+        self.assertFalse(margins["availability_type"].isna().any())
+        self.assertFalse(margins["availability_declaration"].isna().any())
+        outage = margins.loc[margins["scenario_name"] == "july_outage"]
+        declared = json.loads(outage["availability_declaration"].iloc[0])
+        self.assertEqual(declared["schedule_id"], "july_outage")
+        self.assertEqual(declared["derated_hours"], 168.0)
+        baseline = margins.loc[margins["scenario_name"] == "baseline_replay"]
+        self.assertEqual(baseline["availability_type"].iloc[0], "constant")
+        self.assertTrue(baseline["availability_schedule_id"].isna().all())
+
+    def test_the_summary_records_each_scenario_availability(self) -> None:
+        summary = report_scenario_ensemble([_baseline(), self._outage_scenario()]).summary
+
+        declared = {entry["scenario_name"]: entry["availability"] for entry in summary["scenarios"]}
+        self.assertEqual(declared["july_outage"]["type"], "declared_schedule")
+        self.assertEqual(declared["baseline_replay"]["fraction"], 1.0)
+        self.assertNotIn("availability_assumption", summary["equivalent_basis"])
+
+    def test_an_unrecorded_availability_assumption_is_still_refused(self) -> None:
+        scenario = _run(
+            "silent",
+            {0: 1.0, 1: 2.0},
+            dispatch_summary={
+                "battery_configuration": dict(BATTERY),
+                "path_count": 2,
+            },
+        )
+
+        with self.assertRaises(ScenarioEnsembleInputError) as raised:
+            report_scenario_ensemble([_baseline(), scenario])
+        self.assertIn("must record availability_assumption", str(raised.exception))
 
 
 class RefusalTests(unittest.TestCase):

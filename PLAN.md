@@ -61,7 +61,14 @@ Suggested future branch sequence:
     contiguous single-resolution run; a multi-era history must declare one, with no default;
     the selection is recorded in the summary and on every provenance row, and candidate
     scarcity is reported. Policy in `docs/bootstrap_source_era_policy.md`.
-  - [ ] Deterministic availability/outage-path integration (requires explicit approval).
+  - [x] Deterministic availability/outage-path integration (approved 2026-08-31). An
+    availability schedule is a declared baseline fraction with no default plus declared outage
+    windows; timing, duration and depth are judgmental inputs and are never sampled, because a
+    forced-outage rate would be an uncalibrated probability. Window boundaries must fall on
+    interval edges — a partly covered interval is refused rather than prorated — and overlapping
+    windows or a window covering no dispatched interval are refused by name. The schedule is
+    recorded by identity in the dispatch summary and carried as scenario provenance through the
+    ensemble (decision entries 2026-08-31).
   - [x] Spread-compression transformations about a daily reference level, as explicit
     judgmental scenarios; this is how cannibalisation pressure is represented, since a causal
     cannibalisation model is not buildable from price history alone. `compress-spread` scales

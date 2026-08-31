@@ -80,8 +80,10 @@
 - The Greek DAM moved from hourly to quarter-hour delivery on 1 October 2025. Persistence lags have
   no matching wall-clock slot on that day, and models trained on hourly history forecast
   quarter-hour delivery later in the held-out test period. This is disclosed rather than corrected.
-- Accepted historical dispatch assumes constant full availability. No outage, derating or
-  auxiliary-load path exists, so the accepted margins do not reflect unavailability.
+- Accepted historical dispatch assumes constant full availability, and no auxiliary-load path
+  exists, so the accepted official margins do not reflect unavailability. Declared availability
+  schedules apply to synthetic bootstrap-path dispatch only; the accepted replay has not been
+  re-run under one.
 - The daily-composed perfect-foresight mode restores the configured SOC at every day end, so
   it is at or below the single full-horizon bound by construction. Neither is achievable
   revenue; the composed mode exists because it is the ceiling the forecast backtests are
@@ -173,6 +175,31 @@
 - Compressed paths are synthetic scenarios. No likelihood, percentile, loss metric or ranking
   is attached to a factor, and no dispatch, finance or investment conclusion follows from one.
 
+## Availability and outage-path limitations
+
+- An availability schedule is a declared judgment, not an outage rate, an availability
+  guarantee, a maintenance plan or a reliability model. No likelihood, frequency or expected
+  unavailability attaches to it, and none can be inferred from a reported margin.
+- Outages are never sampled, because nothing calibrates a rate: there is no operating history
+  for a Greek merchant battery, no fleet maintenance record and no warranty claim series in
+  scope. A borrowed rate from another asset class would be a number dressed as evidence.
+- Timing is the whole content of the scenario, and the model gives no help choosing it. The same
+  outage costs almost nothing in a low-spread week and a great deal in a high-spread one, so a
+  schedule describes one placement and nothing more. Comparing two placements is comparing two
+  judgments.
+- Availability scales grid-side charge and discharge power only. Auxiliary load, state-of-charge
+  drift while unavailable, partial-string derating, restart behaviour, degradation effects of an
+  outage and any cost of the outage itself are not modelled.
+- A perfect-foresight dispatch knows the declared outage in advance and positions the battery
+  for it. A real unplanned outage arrives without notice, so a margin reported under a declared
+  outage remains an upper bound, and it is a weaker bound for unplanned outages than for planned
+  maintenance.
+- A window is applied whole to every interval it covers, and a boundary inside an interval is
+  refused rather than prorated. Schedules are therefore expressed at the market's own interval
+  resolution and cannot represent sub-interval events.
+- Declared schedules are integrated into bootstrap-path dispatch only. The degradation-aware and
+  forecast-dispatch backtests do not yet accept one.
+
 ## Scenario-ensemble limitations
 
 - A range across named scenarios is a range across judgments, not a distribution. The scenarios
@@ -188,9 +215,13 @@
 - Ranges are reported per bootstrap path and never aggregated across paths, because a total or an
   average over sampled paths would read as an expectation the uniform block resampling cannot
   support. A per-path range is not a statement about any particular future.
-- Scenarios solved under different battery parameters, terminal-energy constraints, availability
-  assumptions, source eras or path identities are refused rather than reconciled. This is a
-  refusal to approximate, not evidence that such a comparison would otherwise be meaningful.
+- Scenarios solved under different battery parameters, terminal-energy constraints, source eras
+  or path identities are refused rather than reconciled. This is a refusal to approximate, not
+  evidence that such a comparison would otherwise be meaningful.
+- The price transformation and the availability schedule are expected to differ between
+  scenarios: they are the judgments under examination. A range across them therefore mixes two
+  kinds of judgment, and reading a spread without reading the provenance on both ends can
+  attribute an outage cost to a price scenario or the reverse.
 - The report composes recorded summaries. It cannot detect that two scenarios were produced from
   different price histories if their recorded bases agree, so the summaries supplied must be the
   ones the runs actually emitted.
