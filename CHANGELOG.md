@@ -6,6 +6,19 @@ All notable project changes are documented here.
 
 ### Added
 
+- `apply-negative-price-events` and `greek_bess.stress.apply_negative_price_events`, completing
+  the approved v0.7 modeling scope. Each event declares an identifier, inclusive UTC start,
+  exclusive UTC end and strictly negative absolute replacement price in EUR/MWh; every
+  consequential field has no default and `events: []` is the exact identity.
+- Event occurrence is declared, never sampled, inferred, fitted, ranked or searched. Frequency,
+  rate, likelihood, probability, percentile and expected-count fields are refused as unknown.
+  Windows must align to whole delivery intervals, cover at least one interval and not overlap.
+- One-to-one provenance covers every path interval, including untouched rows. The summary records
+  the policy, method, full configuration, applied interval counts and negative/zero counts before
+  and after. Existing signed prices outside named windows are unchanged and no price is clipped.
+- `docs/implementation_report_v0.7.9.md`, and a dated decision defining the event unit and the
+  refusal to sample occurrence.
+
 - `greek_bess.stress.build_availability_profile` and `dispatch-bootstrap-paths
   --availability-schedule`, completing the last approved v0.7 modeling item. An availability
   schedule is a declared baseline available fraction with **no default** plus zero or more

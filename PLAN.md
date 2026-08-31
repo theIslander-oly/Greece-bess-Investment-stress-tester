@@ -51,7 +51,7 @@ Suggested future branch sequence:
   - Multi-workbook latest-revision normalization.
   - ADMIE filetype/range client with publication-time provenance.
   - Private short-lived GitHub retrieval artifact.
-- [ ] v0.7 — Deterministic scenario stress testing.
+- [x] v0.7 — Deterministic scenario stress testing (completed 2026-08-31; review gates v0.8).
   - [x] Foundation: seasonal block bootstrap, reproducible seeds and sampled-block provenance.
   - [x] Deterministic additive price-level shock with interval provenance.
   - [x] Independent deterministic dispatch across validated bootstrap paths.
@@ -88,9 +88,13 @@ Suggested future branch sequence:
     block resampling of the non-stationary 2020-2026 history supports no calibrated
     probability interpretation, and additional constant price-level shocks, which leave
     within-path spreads unchanged, are near-inert for arbitrage economics.
-  - Negative-price-event transformations remain deferred.
-- [ ] v0.8 — Research interface and exportable reports (not before the corrected v0.7 scope
-  is complete and reviewed).
+  - [x] Deterministic declared negative-price-event transformations (approved 2026-08-31).
+    Each event is an interval-aligned inclusive-start/exclusive-end UTC window with a declared
+    strictly negative replacement price in EUR/MWh. Timing and depth have no defaults and are
+    never sampled, inferred, fitted or searched. An empty event list is the identity; overlap,
+    partial intervals and windows covering nothing are refused (decision entry 2026-08-31).
+- [ ] v0.8 — Research interface and exportable reports (the corrected v0.7 scope is complete,
+  but v0.8 remains gated until that completed scope is reviewed).
 
 ## Parallel acceptance track
 

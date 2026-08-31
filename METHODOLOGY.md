@@ -321,7 +321,34 @@ Each reported figure carries its scenario name, the transformation method and pa
 produced it, the source-era selection and the input run identity, so a range traces back to the
 runs behind it.
 
-## 15. Validation
+## 15. Declared negative-price-event transformation
+
+A negative-price event is defined at the resolution of the validated price path: one or more
+whole market intervals. Each event declares an inclusive UTC start (a_j), exclusive UTC end
+(b_j), and a strictly negative replacement price (q_j) in EUR/MWh. For path (k),
+
+\[p'_{i,k}=\begin{cases}q_j & a_j\leq t_i<b_j,\\ p_{i,k} & \text{otherwise.}\end{cases}\]
+
+The transformation applies the same declared windows to every path. Event identifiers, timing,
+depth and transformation identifier have no defaults; `events: []` is the exact identity.
+Windows must align with interval boundaries, cover at least one interval and not overlap. This
+uses the smallest price unit the input supports and refuses rather than inventing sub-interval
+settlement arithmetic.
+
+Occurrence is never sampled or inferred. No frequency, fitted rate, probability, likelihood,
+percentile, expected count, ranking, threshold search or calibration is accepted or reported.
+The uniform bootstrap has no calibrated probability interpretation, so using it to decide when
+an event occurs would add a probability statement the evidence cannot support.
+
+Only explicitly named windows receive absolute negative replacement prices. This is distinct
+from a constant level shift over the full horizon and from scaling every within-day deviation
+around a reference. Existing zero and negative prices outside those windows remain numerically
+unchanged, and no result is clipped or floored. Provenance has one row per path interval,
+including untouched rows, while the summary records the full declaration, applied interval
+counts, and negative and zero interval counts before and after. Outputs remain synthetic
+deterministic scenarios, not forecasts, probabilities or investment evidence.
+
+## 16. Validation
 
 Code changes must pass Ruff, mypy, pytest and a clean wheel build. Tests use deterministic
 synthetic inputs or small purpose-built fixtures. Official-data acceptance is recorded as

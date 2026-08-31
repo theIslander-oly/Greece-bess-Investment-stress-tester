@@ -3,6 +3,30 @@
 This file records decisions that materially affect interpretation or reproducibility. Add a
 dated entry when a milestone changes scope, assumptions, data handling or validation.
 
+## 2026-08-31 — Define negative-price events as declared interval replacements
+
+- **Decision:** A negative-price event is a sequence of whole market intervals selected by a
+  required inclusive UTC start and exclusive UTC end and assigned one required strictly negative
+  replacement price in EUR/MWh on every bootstrap path. The event ID, both boundaries, depth and
+  transformation ID have no defaults; the event list itself is required, and `[]` is the exact
+  identity. Windows must align to interval edges, cover at least one interval and not overlap.
+  Event occurrence is declared, never sampled, inferred, fitted, ranked, threshold-searched or
+  expressed as a frequency, rate, likelihood, probability, percentile or expected count.
+- **Reason:** The whole delivery interval is the smallest price unit the validated path actually
+  contains, so an interval-aligned inclusive-start/exclusive-end window states exactly which
+  settlement prices change without inventing sub-interval prices. An absolute negative EUR/MWh
+  replacement makes depth inspectable and ensures the declared event is in fact negative. A
+  sampled occurrence would be the same uncalibrated probability claim rejected for percentiles
+  on 2026-08-27 and for outages on 2026-08-31. Replacing only named windows is also analytically
+  distinct from adding one constant to the full horizon or scaling every deviation around a
+  daily reference.
+- **Consequence:** Partial, overlapping or empty-on-input windows and non-negative depths are
+  refused rather than rounded, prorated or ignored. Existing zero and negative prices outside
+  named windows remain unchanged and no result is clipped or floored. One-to-one provenance
+  includes untouched intervals, while the summary reports negative counts before and after.
+  This completes the approved v0.7 modeling scope; v0.8 remains gated on review of completed
+  v0.7.
+
 ## 2026-08-31 — Declare outages, never sample them
 
 - **Decision:** Represent availability as a declared schedule: a baseline available fraction

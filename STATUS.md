@@ -1,13 +1,34 @@
 # Project status
 
-**Version:** 0.7.8
+**Version:** 0.7.9
 **Updated:** 31 August 2026
 **Status:** Official multi-year operational acceptance and HEnEx-to-ENTSO-E cross-source
 reconciliation passed; artifact custody tooling in place awaiting the operator upload;
 per-delivery-year replay decomposition accepted against the official history;
 bootstrap source-era policy, spread compression, non-probabilistic scenario-ensemble range
-reporting and declared availability/outage paths landed, completing the approved v0.7 modeling
-scope; negative-price-event transformations remain deferred and unapproved
+reporting, declared availability/outage paths and declared negative-price events landed,
+completing the approved v0.7 modeling scope; v0.8 remains gated on review of completed v0.7
+
+## Declared negative-price events
+
+- `apply-negative-price-events` and `greek_bess.stress.apply_negative_price_events` replace
+  prices only in explicit UTC windows, on every bootstrap path, with an absolute declared
+  strictly negative price in EUR/MWh.
+- The unit of an event is a sequence of whole market intervals selected by inclusive start and
+  exclusive end. Timing and depth have no defaults. Events are declared, never sampled,
+  inferred, fitted, ranked or found by a threshold search; an empty list is the exact identity.
+- This is distinct from the horizon-wide additive level shift and daily spread scaling: it
+  changes only named windows. Untouched zero and negative prices remain numerically unchanged,
+  and transformed prices are never clipped or floored.
+- Boundaries inside an interval, overlaps, windows covering no interval, duplicate identifiers,
+  naive timestamps, non-negative/non-finite depths, missing prices and unknown or omitted fields
+  are refused rather than approximated.
+- Provenance is one-to-one with every path interval, including rows where no event applies. The
+  summary carries the method, policy, full configuration, applied interval evidence by event,
+  and negative and zero interval counts before and after.
+- Outputs remain synthetic deterministic scenarios, not forecasts, probabilities, calibrated
+  occurrence claims or investment evidence. No dispatch, forecast, finance or availability
+  behaviour changed.
 
 ## Declared availability and outage paths
 
@@ -387,11 +408,10 @@ replay and research benchmark, and the v0.7 scope was corrected to deterministic
 scenarios: percentile and loss-probability outputs were removed pending a defensible
 calibration story. The bootstrap source-era/resolution policy landed on 2026-08-27 and spread compression on
 2026-08-28, prioritised over availability/outage integration because the per-delivery-year
-decomposition showed spread, not level, driving the ceiling. The remaining v0.7 modeling
-milestones are scenario-ensemble range reporting across named scenarios, labelled
-non-probabilistic, and deterministic availability/outage-path integration; both still require
-explicit approval before implementation. Negative-price-event
-transformations remain deferred. ENTSO-E reconciliation passed on 2026-08-27. Custody tooling and the storage
+decomposition showed spread, not level, driving the ceiling. Scenario-ensemble range reporting,
+declared availability/outage paths and declared negative-price events are now complete, closing
+the approved v0.7 modeling scope. The v0.8 interface and exportable reports remain gated until
+completed v0.7 is reviewed. ENTSO-E reconciliation passed on 2026-08-27. Custody tooling and the storage
 procedure landed on 2026-08-27 and await the operator upload. ADMIE timing acceptance remains a parallel
 task. The per-year decomposition surface and workflow landed on 2026-08-27 and its official run
 was accepted on 2026-08-28, so that track is complete.

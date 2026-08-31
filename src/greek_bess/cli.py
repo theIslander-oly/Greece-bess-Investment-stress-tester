@@ -59,11 +59,13 @@ from .stress import (
     BootstrapConfig,
     BootstrapDispatchInputError,
     BootstrapInputError,
+    NegativePriceEventConfig,
     PriceLevelShockConfig,
     PriceLevelShockInputError,
     ScenarioEnsembleInputError,
     ScenarioRun,
     SpreadCompressionConfig,
+    apply_negative_price_events,
     apply_price_level_shock,
     apply_spread_compression,
     build_availability_profile,
@@ -359,6 +361,18 @@ def build_parser() -> argparse.ArgumentParser:
     compression.add_argument("--output", required=True, type=Path, help="Compressed paths CSV")
     compression.add_argument("--provenance", type=Path, help="Interval provenance CSV")
     compression.add_argument("--summary", type=Path, help="Method and configuration JSON")
+
+    negative_events = subparsers.add_parser(
+        "apply-negative-price-events",
+        help="Apply explicitly declared negative-price event windows to synthetic bootstrap paths",
+    )
+    negative_events.add_argument("paths", type=Path, help="Synthetic bootstrap paths CSV")
+    negative_events.add_argument(
+        "--config", required=True, type=Path, help="Declared negative-price events JSON"
+    )
+    negative_events.add_argument("--output", required=True, type=Path, help="Transformed paths CSV")
+    negative_events.add_argument("--provenance", type=Path, help="Interval provenance CSV")
+    negative_events.add_argument("--summary", type=Path, help="Method and configuration JSON")
 
     ensemble = subparsers.add_parser(
         "report-scenario-ensemble",
@@ -701,8 +715,7 @@ def main(argv: list[str] | None = None) -> int:
             if availability_profile is not None:
                 _write_plain_csv(
                     availability_profile.provenance,
-                    args.availability_provenance
-                    or _sibling_path(args.output, ".availability.csv"),
+                    args.availability_provenance or _sibling_path(args.output, ".availability.csv"),
                 )
             _write_json(bootstrap_dispatch_result.summary, summary_path)
             print(json.dumps(bootstrap_dispatch_result.summary, indent=2))
@@ -790,6 +803,20 @@ def main(argv: list[str] | None = None) -> int:
             _write_plain_csv(compression_result.provenance, provenance_path)
             _write_json(compression_result.summary, summary_path)
             print(json.dumps(compression_result.summary, indent=2))
+            return 0
+        elif args.command == "apply-negative-price-events":
+            event_result = apply_negative_price_events(
+                _read_bootstrap_paths_csv(args.paths),
+                _read_negative_price_event_config(args.config),
+            )
+            provenance_path = args.provenance or _sibling_path(args.output, ".provenance.csv")
+            summary_path = args.summary or args.output.with_suffix(".summary.json")
+            export = event_result.paths.copy()
+            export["quality_flags"] = export["quality_flags"].map(json.dumps)
+            _write_plain_csv(export, args.output)
+            _write_plain_csv(event_result.provenance, provenance_path)
+            _write_json(event_result.summary, summary_path)
+            print(json.dumps(event_result.summary, indent=2))
             return 0
         else:  # pragma: no cover - argparse makes this unreachable.
             raise AssertionError(f"Unhandled command: {args.command}")
@@ -974,9 +1001,7 @@ def _read_scenario_manifest(path: Path) -> list[ScenarioRun]:
         raise ScenarioEnsembleInputError("Scenario manifest JSON must contain one object")
     unknown = sorted(set(payload) - {"scenarios"})
     if unknown:
-        raise ScenarioEnsembleInputError(
-            f"Unknown scenario manifest fields: {', '.join(unknown)}"
-        )
+        raise ScenarioEnsembleInputError(f"Unknown scenario manifest fields: {', '.join(unknown)}")
     declared = payload.get("scenarios")
     if not isinstance(declared, list):
         raise ScenarioEnsembleInputError("Scenario manifest must declare a scenarios list")
@@ -997,13 +1022,9 @@ def _read_scenario_manifest(path: Path) -> list[ScenarioRun]:
         unknown = sorted(set(entry) - required)
         missing = sorted(required - set(entry))
         if unknown:
-            raise ScenarioEnsembleInputError(
-                f"Unknown scenario fields: {', '.join(unknown)}"
-            )
+            raise ScenarioEnsembleInputError(f"Unknown scenario fields: {', '.join(unknown)}")
         if missing:
-            raise ScenarioEnsembleInputError(
-                f"Missing scenario fields: {', '.join(missing)}"
-            )
+            raise ScenarioEnsembleInputError(f"Missing scenario fields: {', '.join(missing)}")
         transformation = entry["transformation_summary_json"]
         runs.append(
             ScenarioRun(
@@ -1011,9 +1032,7 @@ def _read_scenario_manifest(path: Path) -> list[ScenarioRun]:
                 run_id=entry["run_id"],
                 path_summaries=pd.read_csv(root / str(entry["path_summaries_csv"])),
                 dispatch_summary=_read_summary_json(root / str(entry["dispatch_summary_json"])),
-                bootstrap_summary=_read_summary_json(
-                    root / str(entry["bootstrap_summary_json"])
-                ),
+                bootstrap_summary=_read_summary_json(root / str(entry["bootstrap_summary_json"])),
                 transformation_summary=(
                     None
                     if transformation is None
@@ -1034,6 +1053,11 @@ def _read_summary_json(path: Path) -> dict[str, object]:
 def _read_spread_compression_config(path: Path) -> SpreadCompressionConfig:
     payload = json.loads(path.read_text(encoding="utf-8"))
     return SpreadCompressionConfig.from_dict(payload)
+
+
+def _read_negative_price_event_config(path: Path) -> NegativePriceEventConfig:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    return NegativePriceEventConfig.from_dict(payload)
 
 
 def _write_dispatch_csv(schedule: pd.DataFrame, output: Path) -> None:
