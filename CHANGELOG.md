@@ -6,6 +6,39 @@ All notable project changes are documented here.
 
 ### Added
 
+- `audit-admie-publication-timing` and `greek_bess.data.admie_timing`, turning the
+  `requires_pre_auction_timing_validation` quarantine label into an executable acceptance step.
+  The audit reads ADMIE retrieval manifests and answers, per filetype and delivery day, whether a
+  file was published strictly before that day's day-ahead gate closure. No forecast file is
+  parsed and no feature is built.
+- The gate closure is declared with **no default and no built-in constant**: a schedule is one or
+  more dated regimes, each naming the clock its time is stated on and carrying a required
+  reference to the market rule it comes from, because the rule can change across a history
+  starting in November 2020. A day earlier than the first regime is refused rather than audited
+  against a rule that was not declared for it, and a closure falling in a daylight-saving gap or
+  repetition is refused rather than guessed.
+- Contemporaneously witnessed evidence is separated from publisher-asserted evidence and never
+  promoted to it. A retrieval performed before the closure observed the file in the catalog and
+  is recorded as `witnessed_pre_gate`; a publication timestamp read afterwards only asserts
+  availability and is recorded as `asserted_pre_gate`. A publication exactly at the closure
+  instant counts as late.
+- Each accepted day names its **decision-time revision** — the latest revision published strictly
+  before closure, the only one a backtest may read — with the count of revisions that superseded
+  it after closure, because reading a provider's latest revision for a past day leaks
+  post-decision information even on a day that passes on timing.
+- A delivery day no supplied record covers is reported as `no_record` rather than assumed
+  compliant; one ADMIE URL carrying two different digests across manifests is refused as an
+  in-place replacement, and one carrying two different publication timestamps as a restated
+  publication time.
+- `config/admie_gate_closure.example.json`, the `Audit ADMIE publication timing` workflow, which
+  retrieves every revision covering a declared window and uploads the manifest, per-day verdicts,
+  per-observation evidence and summary for 90 days, and
+  `docs/admie_publication_timing_policy.md`.
+- The summary states its own limits in its own output: `establishes_only_publication_timing`,
+  `does_not_establish` and `quarantine_lifted`. Timing acceptance is not format acceptance and
+  does not lift the forecast-feature quarantine on its own.
+- `docs/implementation_report_v0.7.10.md`, and a dated decision recording the audit contract.
+
 - `apply-negative-price-events` and `greek_bess.stress.apply_negative_price_events`, completing
   the approved v0.7 modeling scope. Each event declares an identifier, inclusive UTC start,
   exclusive UTC end and strictly negative absolute replacement price in EUR/MWh; every

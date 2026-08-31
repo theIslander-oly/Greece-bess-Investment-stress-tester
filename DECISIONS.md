@@ -3,6 +3,63 @@
 This file records decisions that materially affect interpretation or reproducibility. Add a
 dated entry when a milestone changes scope, assumptions, data handling or validation.
 
+## 2026-08-31 — Make ADMIE pre-auction timing an executable audit with a declared closure
+
+- **Decision:** Discharge the 2026-08-26 ADMIE quarantine through an audit rather than a
+  judgment. `audit-admie-publication-timing` reads ADMIE retrieval manifests and reports, per
+  filetype and delivery day, whether a file was published strictly before that day's day-ahead
+  gate closure. The closure is declared as one or more dated regimes, each naming its clock and
+  carrying a required reference to the market rule it comes from; there is no default and no
+  built-in constant. A publication exactly at the closure counts as late. A delivery day earlier
+  than the first declared regime, and a closure falling in a daylight-saving gap or repetition,
+  are refused rather than resolved by a convention. No forecast file is parsed.
+- **Reason:** The quarantine label `requires_pre_auction_timing_validation` was an assertion no
+  code could turn into a pass or a fail, so the exclusion depended on nobody forgetting it. A
+  built-in closure constant would have replaced that with a worse failure: a hard-coded rule is
+  invisible in the evidence, cannot express a rule change across a history starting in November
+  2020, and would make an unverified assumption look like a validated one. The repository can
+  compare a file's timestamp against a declared rule; it cannot verify the rule, and it says so
+  instead of pretending otherwise.
+- **Consequence:** `config/admie_gate_closure.example.json` ships the format with a placeholder
+  reference that must be replaced before use. The `Audit ADMIE publication timing` workflow
+  produces the evidence, and retrieval for it must pass `--all-revisions`, because the default
+  latest-revision selection discards exactly the post-closure revisions the audit reports.
+
+## 2026-08-31 — Grade publication evidence and never promote asserted to witnessed
+
+- **Decision:** Record two distinct grades of pre-closure evidence. A retrieval performed before
+  the closure of the delivery day in question witnesses availability contemporaneously
+  (`witnessed_pre_gate`); a publication timestamp read after the closure only asserts it
+  (`asserted_pre_gate`). Both count as accepted for timing, both are reported separately on every
+  observation and in the run summary, and the weaker is never presented as the stronger. A day no
+  supplied record covers is reported as `no_record` rather than assumed compliant. One ADMIE URL
+  carrying two different digests across manifests is refused as an in-place replacement, and one
+  carrying two different publication timestamps as a restated publication time.
+- **Reason:** `file_published` is provider metadata read at retrieval time — what ADMIE says today
+  about the past, not an observation of when the file became reachable. A restated timestamp, a
+  site migration or a silent replacement would be believed. Collapsing both grades into one
+  "passed" would state an independence the evidence does not have.
+- **Consequence:** The audit is worth running before a delivery day as well as over history:
+  historical runs establish asserted compliance in one pass, and each pre-closure run adds one
+  witnessed day that no retrospective query can produce.
+
+## 2026-08-31 — Name the decision-time revision and keep the quarantine closed
+
+- **Decision:** For every accepted delivery day, name the latest revision published strictly
+  before closure as the decision-time revision, with its URL, publication time and lead, and
+  count the revisions that superseded it after closure. Timing acceptance does not lift the
+  forecast-feature quarantine: lifting it additionally requires file-format acceptance against
+  real files and a separate recorded decision. The audit summary carries this exclusion in its
+  own output (`establishes_only_publication_timing`, `does_not_establish`, `quarantine_lifted`).
+- **Reason:** A day can pass on timing and still leak. Reading "the published file" for a past
+  delivery day ordinarily returns the provider's latest revision, which is post-decision
+  information. And a proof about timing is not a proof about content: the file's format, units
+  and meaning are untested by this audit, so treating a timing pass as clearance would smuggle an
+  unvalidated variable into a forecast on the strength of an unrelated check.
+- **Consequence:** A future feature built from these files must read the decision-time revision by
+  URL. `PLAN.md` keeps the ADMIE acceptance item open, with the operator's declared schedule, a
+  live audited window and format acceptance named as the outstanding parts.
+
 ## 2026-08-31 — Close the completed-v0.7 review without changing the model
 
 - **Decision:** Accept the completed-v0.7 consistency review with no correctness or

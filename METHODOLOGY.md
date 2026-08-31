@@ -41,7 +41,8 @@ sources cover identical market days.
 
 ADMIE retrieval preserves publication time independently from delivery coverage. Candidate load,
 RES, availability and interconnector variables are quarantined from forecast features until their
-historical publication time is proven to precede the bid decision for the target market day.
+historical publication time is proven to precede the bid decision for the target market day. That
+proof is executable rather than asserted, and is described in section 16.
 
 Official raw files and normalized datasets are not committed. Reproduction depends on the
 source register, commands, retrieval manifests, hashes and quality reports described in
@@ -348,7 +349,38 @@ including untouched rows, while the summary records the full declaration, applie
 counts, and negative and zero interval counts before and after. Outputs remain synthetic
 deterministic scenarios, not forecasts, probabilities or investment evidence.
 
-## 16. Validation
+## 16. ADMIE pre-auction publication timing
+
+The quarantine above is discharged, if at all, by an audit that reads ADMIE retrieval manifests
+and compares each file's publication time against a declared day-ahead gate closure, per filetype
+and per delivery day. No forecast file is parsed by the audit; the question is availability in
+time, not content.
+
+The gate closure has no default and no built-in constant. It is declared as one or more dated
+regimes, each stating a day offset, a local time, the clock that time is on and a required
+reference to the market rule it comes from. A rule that changed during the audited history is
+represented as a further regime; a delivery day earlier than the first declared regime is refused
+rather than audited against a rule that was not in force for it, and a closure falling in a
+daylight-saving gap or repetition is refused rather than resolved by a convention.
+
+Evidence is graded, and the grades do not merge. A retrieval performed before the closure of the
+day in question observed the file in the provider's catalog and witnesses its availability
+contemporaneously. A publication timestamp read after the closure is the provider's assertion
+about the past and is recorded as such. Publication exactly at the closure instant is treated as
+late, since a tie is not evidence of availability before the decision.
+
+For each accepted day the audit names the decision-time revision — the latest revision published
+strictly before closure — and counts the revisions that superseded it afterwards. This is the
+operative caution: reading "the published file" for a past delivery day ordinarily returns the
+provider's latest revision, which is post-decision information even on a day that passes on
+timing. A feature built from these files must read the decision-time revision by URL.
+
+Acceptance here establishes publication timing only. It accepts no file format, schema or value,
+demonstrates no forecasting skill, and does not lift the quarantine on its own; the audit summary
+carries that exclusion in its own output. The policy is in
+`docs/admie_publication_timing_policy.md`.
+
+## 17. Validation
 
 Code changes must pass Ruff, mypy, pytest and a clean wheel build. Tests use deterministic
 synthetic inputs or small purpose-built fixtures. Official-data acceptance is recorded as

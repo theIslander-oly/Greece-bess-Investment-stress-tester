@@ -1,6 +1,6 @@
 # Project status
 
-**Version:** 0.7.9
+**Version:** 0.7.10
 **Updated:** 31 August 2026
 **Status:** Official multi-year operational acceptance and HEnEx-to-ENTSO-E cross-source
 reconciliation passed; artifact custody tooling in place awaiting the operator upload;
@@ -8,7 +8,9 @@ per-delivery-year replay decomposition accepted against the official history;
 bootstrap source-era policy, spread compression, non-probabilistic scenario-ensemble range
 reporting, declared availability/outage paths and declared negative-price events landed,
 completing the approved v0.7 modeling scope; the completed-v0.7 review passed after reconciling
-one roadmap wording contradiction, and v0.8 remains gated on explicit user design approval
+one roadmap wording contradiction, and v0.8 remains gated on explicit user design approval;
+the ADMIE forecast quarantine now has an executable publication-timing audit and a workflow,
+awaiting the operator's declared gate closure, a live audited window and format acceptance
 
 ## Declared negative-price events
 
@@ -198,6 +200,38 @@ one roadmap wording contradiction, and v0.8 remains gated on explicit user desig
   from the recorded history, commit and configuration instead.
 - **Outstanding operator action:** the encrypted copies must be uploaded before the source
   artifacts expire on 2 and 3 September 2026. Custody is not complete until they are.
+
+## ADMIE pre-auction publication timing
+
+- `audit-admie-publication-timing` and `greek_bess.data.admie_timing` turn the
+  `requires_pre_auction_timing_validation` quarantine label into a pass or a fail. The audit reads
+  ADMIE retrieval manifests and reports, per filetype and delivery day, whether a file was
+  published strictly before that day's day-ahead gate closure. No forecast file is parsed.
+- The closure is **declared, with no default and no built-in constant**: one or more dated
+  regimes, each naming the clock its time is stated on and carrying a required reference to the
+  market rule behind it, so a rule change during the audited history is representable and every
+  accepted day carries the rule that accepted it.
+- A delivery day earlier than the first declared regime is refused rather than audited against a
+  rule that was not in force. A closure falling in a daylight-saving gap or repetition is refused
+  rather than resolved by convention. A publication exactly at the closure counts as late.
+- Evidence is graded and the grades never merge. `witnessed_pre_gate` means a retrieval performed
+  before the closure observed the file in the catalog; `asserted_pre_gate` means only the
+  provider's timestamp, read afterwards, says so. Running the audit before a delivery day is
+  therefore how witnessed evidence accumulates.
+- Each accepted day names its decision-time revision — the latest published strictly before
+  closure, the only revision a backtest may read — and counts the revisions that superseded it.
+  Retrieval for the audit must use `fetch-admie-files --all-revisions`.
+- A day no supplied record covers is `no_record`, never assumed compliant. One ADMIE URL carrying
+  two different digests across manifests is refused as an in-place replacement, and one carrying
+  two different publication timestamps as a restated publication time.
+- The `Audit ADMIE publication timing` workflow retrieves a declared window and uploads the
+  manifest, per-day verdicts, per-observation evidence and summary for 90 days.
+- **This establishes publication timing only.** It accepts no file format, proves no forecasting
+  skill, and does not lift the forecast-feature quarantine; the summary states that in its own
+  output. Policy in `docs/admie_publication_timing_policy.md`.
+- **Outstanding:** the operator's declared gate-closure schedule
+  (`config/admie_gate_closure.example.json` ships the format with a placeholder reference), a
+  live audited window recorded as evidence, and file-format acceptance.
 
 ## Official cross-source reconciliation
 
@@ -415,6 +449,7 @@ the approved v0.7 modeling scope. The formal completed-v0.7 review found no corr
 data-integrity defect and reconciled one roadmap wording contradiction about availability
 provenance. The v0.8 interface and exportable reports remain gated until the user explicitly
 approves their design. ENTSO-E reconciliation passed on 2026-08-27. Custody tooling and the storage
-procedure landed on 2026-08-27 and await the operator upload. ADMIE timing acceptance remains a parallel
-task. The per-year decomposition surface and workflow landed on 2026-08-27 and its official run
+procedure landed on 2026-08-27 and await the operator upload. The ADMIE publication-timing audit,
+workflow and policy landed on 2026-08-31; that acceptance now waits on the operator's declared
+gate closure, a live audited window and separate file-format acceptance rather than on tooling. The per-year decomposition surface and workflow landed on 2026-08-27 and its official run
 was accepted on 2026-08-28, so that track is complete.
