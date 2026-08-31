@@ -1,6 +1,6 @@
 # Project status
 
-**Version:** 0.7.10
+**Version:** 0.7.11
 **Updated:** 31 August 2026
 **Status:** Official multi-year operational acceptance and HEnEx-to-ENTSO-E cross-source
 reconciliation passed; artifact custody tooling in place awaiting the operator upload;
@@ -10,7 +10,10 @@ reporting, declared availability/outage paths and declared negative-price events
 completing the approved v0.7 modeling scope; the completed-v0.7 review passed after reconciling
 one roadmap wording contradiction, and v0.8 remains gated on explicit user design approval;
 the ADMIE forecast quarantine now has an executable publication-timing audit and a workflow,
-awaiting the operator's declared gate closure, a live audited window and format acceptance
+awaiting the operator's declared gate closure, a live audited window and format acceptance; a
+versioned run manifest and report contract now carries every recorded result, making label
+retention executable and satisfying the prerequisite the v0.7 review set for any future
+presentation layer
 
 ## Declared negative-price events
 
@@ -200,6 +203,30 @@ awaiting the operator's declared gate closure, a live audited window and format 
   from the recorded history, commit and configuration instead.
 - **Outstanding operator action:** the encrypted copies must be uploaded before the source
   artifacts expire on 2 and 3 September 2026. Custody is not complete until they are.
+
+## Run manifest and report contract
+
+- `greek_bess.reporting`, `record-run-manifest` and `verify-run-manifest` record any result
+  summary under a versioned manifest. The producing module's summary is carried **verbatim**; the
+  contract adds a projection over it and reinterprets nothing.
+- The projection is what a consumer reads instead of incidental keys: declared `result_kind` from
+  a closed registry, the `basis` that kind reports on, the required non-empty `result_label`,
+  `produced_by`, `project_version`, declared inputs and the standing exclusions.
+- `basis` distinguishes a historical replay upper bound, a historical forecast backtest, a
+  synthetic scenario, screening arithmetic and data-acceptance evidence. The same euro figure
+  means something different under each.
+- **Label retention is now executable.** `PROMPT.md` requires outputs to retain their source and
+  limitation labels through downstream analysis; fifteen of sixteen modules kept that convention
+  and nothing enforced it. A summary without a non-empty `result_label` is refused.
+- A manifest is refused on read when its schema version, result kind or declared basis is not one
+  this build understands, so a newer contract is never reinterpreted as the current one.
+- The distributional-term check is scoped to the kinds that declare it (today
+  `scenario_ensemble_range` alone). The term list bans claims about the distribution of outcomes,
+  not the words: the optimizer's own `average_charge_price_eur_per_mwh`, a benchmark's mean
+  absolute error and the audit's median lead time are none of them distributional claims, and a
+  check that refuses honest arithmetic teaches readers to route around it.
+- This adds no interface, exporter, rendering surface or dependency and **does not open v0.8**.
+  Policy in `docs/run_manifest_contract.md`.
 
 ## ADMIE pre-auction publication timing
 
@@ -456,7 +483,10 @@ declared availability/outage paths and declared negative-price events are now co
 the approved v0.7 modeling scope. The formal completed-v0.7 review found no correctness or
 data-integrity defect and reconciled one roadmap wording contradiction about availability
 provenance. The v0.8 interface and exportable reports remain gated until the user explicitly
-approves their design. ENTSO-E reconciliation passed on 2026-08-27. Custody tooling and the storage
+approves their design; the versioned run manifest and report contract that review named as the
+prerequisite landed on 2026-08-31, and a 2026-08-31 reevaluation recorded that v0.8 appears in the
+suggested branch sequence but not in the approved brief, so opening it is a scope change rather
+than the next milestone. ENTSO-E reconciliation passed on 2026-08-27. Custody tooling and the storage
 procedure landed on 2026-08-27 and await the operator upload. The ADMIE publication-timing audit,
 workflow and policy landed on 2026-08-31; that acceptance now waits on the operator's declared
 gate closure, a live audited window and separate file-format acceptance rather than on tooling. The per-year decomposition surface and workflow landed on 2026-08-27 and its official run

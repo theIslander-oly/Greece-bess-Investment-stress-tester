@@ -62,6 +62,10 @@
 - A custody record proves that a stored copy is the accepted artifact. It says nothing about
   whether that artifact supports any analytical or investment conclusion.
 - Missing official prices are not silently interpolated; this can make a run incomplete.
+- The run-manifest contract enforces that a recorded result carries its label, its declared
+  kind and the standing exclusions. It does not check that the label is the right one for the
+  arithmetic performed, and it cannot stop a consumer that reads the carried summary directly
+  from presenting a figure without its projection.
 
 ## Forecasting and backtests
 

@@ -59,6 +59,13 @@ from .forecast import (
     generate_ml_forecasts,
     generate_naive_forecasts,
 )
+from .reporting import (
+    RESULT_KINDS,
+    ReportContractError,
+    build_run_manifest,
+    read_run_manifest,
+    write_run_manifest,
+)
 from .stress import (
     AvailabilityInputError,
     AvailabilityScheduleConfig,
@@ -191,6 +198,29 @@ def build_parser() -> argparse.ArgumentParser:
     )
     admie_timing.add_argument("--observations", type=Path, help="Per-observation evidence CSV")
     admie_timing.add_argument("--summary", type=Path, help="Audit summary JSON")
+
+    manifest_cmd = subparsers.add_parser(
+        "record-run-manifest",
+        help="Record a result summary under the versioned run-manifest contract",
+    )
+    manifest_cmd.add_argument("summary", type=Path, help="Summary JSON a result command wrote")
+    manifest_cmd.add_argument(
+        "--result-kind", required=True, choices=sorted(RESULT_KINDS), help="Declared result kind"
+    )
+    manifest_cmd.add_argument("--manifest-id", required=True, help="Identifier for this run")
+    manifest_cmd.add_argument(
+        "--produced-by", required=True, help="Command or API call that produced the summary"
+    )
+    manifest_cmd.add_argument(
+        "--declared-inputs", type=Path, help="JSON object naming the run's declared inputs"
+    )
+    manifest_cmd.add_argument("--output", required=True, type=Path, help="Run manifest JSON")
+
+    verify_manifest = subparsers.add_parser(
+        "verify-run-manifest",
+        help="Read a run manifest and refuse an unknown schema version or result kind",
+    )
+    verify_manifest.add_argument("manifest", type=Path)
 
     merge = subparsers.add_parser(
         "merge-canonical",
@@ -616,6 +646,43 @@ def main(argv: list[str] | None = None) -> int:
             _write_json(timing.summary, summary_path)
             print(json.dumps(timing.summary, indent=2))
             return 0 if timing.summary["timing_accepted"] else 2
+        elif args.command == "record-run-manifest":
+            summary_payload = json.loads(args.summary.read_text(encoding="utf-8"))
+            if not isinstance(summary_payload, dict):
+                raise ReportContractError("A result summary must be one JSON object")
+            declared_inputs = (
+                json.loads(args.declared_inputs.read_text(encoding="utf-8"))
+                if args.declared_inputs is not None
+                else {}
+            )
+            if not isinstance(declared_inputs, dict):
+                raise ReportContractError("declared inputs must be one JSON object")
+            manifest_record = build_run_manifest(
+                summary_payload,
+                kind_id=args.result_kind,
+                manifest_id=args.manifest_id,
+                produced_by=args.produced_by,
+                declared_inputs=declared_inputs,
+            )
+            write_run_manifest(args.output, manifest_record)
+            print(json.dumps(manifest_record.to_dict(), indent=2, default=str))
+            return 0
+        elif args.command == "verify-run-manifest":
+            verified = read_run_manifest(args.manifest)
+            print(
+                json.dumps(
+                    {
+                        "schema_version": verified.schema_version,
+                        "manifest_id": verified.manifest_id,
+                        "result_kind": verified.result_kind,
+                        "basis": verified.basis,
+                        "result_label": verified.result_label,
+                        "project_version": verified.project_version,
+                    },
+                    indent=2,
+                )
+            )
+            return 0
         elif args.command == "merge-canonical":
             frame = concat_canonical(_read_canonical_csv(path) for path in args.inputs)
             report = assess_quality(frame, require_complete_days=not args.allow_partial_days)
@@ -900,6 +967,7 @@ def main(argv: list[str] | None = None) -> int:
         ScenarioEnsembleInputError,
         AnnualDecompositionError,
         CustodyError,
+        ReportContractError,
         OSError,
     ) as exc:
         print(f"error: {exc}", file=sys.stderr)
