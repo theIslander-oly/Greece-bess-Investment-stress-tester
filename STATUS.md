@@ -7,7 +7,8 @@ reconciliation passed; artifact custody tooling in place awaiting the operator u
 per-delivery-year replay decomposition accepted against the official history;
 bootstrap source-era policy, spread compression, non-probabilistic scenario-ensemble range
 reporting, declared availability/outage paths and declared negative-price events landed,
-completing the approved v0.7 modeling scope; v0.8 remains gated on review of completed v0.7
+completing the approved v0.7 modeling scope; the completed-v0.7 review passed after reconciling
+one roadmap wording contradiction, and v0.8 remains gated on explicit user design approval
 
 ## Declared negative-price events
 
@@ -410,8 +411,10 @@ calibration story. The bootstrap source-era/resolution policy landed on 2026-08-
 2026-08-28, prioritised over availability/outage integration because the per-delivery-year
 decomposition showed spread, not level, driving the ceiling. Scenario-ensemble range reporting,
 declared availability/outage paths and declared negative-price events are now complete, closing
-the approved v0.7 modeling scope. The v0.8 interface and exportable reports remain gated until
-completed v0.7 is reviewed. ENTSO-E reconciliation passed on 2026-08-27. Custody tooling and the storage
+the approved v0.7 modeling scope. The formal completed-v0.7 review found no correctness or
+data-integrity defect and reconciled one roadmap wording contradiction about availability
+provenance. The v0.8 interface and exportable reports remain gated until the user explicitly
+approves their design. ENTSO-E reconciliation passed on 2026-08-27. Custody tooling and the storage
 procedure landed on 2026-08-27 and await the operator upload. ADMIE timing acceptance remains a parallel
 task. The per-year decomposition surface and workflow landed on 2026-08-27 and its official run
 was accepted on 2026-08-28, so that track is complete.

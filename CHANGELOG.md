@@ -43,6 +43,15 @@ All notable project changes are documented here.
 
 ### Changed
 
+- Completed the formal v0.7 consistency review across public APIs, CLI surfaces, provenance,
+  summaries, tests, methodology, limitations, decisions and implementation reports. The review
+  found no correctness or data-integrity defect and confirmed the missing-price, signed-price,
+  time-ordering, realized-settlement, equivalent-basis and non-probabilistic invariants.
+- Reconciled one roadmap wording contradiction: differing declared availability schedules are
+  scenario judgments carried as provenance, not part of the equivalent asset-and-sample basis.
+  Battery parameters, terminal-energy constraints, source-era selection and path identity must
+  still match, and an unrecorded availability assumption is still refused.
+
 - The scenario-ensemble equivalent-basis check no longer covers the availability assumption.
   The basis is now the asset and the sample — battery parameters, terminal-energy constraint,
   source-era selection and path identity — while the price transformation and the availability
@@ -72,10 +81,10 @@ All notable project changes are documented here.
   against it before the result is returned. A field such as `p95_margin_eur` raises rather than
   being written.
 - Scenarios are combined only on an equivalent basis. Differing battery parameters,
-  terminal-energy constraint, availability assumption, selected source era or path identity are
-  refused with the mismatching basis named and both values shown; the terminal-energy constraint
-  is checked separately from the rest of the battery configuration so a day-end energy difference
-  is refused by that name.
+  terminal-energy constraint, selected source era or path identity are refused with the
+  mismatching basis named and both values shown; the terminal-energy constraint is checked
+  separately from the rest of the battery configuration so a day-end energy difference is
+  refused by that name. Differing declared availability schedules remain scenario provenance.
 - Provenance on every reported figure: `scenario_margins` carries the scenario name,
   transformation method, transformation ID, recorded transformation parameters, source-era
   resolution and day span, input run identity and bootstrap seed for each scenario and path, and
