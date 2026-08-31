@@ -3,17 +3,26 @@
 This file records decisions that materially affect interpretation or reproducibility. Add a
 dated entry when a milestone changes scope, assumptions, data handling or validation.
 
-## 2026-08-28 — Treat test warnings as failures
+## 2026-08-28 — Fail on warnings this project emits, report the rest
 
-- **Decision:** Run pytest with warnings promoted to errors and use explicit units when building
-  pandas timedeltas from numeric values.
-- **Reason:** The full suite passed while emitting 173 copies of a pandas/NumPy deprecation from
-  generic-unit timedelta construction. The warning states that the behavior will become an error;
-  carrying it would make dependency resolution, rather than a reviewed code change, decide when
-  CI breaks.
-- **Consequence:** New dependency warnings fail locally and in CI. A warning must be corrected or,
-  if it is proven unavoidable and harmless, narrowed by category and source with a recorded
-  justification rather than suppressed globally.
+- **Decision:** Build pandas timedeltas from numeric values with an explicit unit, and configure
+  pytest to promote to errors only those warnings attributed to `greek_bess` or to the project's
+  own test modules. A warning attributed to a dependency is reported in the pytest summary and
+  does not fail the run. A third-party warning that must fail is added to `filterwarnings` by
+  category and module with a recorded reason; there are none today.
+- **Reason:** The full suite passed while emitting copies of a NumPy generic-unit timedelta
+  deprecation that pandas surfaces at the constructing line. That deprecation is the project's to
+  fix, and the fix is a clearer call site. The scope of the gate is a separate question from the
+  fix: `[project].dependencies` declares version ranges and CI resolves them at install time, so a
+  blanket `error` policy would let an unrelated upstream release turn validation red with no
+  change in this repository — which is how this deprecation arrived in the first place. Attributing
+  a failure to the party that can act on it is the point of the gate.
+- **Consequence:** A warning raised through project code fails locally and in CI, including the
+  deprecation above: the narrowed filter still catches it, because pandas attributes it to the
+  calling module. A dependency's own warnings remain visible without failing the run, so upgrading
+  a dependency is a reviewed decision rather than an unscheduled CI break. This does not settle
+  whether any particular future dependency warning should fail; that is decided case by case and
+  recorded here.
 
 ## 2026-08-28 — Compress spread about a declared daily reference, with no default basis
 

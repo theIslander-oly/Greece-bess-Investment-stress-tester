@@ -40,12 +40,14 @@
   one 29 October 2023 interval differing by EUR 0.01/MWh. ENTSO-E A44 `A03` documents state a
   price once and imply its repeats; those implied intervals are materialized and flagged, not
   interpolated.
-- Official publication revisions, terms and formats may change. Accepted artifacts are intended
-  to be held outside Git as encrypted release assets and are fingerprinted by committed custody
-  records. The operator upload is still outstanding, so those records currently have no durable
-  copy to verify. Once uploaded, a revision can be detected rather than silently adopted; the
-  encryption key is consequently part of the custody chain, and a lost key forces a re-retrieval
-  that may not reproduce the accepted baseline.
+- Official publication revisions, terms and formats may change. Accepted artifacts are to be held
+  outside Git as encrypted release assets, and are fingerprinted by custody records committed
+  under `docs/custody/`. The two are distinct: a committed record is a fingerprint, not a durable
+  copy. The operator upload is not verified complete in the repository record, and this repository
+  does not track live GitHub release state, so custody is not recorded as complete. Once a stored
+  copy can be verified against its record, a revision is detected rather than silently adopted;
+  the encryption key is consequently part of the custody chain, and a lost key forces a
+  re-retrieval that may not reproduce the accepted baseline.
 - A custody record proves that a stored copy is the accepted artifact. It says nothing about
   whether that artifact supports any analytical or investment conclusion.
 - Missing official prices are not silently interpolated; this can make a run incomplete.
@@ -113,6 +115,11 @@
 ## Software
 
 - Solvers and third-party package behavior can vary by platform and version.
+- The test suite fails on warnings attributed to `greek_bess` or to the project's own tests, and
+  reports warnings attributed to a dependency without failing. A warning a dependency raises
+  entirely within its own frames is therefore visible but not gated, and dependencies are
+  installed from ranges rather than pinned, so a passing suite is evidence about the resolved
+  versions of the day and not about every version in range.
 - The command-line interface is research-oriented; no user interface exists yet.
 - The first GitHub snapshot imports already completed v0.1-v0.6 work, so earlier development
   history is represented by implementation reports rather than fabricated Git commits.
