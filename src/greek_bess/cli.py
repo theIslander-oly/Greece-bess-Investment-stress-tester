@@ -564,9 +564,19 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "fetch-admie-files":
             admie_client = AdmieClient()
             discovered = []
+            empty_filetypes = []
             for filetype in args.filetypes:
-                discovered.extend(
-                    admie_client.find_files(filetype, args.start_day, args.end_day, overlap=True)
+                found = admie_client.find_files(
+                    filetype, args.start_day, args.end_day, overlap=True
+                )
+                if not found:
+                    empty_filetypes.append(filetype)
+                discovered.extend(found)
+            if empty_filetypes:
+                raise AdmieError(
+                    _admie_empty_discovery_message(
+                        admie_client, empty_filetypes, args.start_day, args.end_day
+                    )
                 )
             selected = (
                 discovered if args.all_revisions else select_latest_admie_revisions(discovered)
@@ -1029,6 +1039,47 @@ def _read_bootstrap_config(path: Path) -> BootstrapConfig:
 def _read_price_level_config(path: Path) -> PriceLevelShockConfig:
     payload = json.loads(path.read_text(encoding="utf-8"))
     return PriceLevelShockConfig.from_dict(payload)
+
+
+def _admie_empty_discovery_message(
+    client: AdmieClient, filetypes: list[str], start_day: date, end_day: date
+) -> str:
+    """Explain an empty ADMIE discovery, distinguishing a wrong name from a quiet publisher.
+
+    An empty retrieval used to write an empty manifest and exit zero. Downstream, every audited
+    delivery day then reported ``no_record``, which reads as "the publisher published nothing" —
+    one of the four things the timing audit explicitly does not establish. A misspelled or
+    renamed filetype must not be able to impersonate that finding, so the live catalog is
+    consulted and the two cases are named apart.
+    """
+
+    window = f"{start_day.isoformat()}..{end_day.isoformat()}"
+    try:
+        catalog = sorted(
+            {str(entry.get("filetype", "")) for entry in client.list_filetypes()} - {""}
+        )
+    except (AdmieError, OfficialDataDownloadError):
+        catalog = []
+    if not catalog:
+        return (
+            f"ADMIE returned no files for {', '.join(filetypes)} over {window}, and the filetype "
+            "catalog could not be read to check the names. An empty retrieval is refused rather "
+            "than written as an empty manifest."
+        )
+    unknown = [name for name in filetypes if name not in catalog]
+    if unknown:
+        return (
+            f"ADMIE publishes no filetype named {', '.join(unknown)}. The live catalog offers: "
+            f"{', '.join(catalog)}. A retrieval naming a filetype the provider does not publish "
+            "is refused, because downstream it is indistinguishable from a delivery day the "
+            "provider genuinely never published for."
+        )
+    return (
+        f"ADMIE published no {', '.join(filetypes)} file covering {window}. The filetype names "
+        "are valid, so this is an empty window rather than a wrong name. An empty retrieval is "
+        "refused rather than written as an empty manifest; widen the window or record the "
+        "absence deliberately."
+    )
 
 
 def _read_gate_closure_schedule(path: Path) -> GateClosureSchedule:
