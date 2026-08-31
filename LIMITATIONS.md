@@ -34,8 +34,14 @@
   larger or ambiguous disagreements remain errors.
 - HEnEx incremental daily discovery depends on a website asset-catalog layout rather than a
   documented data API and may need maintenance when the site changes.
-- ADMIE catalog retrieval is implemented, but file-format and publication-time acceptance is
-  pending before any exogenous field can enter forecasting.
+- ADMIE catalog retrieval is implemented and publication timing is now auditable per delivery
+  day against a declared gate closure, but no live audited window has been recorded and no file
+  format has been accepted, so no exogenous ADMIE field may enter forecasting.
+- The publication-timing audit checks a declared gate closure; it cannot check that declaration
+  against the market rules, and the repository does not declare it on the operator's behalf. Its
+  ordinary evidence is the provider's own publication timestamp, read after the fact, which a
+  restated or backdated timestamp would defeat. Only a retrieval performed before the closure
+  witnesses availability independently, and such witnesses accumulate one delivery day at a time.
 - The ENTSO-E series is reconciled against HEnEx for 1 November 2020 through 25 August 2026, with
   one 29 October 2023 interval differing by EUR 0.01/MWh. ENTSO-E A44 `A03` documents state a
   price once and imply its repeats; those implied intervals are materialized and flagged, not

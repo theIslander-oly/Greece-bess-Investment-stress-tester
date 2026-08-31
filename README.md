@@ -10,7 +10,8 @@ on that replay core.
 This is not financial advice, an investment-grade forecast, a bankable revenue study or a
 substitute for legal, tax, grid-connection and market-access diligence.
 
-**Current release:** `v0.7.9` — deterministic declared negative-price events.
+**Current release:** `v0.7.10` — executable pre-auction publication-timing acceptance for
+the quarantined ADMIE forecast files.
 
 ## What this tool cannot tell you
 
@@ -81,7 +82,10 @@ The current implementation provides:
 - a per-delivery-year decomposition of an accepted replay on the CET/CEST market clock, with
   partial-year labelling, per-method capture and a like-for-like common-day comparison;
 - a deterministic spread compression about a declared daily reference level, with a declared
-  basis, exact per-day range scaling and preserved zero and negative prices.
+  basis, exact per-day range scaling and preserved zero and negative prices;
+- an executable pre-auction publication-timing audit for the quarantined ADMIE forecast files,
+  against a declared dated gate-closure schedule with no default, separating contemporaneously
+  witnessed evidence from publisher-asserted timestamps and naming the decision-time revision.
 
 The first v0.7 foundation also provides deterministic, seeded seasonal block-bootstrap price
 paths with sampled-block provenance. Each validated path can now be dispatched independently
@@ -409,6 +413,13 @@ Market Files API. Every retrieval writes a manifest with source URL, coverage, r
 SHA-256 and publication metadata where the provider exposes it. Raw and normalized official
 data remain ignored by Git.
 
+ADMIE's load and RES forecasts stay quarantined from forecasting. `audit-admie-publication-timing`
+makes that quarantine checkable: it proves, per delivery day, whether a file was published before
+a declared day-ahead gate closure, and separates evidence witnessed by a pre-closure retrieval
+from timestamps the publisher asserts afterwards. Timing acceptance is not format acceptance and
+does not lift the quarantine; see
+[`docs/admie_publication_timing_policy.md`](docs/admie_publication_timing_policy.md).
+
 Accepted official artifacts are held outside Git as encrypted assets on a release in the
 private repository, and each is fingerprinted by a price-free custody record committed under
 `docs/custody/`. `verify-custody` re-derives that fingerprint from a stored copy, so a copy can
@@ -545,11 +556,43 @@ greek-bess fetch-admie-files \
   --manifest data/raw/admie/retrieval_manifest.json
 ```
 
-The default selects the latest publication for each filetype and coverage period. Add
-`--all-revisions` only for a revision-history audit. The manifest retains both delivery coverage
-and publication time. These files are quarantined from forecasting until their pre-auction
-availability and changing historical formats are validated; retrieval does not make a variable
-leakage-safe.
+The default selects the latest publication for each filetype and coverage period. Pass
+`--all-revisions` for a revision-history audit and whenever the retrieval feeds the timing audit
+below. The manifest retains both delivery coverage and publication time. These files are
+quarantined from forecasting until their pre-auction availability and changing historical formats
+are validated; retrieval does not make a variable leakage-safe.
+
+### Audit ADMIE pre-auction publication timing
+
+The quarantine label is checkable rather than asserted. The audit compares each retrieved file's
+publication time against a **declared** day-ahead gate closure, per delivery day, without parsing
+any file:
+
+```bash
+greek-bess audit-admie-publication-timing \
+  data/raw/admie/retrieval_manifest.json \
+  --gate-closure config/admie_gate_closure.json \
+  --filetypes DayAheadLoadForecast DayAheadRESForecast \
+  --start-day 2026-08-01 \
+  --end-day 2026-08-25 \
+  --output acceptance/admie/delivery_days.csv
+```
+
+The closure has **no default**: a schedule declares one or more dated regimes, each naming its
+clock and carrying a required reference to the market rule it comes from, because the rule can
+change over the audited history. `config/admie_gate_closure.example.json` shows the format and
+must have its placeholder reference replaced before use.
+
+Each delivery day is reported as `witnessed_pre_gate` (a retrieval performed before the closure
+observed the file), `asserted_pre_gate` (only the publisher's timestamp says so),
+`no_pre_gate_publication`, or `no_record`. A publication exactly at the closure counts as late.
+For accepted days the audit names the **decision-time revision** — the latest one published
+before closure, the only revision a backtest may read — and counts the revisions that superseded
+it afterwards. The command exits `2` on any unaccepted day.
+
+Passing establishes publication timing and nothing else. It accepts no file format, proves no
+forecasting skill, and does not lift the quarantine on its own; the summary says so in its own
+output. See `docs/admie_publication_timing_policy.md`.
 
 ## 3. Fetch ENTSO-E prices
 
@@ -982,6 +1025,8 @@ No official prices or personal API credentials are required.
 src/greek_bess/
   cli.py
   data/
+    admie.py
+    admie_timing.py
     entsoe.py
     henex.py
     quality.py
@@ -1035,7 +1080,10 @@ official-history acceptance have passed, and both the perfect-foresight optimize
 forecast-dispatch backtests have now been accepted over that full history. Private-token ENTSO-E
 retrieval and the cross-source reconciliation passed on 27 August 2026: 74,662 of 74,663 official
 intervals match exactly and neither source omits an interval the other publishes. Publication-time
-acceptance for ADMIE exogenous variables remains a parallel acceptance task.
+acceptance for ADMIE exogenous variables now has an executable audit and a workflow that produces
+its evidence; the remaining parallel acceptance work is the operator's declared gate-closure
+schedule, a live audited window, and the separate file-format acceptance that would together
+justify lifting the forecast-feature quarantine.
 
 ## Development
 
@@ -1084,12 +1132,14 @@ ruff check . && mypy && pytest -v && python -m build --wheel
 - [Implementation report v0.7.7 scenario-ensemble range reporting](docs/implementation_report_v0.7.7.md)
 - [Implementation report v0.7.8 availability and outage paths](docs/implementation_report_v0.7.8.md)
 - [Implementation report v0.7.9 declared negative-price events](docs/implementation_report_v0.7.9.md)
+- [Implementation report v0.7.10 ADMIE publication-timing acceptance](docs/implementation_report_v0.7.10.md)
 - [Official annual-history acceptance](docs/official_history_acceptance_2026-08-26.md)
 - [Official multi-year operational acceptance](docs/official_multiyear_operational_acceptance_2026-08-27.md)
 - [Official HEnEx to ENTSO-E reconciliation](docs/official_source_reconciliation_2026-08-27.md)
 - [Per-delivery-year replay decomposition](docs/official_annual_decomposition_2026-08-28.md)
 - [Durable custody of accepted official artifacts](docs/official_artifact_custody.md)
 - [Bootstrap source-era and resolution policy](docs/bootstrap_source_era_policy.md)
+- [ADMIE pre-auction publication-timing policy](docs/admie_publication_timing_policy.md)
 - [Current status](STATUS.md)
 - [Implementation plan](PLAN.md)
 - [Contributing guidance](CONTRIBUTING.md)

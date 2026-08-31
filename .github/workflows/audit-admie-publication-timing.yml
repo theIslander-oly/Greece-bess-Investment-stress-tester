@@ -1,0 +1,183 @@
+name: Audit ADMIE publication timing
+
+# The 2026-08-26 decision keeps ADMIE load and RES forecasts retrieved and timestamped but
+# unparsed until their publication sequence is proven to precede the target-day bid decision.
+# This workflow produces that evidence and nothing else: it retrieves catalog metadata and file
+# bytes for provenance, then compares publication times against the operator's declared gate
+# closure. No forecast file is parsed and no feature is built here.
+#
+# Dispatching this workflow before the gate closure of an upcoming delivery day is what turns
+# provider-asserted publication timestamps into contemporaneous witnesses: the audit records
+# that the retrieval itself saw the file listed before the closure it is judged against.
+
+on:
+  workflow_dispatch:
+    inputs:
+      start_day:
+        description: First delivery day to audit (YYYY-MM-DD)
+        required: true
+        type: string
+      end_day:
+        description: Last delivery day to audit (YYYY-MM-DD), inclusive
+        required: true
+        type: string
+      filetypes:
+        description: Space-separated ADMIE filetypes to audit
+        required: false
+        default: DayAheadLoadForecast DayAheadRESForecast ISP1DayAheadLoadForecast ISP1DayAheadRESForecast
+        type: string
+      gate_closure_config:
+        description: Declared gate-closure schedule JSON; see config/admie_gate_closure.example.json
+        required: false
+        default: config/admie_gate_closure.json
+        type: string
+      fail_on_finding:
+        description: Fail the run when any audited delivery day is not accepted
+        required: false
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      START_DAY: ${{ inputs.start_day }}
+      END_DAY: ${{ inputs.end_day }}
+      FILETYPES: ${{ inputs.filetypes }}
+      GATE_CLOSURE_CONFIG: ${{ inputs.gate_closure_config }}
+      FAIL_ON_FINDING: ${{ inputs.fail_on_finding }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install the project
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install .
+
+      - name: Verify the declared gate-closure schedule exists
+        shell: bash
+        run: |
+          if [[ ! -f "$GATE_CLOSURE_CONFIG" ]]; then
+            echo "No declared gate-closure schedule at '$GATE_CLOSURE_CONFIG'."
+            echo "The audit has no default closure time. Copy"
+            echo "config/admie_gate_closure.example.json, replace its placeholder reference with"
+            echo "the market rule and effective dates that were actually in force, add one regime"
+            echo "per rule change, and commit it as config/admie_gate_closure.json."
+            exit 1
+          fi
+
+      - name: Retrieve every ADMIE revision covering the audited window
+        shell: bash
+        run: |
+          # --all-revisions is required: the audit needs the revisions published after the gate
+          # closure as well as before it, so that a superseded decision-time revision is visible
+          # rather than silently replaced by the provider's latest publication.
+          mkdir -p acceptance/admie
+          greek-bess fetch-admie-files \
+            --filetypes $FILETYPES \
+            --start-day "$START_DAY" \
+            --end-day "$END_DAY" \
+            --all-revisions \
+            --raw-dir data/raw/admie \
+            --manifest acceptance/admie/retrieval_manifest.json
+
+      - name: Audit publication timing against the declared gate closure
+        shell: bash
+        run: |
+          set +e
+          greek-bess audit-admie-publication-timing \
+            acceptance/admie/retrieval_manifest.json \
+            --gate-closure "$GATE_CLOSURE_CONFIG" \
+            --filetypes $FILETYPES \
+            --start-day "$START_DAY" \
+            --end-day "$END_DAY" \
+            --output acceptance/admie/delivery_days.csv
+          status=$?
+          set -e
+          echo "AUDIT_EXIT=$status" >> "$GITHUB_ENV"
+          # Exit code 2 is a recorded timing finding; the evidence is still uploaded.
+          if [[ "$status" -ne 0 && "$status" -ne 2 ]]; then
+            exit "$status"
+          fi
+
+      - name: Summarize the audit
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          summary = json.loads(
+              Path("acceptance/admie/delivery_days.summary.json").read_text(encoding="utf-8")
+          )
+          verdict = (
+              "Every audited delivery day has a decision-time revision published before the "
+              "declared gate closure."
+              if summary["timing_accepted"]
+              else "At least one audited delivery day has no pre-closure publication."
+          )
+          lines = [
+              "# ADMIE publication-timing audit",
+              "",
+              f"**{verdict}**",
+              "",
+              f"- Window: `{summary['audit_start_day']}` to `{summary['audit_end_day']}`",
+              f"- Gate closure: `{summary['gate_closure_schedule']['schedule_id']}`",
+              f"- Evidence basis: `{summary['evidence_basis']}`",
+              f"- Observations: {summary['observation_count']}",
+              f"- Findings: {summary['finding_count']}",
+              "",
+              "This audit establishes publication timing only. It accepts no file format and "
+              "does not lift the forecast-feature quarantine.",
+              "",
+              "| Filetype | Days | Accepted | Witnessed | Min lead (min) | Days with later revisions |",
+              "| --- | ---: | ---: | ---: | ---: | ---: |",
+          ]
+          for filetype, row in summary["per_filetype"].items():
+              lead = row["min_decision_time_lead_minutes"]
+              lines.append(
+                  f"| {filetype} | {row['audited_day_count']} | {row['accepted_day_count']} | "
+                  f"{row['witnessed_day_count']} | "
+                  f"{'-' if lead is None else round(lead, 1)} | "
+                  f"{row['days_with_post_gate_revisions']} |"
+              )
+          print("\n".join(lines))
+          step_summary = os.environ.get("GITHUB_STEP_SUMMARY")
+          if step_summary:
+              Path(step_summary).write_text("\n".join(lines) + "\n", encoding="utf-8")
+          PY
+
+      - name: Upload the timing evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: admie-publication-timing-audit
+          path: |
+            acceptance/admie/retrieval_manifest.json
+            acceptance/admie/delivery_days.csv
+            acceptance/admie/delivery_days.observations.csv
+            acceptance/admie/delivery_days.summary.json
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Fail when the audit recorded a timing finding
+        if: ${{ inputs.fail_on_finding }}
+        shell: bash
+        run: |
+          if [[ "$AUDIT_EXIT" != "0" ]]; then
+            echo "The audit recorded a timing finding; see the uploaded evidence."
+            exit 1
+          fi

@@ -17,6 +17,12 @@ from .backtest import (
     simulate_degradation_dispatch,
 )
 from .data.admie import AdmieClient, AdmieError, select_latest_admie_revisions
+from .data.admie_timing import (
+    AdmiePublicationTimingError,
+    GateClosureSchedule,
+    audit_admie_publication_timing,
+    read_retrieval_manifests,
+)
 from .data.custody import (
     CustodyError,
     build_custody_record,
@@ -160,6 +166,31 @@ def build_parser() -> argparse.ArgumentParser:
     admie_files.add_argument("--raw-dir", type=Path, default=Path("data/raw/admie"))
     admie_files.add_argument("--manifest", type=Path)
     admie_files.add_argument("--all-revisions", action="store_true")
+
+    admie_timing = subparsers.add_parser(
+        "audit-admie-publication-timing",
+        help=(
+            "Audit ADMIE retrieval manifests against a declared day-ahead gate closure, "
+            "without parsing any file"
+        ),
+    )
+    admie_timing.add_argument(
+        "manifests", nargs="+", type=Path, help="ADMIE retrieval manifest JSON files"
+    )
+    admie_timing.add_argument(
+        "--gate-closure",
+        required=True,
+        type=Path,
+        help="Declared gate-closure schedule JSON; there is no default closure time",
+    )
+    admie_timing.add_argument("--filetypes", nargs="+", required=True)
+    admie_timing.add_argument("--start-day", required=True, type=date.fromisoformat)
+    admie_timing.add_argument("--end-day", required=True, type=date.fromisoformat)
+    admie_timing.add_argument(
+        "--output", required=True, type=Path, help="Per-delivery-day verdict CSV"
+    )
+    admie_timing.add_argument("--observations", type=Path, help="Per-observation evidence CSV")
+    admie_timing.add_argument("--summary", type=Path, help="Audit summary JSON")
 
     merge = subparsers.add_parser(
         "merge-canonical",
@@ -558,6 +589,23 @@ def main(argv: list[str] | None = None) -> int:
                 )
             )
             return 0
+        elif args.command == "audit-admie-publication-timing":
+            timing = audit_admie_publication_timing(
+                read_retrieval_manifests(args.manifests),
+                schedule=_read_gate_closure_schedule(args.gate_closure),
+                filetypes=args.filetypes,
+                start_day=args.start_day,
+                end_day=args.end_day,
+            )
+            observations_path = args.observations or _sibling_path(
+                args.output, ".observations.csv"
+            )
+            summary_path = args.summary or args.output.with_suffix(".summary.json")
+            _write_plain_csv(timing.delivery_days, args.output)
+            _write_plain_csv(timing.observations, observations_path)
+            _write_json(timing.summary, summary_path)
+            print(json.dumps(timing.summary, indent=2))
+            return 0 if timing.summary["timing_accepted"] else 2
         elif args.command == "merge-canonical":
             frame = concat_canonical(_read_canonical_csv(path) for path in args.inputs)
             report = assess_quality(frame, require_complete_days=not args.allow_partial_days)
@@ -833,6 +881,7 @@ def main(argv: list[str] | None = None) -> int:
         HenexArchiveError,
         HenexDailyError,
         AdmieError,
+        AdmiePublicationTimingError,
         OfficialDataDownloadError,
         BootstrapInputError,
         AvailabilityInputError,
@@ -980,6 +1029,11 @@ def _read_bootstrap_config(path: Path) -> BootstrapConfig:
 def _read_price_level_config(path: Path) -> PriceLevelShockConfig:
     payload = json.loads(path.read_text(encoding="utf-8"))
     return PriceLevelShockConfig.from_dict(payload)
+
+
+def _read_gate_closure_schedule(path: Path) -> GateClosureSchedule:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    return GateClosureSchedule.from_dict(payload)
 
 
 def _read_availability_config(path: Path) -> AvailabilityScheduleConfig:

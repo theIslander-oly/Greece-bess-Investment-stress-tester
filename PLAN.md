@@ -133,7 +133,24 @@ Suggested future branch sequence:
   - Perfect-foresight dispatch accepted over all 74,663 official intervals.
   - All four causal naïve baselines and both ML benchmarks accepted with leakage,
     settlement, coverage and determinism evidence.
-- [ ] Accept ADMIE load/RES file formats and prove pre-auction publication timing.
+- [~] Accept ADMIE load/RES file formats and prove pre-auction publication timing.
+  - [x] Executable publication-timing audit. `audit-admie-publication-timing` compares each
+    retrieved file's publication time against a declared dated gate-closure schedule with no
+    default, per filetype and delivery day, without parsing any file. Evidence witnessed by a
+    pre-closure retrieval is separated from publisher-asserted timestamps and never promoted to
+    it; a publication exactly at the closure counts as late; each accepted day names the
+    decision-time revision and counts the revisions that superseded it. Policy in
+    `docs/admie_publication_timing_policy.md`.
+  - [x] `Audit ADMIE publication timing` workflow, which retrieves every revision covering a
+    declared window and uploads the manifest, per-day verdicts, per-observation evidence and
+    summary.
+  - [ ] Operator declaration of the gate-closure schedule. The repository ships the format in
+    `config/admie_gate_closure.example.json` and refuses to supply the market rule: the audit
+    reports whatever closure it is given and cannot check a declaration against the rulebook.
+  - [ ] A live audited window against the official ADMIE catalog, recorded as evidence.
+  - [ ] File-format acceptance against real load/RES files. Timing acceptance establishes
+    publication timing alone; the quarantine is lifted only by format acceptance and a recorded
+    decision as well.
 - [~] Store the accepted normalized official history durably and privately outside Git before
   the workflow artifact expires (run `32971677163` artifact expires 2 September 2026).
   - [x] Storage procedure, custody-record format and verification tooling
