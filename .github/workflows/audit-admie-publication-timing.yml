@@ -24,7 +24,7 @@ on:
       filetypes:
         description: Space-separated ADMIE filetypes to audit
         required: false
-        default: DayAheadLoadForecast DayAheadRESForecast ISP1DayAheadLoadForecast ISP1DayAheadRESForecast
+        default: ISP1DayAheadLoadForecast ISP1DayAheadRESForecast ISP2DayAheadLoadForecast ISP2DayAheadRESForecast
         type: string
       gate_closure_config:
         description: Declared gate-closure schedule JSON; see config/admie_gate_closure.example.json

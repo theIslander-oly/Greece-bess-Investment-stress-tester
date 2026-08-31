@@ -553,7 +553,8 @@ Then retrieve candidate day-ahead load and RES forecast publications:
 
 ```bash
 greek-bess fetch-admie-files \
-  --filetypes DayAheadLoadForecast DayAheadRESForecast \
+  --filetypes ISP1DayAheadLoadForecast ISP1DayAheadRESForecast \
+    ISP2DayAheadLoadForecast ISP2DayAheadRESForecast \
   --start-day 2020-11-01 \
   --end-day 2026-08-26 \
   --raw-dir data/raw/admie \
@@ -576,7 +577,8 @@ any file:
 greek-bess audit-admie-publication-timing \
   data/raw/admie/retrieval_manifest.json \
   --gate-closure config/admie_gate_closure.json \
-  --filetypes DayAheadLoadForecast DayAheadRESForecast \
+  --filetypes ISP1DayAheadLoadForecast ISP1DayAheadRESForecast \
+    ISP2DayAheadLoadForecast ISP2DayAheadRESForecast \
   --start-day 2026-08-01 \
   --end-day 2026-08-25 \
   --output acceptance/admie/delivery_days.csv
@@ -1162,6 +1164,7 @@ ruff check . && mypy && pytest -v && python -m build --wheel
 - [Implementation report v0.7.9 declared negative-price events](docs/implementation_report_v0.7.9.md)
 - [Implementation report v0.7.10 ADMIE publication-timing acceptance](docs/implementation_report_v0.7.10.md)
 - [Implementation report v0.7.11 run manifest and report contract](docs/implementation_report_v0.7.11.md)
+- [ADMIE filetype acceptance implementation report](docs/implementation_report_admie_filetype_acceptance_2026-08-31.md)
 - [Official annual-history acceptance](docs/official_history_acceptance_2026-08-26.md)
 - [Official multi-year operational acceptance](docs/official_multiyear_operational_acceptance_2026-08-27.md)
 - [Official HEnEx to ENTSO-E reconciliation](docs/official_source_reconciliation_2026-08-27.md)
@@ -1169,6 +1172,7 @@ ruff check . && mypy && pytest -v && python -m build --wheel
 - [Durable custody of accepted official artifacts](docs/official_artifact_custody.md)
 - [Bootstrap source-era and resolution policy](docs/bootstrap_source_era_policy.md)
 - [ADMIE pre-auction publication-timing policy](docs/admie_publication_timing_policy.md)
+- [ADMIE day-ahead forecast filetype acceptance](docs/admie_filetype_acceptance_2026-08-31.md)
 - [Run manifest and report contract](docs/run_manifest_contract.md)
 - [Current status](STATUS.md)
 - [Implementation plan](PLAN.md)

@@ -6,6 +6,13 @@ All notable project changes are documented here.
 
 ### Added
 
+- Live ADMIE filetype acceptance against the 74-entry catalog and delivery days 26-28 August
+  2026. The ISP1 day-ahead load/RES pair returned six files per type and the ISP2 pair returned
+  three per type; the catalog-valid DAM pair returned none. Leakage-relevant declarations,
+  official-source metadata, workflow defaults, examples and tests now use the confirmed ISP1
+  and ISP2 pairs. This settles discovery only, not gate closure, publication timing or format
+  acceptance, and the forecast-feature quarantine remains in force.
+- `docs/admie_filetype_acceptance_2026-08-31.md` and a dated decision recording that evidence.
 - `fetch-admie-files` refuses an empty discovery instead of writing an empty manifest and
   exiting zero, matching the existing HEnEx daily behaviour. The live catalog is consulted so the
   message distinguishes a filetype the provider does not publish (naming the catalog's actual

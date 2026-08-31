@@ -3,6 +3,22 @@
 This file records decisions that materially affect interpretation or reproducibility. Add a
 dated entry when a milestone changes scope, assumptions, data handling or validation.
 
+## 2026-08-31 — Use the live-retrievable ISP1 and ISP2 day-ahead forecast filetypes
+
+- **Decision:** Declare `ISP1DayAheadLoadForecast`, `ISP1DayAheadRESForecast`,
+  `ISP2DayAheadLoadForecast` and `ISP2DayAheadRESForecast` as the leakage-relevant ADMIE
+  filetypes. Remove `DayAheadLoadForecast` and `DayAheadRESForecast` from that declaration while
+  retaining the recorded finding that the live catalog recognizes them.
+- **Reason:** The 74-entry live English catalog labels the DAM pair and both ISP pairs as daily
+  day-ahead forecasts. Over delivery days 26-28 August 2026, however, the DAM pair returned no
+  files, ISP1 returned six load and six RES files, and ISP2 returned three load and three RES
+  files. Leakage controls and audit defaults must follow retrievable publications rather than
+  catalog membership alone.
+- **Consequence:** Retrieval and the timing workflow target the confirmed ISP1/ISP2 pairs. This
+  decision accepts names and non-empty discovery only. It neither declares the auction gate
+  closure nor accepts publication timing or file formats, and it does not lift the 2026-08-26
+  forecast-feature quarantine.
+
 ## 2026-08-31 — Define a versioned run manifest before any presentation layer
 
 - **Decision:** Introduce `greek_bess.reporting`, a versioned run manifest and report contract,
