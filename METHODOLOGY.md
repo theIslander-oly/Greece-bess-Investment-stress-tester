@@ -13,7 +13,8 @@ The project is intentionally modular:
 7. evolve usable energy and power through degradation and augmentation cohorts;
 8. transform a continuous operating path into explicit unlevered cash flows;
 9. generate reproducible synthetic price paths for later stress scenarios (v0.7 foundation);
-10. report non-probabilistic ranges of margin outcomes across explicitly named scenarios.
+10. apply declared availability and outage schedules to those paths;
+11. report non-probabilistic ranges of margin outcomes across explicitly named scenarios.
 
 Each stage emits auditable interval, daily and summary outputs rather than only a headline
 return.
@@ -247,7 +248,41 @@ compression factor, reference basis, the reference level applied, original and c
 and input source/version. Outputs are synthetic scenarios and not forecasts or investment
 evidence.
 
-## 13. Scenario-ensemble range reporting
+## 13. Declared availability and outage paths
+
+Availability enters dispatch as a per-interval fraction scaling grid-side charge and discharge
+power. A schedule is a declared baseline fraction \(a_0\) together with declared windows
+\(W_1,\dots,W_m\), each carrying its own fraction \(a_j\); interval \(i\) receives
+
+\[a(i)=\begin{cases}a_j & \text{if interval } i \text{ is covered by } W_j,\\ a_0 &
+\text{otherwise.}\end{cases}\]
+
+Windows may not overlap, so every interval has exactly one declared fraction.
+
+Outage timing, duration and depth are judgmental scenario inputs and are never sampled. A
+forced-outage rate would be a probability statement, and nothing calibrates one: no Greek
+merchant battery has operated, and no fleet maintenance record or warranty series is in scope. A
+schedule is a statement of what to examine, in the same sense as a compression factor. The
+baseline fraction has no default, because `AGENTS.md` requires availability to be explicit and a
+silent 1.0 would make full availability an accident of the input.
+
+A window applies whole to every interval it covers, and a boundary falling strictly inside a
+delivery interval is refused rather than prorated. Prorating would apply a schedule finer than
+the one declared and rounding would apply a different one, so the only truthful options are to
+refuse or to require an aligned boundary. Because the profile is built from the paths' own
+canonical UTC keys, 23- and 25-hour market days and the quarter-hour regime are handled by
+construction.
+
+One schedule maps onto every path of a run, and paths that do not share one canonical interval
+identity are refused. What differs between paths is the sampled price; the physical condition is
+common, which is what keeps the paths comparable to each other.
+
+The declared schedule is recorded by identity in the dispatch summary and travels with the
+result, so a margin traces back to the outage assumption behind it rather than to an anonymous
+array of fractions. Dispatch retains perfect foresight, so it positions the battery for a
+declared outage and the resulting margin remains an upper bound.
+
+## 14. Scenario-ensemble range reporting
 
 The final v0.7 layer composes accepted outputs rather than computing new ones. Given two or more
 scenarios, each of which is a bootstrap-path dispatch that has already been solved and recorded,
@@ -269,18 +304,24 @@ percentile, likelihood, expected value, loss metric, ranking or central case is 
 rule is executable rather than documentary: every emitted column and summary key is checked
 against a list of excluded terms, and a match raises instead of being written.
 
-Scenarios are combined only on an equivalent basis. Battery parameters, the terminal-energy
-constraint, the availability assumption, the selected source era and the path identities must
-match across the ensemble, and a difference is refused with the mismatching basis named. This is
-the standing invariant that strategies are compared only under equivalent physical and
-terminal-energy constraints: a range taken across two different batteries or two different source
-eras would report a modelling difference as if it were a scenario difference.
+Scenarios are combined only on an equivalent basis, and the basis is the asset and the sample:
+battery parameters, the terminal-energy constraint, the selected source era and the path
+identities must match across the ensemble, and a difference is refused with the mismatching basis
+named. This is the standing invariant that strategies are compared only under equivalent physical
+and terminal-energy constraints: a range taken across two different batteries or two different
+source eras would report a modelling difference as if it were a scenario difference.
+
+The price transformation and the availability schedule are on the other side of that line. They
+describe the judgment under examination and are expected to differ, so they are carried as
+provenance on every reported figure rather than checked as basis. An ensemble that refused a
+differing availability schedule could never place a declared outage against a baseline, which is
+the comparison an outage scenario exists to make.
 
 Each reported figure carries its scenario name, the transformation method and parameters that
 produced it, the source-era selection and the input run identity, so a range traces back to the
 runs behind it.
 
-## 14. Validation
+## 15. Validation
 
 Code changes must pass Ruff, mypy, pytest and a clean wheel build. Tests use deterministic
 synthetic inputs or small purpose-built fixtures. Official-data acceptance is recorded as

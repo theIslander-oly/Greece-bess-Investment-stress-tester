@@ -14,8 +14,16 @@ Two rules follow from that framing and are enforced rather than documented:
   emitted column and summary key, so the invariant fails loudly instead of eroding.
 - Scenarios are aggregated only on an equivalent basis. Comparing strategies only under
   equivalent physical and terminal-energy constraints is a standing project invariant, so a
-  difference in battery parameters, terminal-energy basis, availability assumption, source era
-  or path identity is refused by name rather than reconciled.
+  difference in battery parameters, terminal-energy basis, source era or path identity is
+  refused by name rather than reconciled.
+
+The line the basis draws is between the asset and what is done to it. Battery parameters, the
+terminal-energy constraint, the source era and the path identities describe the asset and the
+sample, and must match. The price transformation and the availability schedule describe the
+judgment being examined, and are expected to differ: they are carried as provenance on every
+reported figure instead. An ensemble that refused a differing availability schedule could never
+compare a declared outage against a baseline, which is the comparison an outage scenario exists
+to make.
 """
 
 from __future__ import annotations
@@ -39,8 +47,10 @@ ENSEMBLE_POLICY = (
     "so no probability, percentile, expected value, loss metric, ranking or central case is "
     "produced. There is no default scenario set and no implicit baseline; every scenario is "
     "named and supplied by the caller. Scenarios are combined only on an equivalent basis: "
-    "identical battery parameters, terminal-energy constraint, availability assumption, "
-    "source-era selection and path identity. Any mismatch is refused and named."
+    "identical battery parameters, terminal-energy constraint, source-era selection and path "
+    "identity. Any mismatch is refused and named. The price transformation and the "
+    "availability schedule are the judgments under examination rather than part of the basis, "
+    "and are recorded as provenance on every reported figure."
 )
 
 FORBIDDEN_REPORT_TERMS = (
@@ -225,7 +235,6 @@ def _equivalent_basis(runs: Sequence[ScenarioRun]) -> dict[str, Any]:
     checks = (
         ("battery parameters", _battery_basis),
         ("terminal-energy constraint", _terminal_energy_basis),
-        ("availability assumption", _availability_basis),
         ("source-era selection", _source_era_basis),
         ("path count and path identity", _path_basis),
     )
@@ -244,7 +253,6 @@ def _equivalent_basis(runs: Sequence[ScenarioRun]) -> dict[str, Any]:
     return {
         "battery_configuration": battery,
         "terminal_energy_basis": _terminal_energy_basis(reference),
-        "availability_assumption": _availability_basis(reference),
         "source_era": _source_era_basis(reference),
         "path_identity": _path_basis(reference),
     }
@@ -292,13 +300,21 @@ def _terminal_energy_basis(run: ScenarioRun) -> dict[str, Any]:
     return basis
 
 
-def _availability_basis(run: ScenarioRun) -> Any:
+def _availability_declaration(run: ScenarioRun) -> dict[str, Any]:
+    """Return the availability a scenario declared, as provenance rather than as basis.
+
+    A differing schedule is expected — it is the judgment under examination — but an
+    unrecorded one is refused, because a margin whose availability assumption is unknown
+    cannot be placed in a range against one whose assumption is known.
+    """
+
     availability = run.dispatch_summary.get("availability_assumption")
-    if availability is None:
+    if not isinstance(availability, Mapping):
         raise ScenarioEnsembleInputError(
-            f"Scenario {run.name} dispatch summary must record availability_assumption"
+            f"Scenario {run.name} dispatch summary must record availability_assumption; "
+            "availability is a declared scenario input and has no default"
         )
-    return _plain(availability)
+    return {str(key): _plain(value) for key, value in availability.items()}
 
 
 def _source_era_basis(run: ScenarioRun) -> dict[str, Any]:
@@ -353,6 +369,7 @@ def _scenario_margins(runs: Sequence[ScenarioRun]) -> pd.DataFrame:
     records: list[dict[str, Any]] = []
     for order, run in enumerate(runs):
         transformation = _transformation(run)
+        availability = _availability_declaration(run)
         era = _source_era_basis(run)
         bootstrap_configuration = run.bootstrap_summary.get("configuration")
         seed = (
@@ -372,6 +389,9 @@ def _scenario_margins(runs: Sequence[ScenarioRun]) -> pd.DataFrame:
                     "transformation_parameters": json.dumps(
                         transformation["parameters"], sort_keys=True
                     ),
+                    "availability_type": str(availability.get("type", "unrecorded")),
+                    "availability_schedule_id": availability.get("schedule_id"),
+                    "availability_declaration": json.dumps(availability, sort_keys=True),
                     "source_era_resolution_minutes": era.get("resolution_minutes"),
                     "source_era_first_day": era.get("first_day"),
                     "source_era_last_day": era.get("last_day"),
@@ -406,6 +426,8 @@ def _scenario_ranges(margins: pd.DataFrame) -> pd.DataFrame:
                 "minimum_scenario_transformation_parameters": str(
                     lowest["transformation_parameters"]
                 ),
+                "minimum_scenario_availability_type": str(lowest["availability_type"]),
+                "minimum_scenario_availability_schedule_id": lowest["availability_schedule_id"],
                 "minimum_scenario_input_run_id": str(lowest["input_run_id"]),
                 "maximum_net_market_margin_eur": float(highest[MARGIN_COLUMN]),
                 "maximum_scenario_name": str(highest["scenario_name"]),
@@ -414,6 +436,8 @@ def _scenario_ranges(margins: pd.DataFrame) -> pd.DataFrame:
                 "maximum_scenario_transformation_parameters": str(
                     highest["transformation_parameters"]
                 ),
+                "maximum_scenario_availability_type": str(highest["availability_type"]),
+                "maximum_scenario_availability_schedule_id": highest["availability_schedule_id"],
                 "maximum_scenario_input_run_id": str(highest["input_run_id"]),
                 "spread_net_market_margin_eur": float(
                     highest[MARGIN_COLUMN] - lowest[MARGIN_COLUMN]
@@ -454,6 +478,7 @@ def _summary(
                 "scenario_name": run.name,
                 "input_run_id": run.run_id,
                 "transformation": _transformation(run),
+                "availability": _availability_declaration(run),
                 "source_era": _source_era_basis(run),
                 "bootstrap_configuration": _plain(run.bootstrap_summary.get("configuration")),
                 "path_count": _path_basis(run)["path_count"],

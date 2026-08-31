@@ -3,6 +3,58 @@
 This file records decisions that materially affect interpretation or reproducibility. Add a
 dated entry when a milestone changes scope, assumptions, data handling or validation.
 
+## 2026-08-31 — Declare outages, never sample them
+
+- **Decision:** Represent availability as a declared schedule: a baseline available fraction
+  with no default, plus zero or more declared windows, each with its own available fraction in
+  [0, 1]. Timing, duration and depth are judgmental scenario inputs. No forced-outage rate, no
+  sampled failure times, no availability distribution and no expected unavailability. A window
+  is applied whole to every interval it covers; a boundary falling strictly inside an interval
+  is refused, naming the interval, rather than prorated or rounded. Overlapping windows, a
+  window covering no dispatched interval, and a configuration field such as
+  `forced_outage_rate` are all refused by name.
+- **Reason:** A sampled outage is a probability statement, and the 2026-08-27 entry already
+  settled that this project does not make those without an independently validated calibration.
+  Nothing calibrates a forced-outage rate here: there is no operating history for a Greek
+  merchant battery, no fleet maintenance record and no warranty claim series in scope, so a rate
+  would be a number borrowed from another asset class and dressed as evidence. A declared window
+  is honest about being a judgment. The boundary refusal follows the same principle one level
+  down: prorating a half-covered interval would apply a schedule finer than the one declared, and
+  rounding it would apply a different one, so the only truthful options are to refuse or to make
+  the caller state an aligned boundary.
+- **Consequence:** An outage scenario is as informative as the placement the caller chose, and no
+  more. The model gives no help choosing when the outage falls, which is recorded in
+  `LIMITATIONS.md`: the same outage costs almost nothing in a low-spread week and a great deal in
+  a high-spread one. A schedule with no windows is legitimate and is the declared
+  full-availability scenario, which is preferable to an implied one. Because dispatch has perfect
+  foresight, it positions the battery for a declared outage, so the reported margin stays an
+  upper bound and is a weaker bound for unplanned outages than for planned maintenance.
+
+## 2026-08-31 — The equivalent basis is the asset, not the scenario
+
+- **Decision:** Narrow the scenario-ensemble equivalent-basis check introduced on 2026-08-31 so
+  that it covers battery parameters, the terminal-energy constraint, the source-era selection and
+  the path identities, and no longer covers the availability assumption. Availability joins the
+  price transformation as a declared scenario input, carried as provenance on every margin row,
+  on both ends of every range row and in the per-scenario summary. An unrecorded availability
+  assumption is still refused.
+- **Reason:** The earlier rule was too strong and would have made the availability milestone
+  unusable: an ensemble that refuses a differing availability schedule can never place a declared
+  outage against a baseline, which is the only comparison an outage scenario exists to make. The
+  standing invariant in `AGENTS.md` is about comparing *strategies* under equal constraints, so
+  the honest line is between the asset and what is done to it. Battery parameters, the
+  terminal-energy constraint, the source era and the path identities describe the asset and the
+  sample and must match; the price transformation and the availability schedule describe the
+  judgment being examined and are expected to differ. Keeping availability in the basis and
+  adding an opt-out flag was rejected: an escape hatch that callers learn to pass erodes the
+  invariant faster than a clearly drawn line.
+- **Consequence:** A range across a baseline and a declared outage is now reportable, and reads
+  as what it is — the cost of that declared outage on those sampled paths, under one unchanged
+  battery. The information is not lost from the record: availability is more visible as
+  provenance than it was as a basis field, because it now appears on every reported row rather
+  than once per ensemble. The forbidden-term guard extends over the new keys automatically, since
+  it walks nested summary keys, so the declaration vocabulary is deliberately plain.
+
 ## 2026-08-31 — Report scenario ranges as judgments, and refuse an unequal basis
 
 - **Decision:** Report the minimum, maximum and spread of margin outcomes across scenarios the
@@ -52,6 +104,10 @@ dated entry when a milestone changes scope, assumptions, data handling or valida
   refusal names what differs, so the operator can see which run to redo. Path identity, not only
   path count, must match: two scenarios with two paths each but different `path_id` values are
   different sampled paths and are refused.
+- **Amended the same day** by "The equivalent basis is the asset, not the scenario": the
+  availability assumption was removed from the basis and became declared scenario provenance.
+  The rest of this entry stands. The entry is kept rather than rewritten, because the reasoning
+  that put availability in the basis is the reasoning the amendment had to answer.
 
 ## 2026-08-28 — Fail on warnings this project emits, report the rest
 

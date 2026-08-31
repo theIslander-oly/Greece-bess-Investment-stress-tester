@@ -1,13 +1,40 @@
 # Project status
 
-**Version:** 0.7.7
+**Version:** 0.7.8
 **Updated:** 31 August 2026
 **Status:** Official multi-year operational acceptance and HEnEx-to-ENTSO-E cross-source
 reconciliation passed; artifact custody tooling in place awaiting the operator upload;
 per-delivery-year replay decomposition accepted against the official history;
-bootstrap source-era policy, spread compression and non-probabilistic scenario-ensemble range
-reporting landed; availability/outage integration and negative-price-event transformations
-remain unapproved and out of scope
+bootstrap source-era policy, spread compression, non-probabilistic scenario-ensemble range
+reporting and declared availability/outage paths landed, completing the approved v0.7 modeling
+scope; negative-price-event transformations remain deferred and unapproved
+
+## Declared availability and outage paths
+
+- `build_availability_profile` and `dispatch-bootstrap-paths --availability-schedule` apply a
+  declared availability schedule to every path of a run: a baseline available fraction with no
+  default, plus zero or more declared outage windows each carrying its own fraction in [0, 1].
+- Outages are **declared, never sampled**. A forced-outage rate would be an uncalibrated
+  probability — there is no operating history for a Greek merchant battery, no fleet maintenance
+  record and no warranty series in scope — so a configuration carrying one is refused by name.
+- The baseline has no default, following the source-era and reference-basis precedent, because
+  `AGENTS.md` requires availability to be an explicit assumption. An empty window list is the
+  declared full-availability scenario and is preferable to an implied one.
+- A window applies whole to every interval it covers. A boundary strictly inside an interval is
+  refused, naming the interval, rather than prorated: prorating would apply a finer schedule than
+  the one declared, and rounding would apply a different one.
+- Overlapping windows, a window covering no dispatched interval, reversed or empty windows, naive
+  timestamps, duplicate outage identifiers and out-of-range fractions are refused. Paths that do
+  not share one canonical interval identity are refused, so what differs between paths is the
+  sampled price and not the physical condition.
+- The dispatch summary records the schedule by identity and the run writes per-interval
+  availability provenance, so a margin traces back to the outage assumption behind it.
+- Availability scales grid-side charge and discharge power only. Auxiliary load, state-of-charge
+  drift while unavailable, restart behaviour and any cost of the outage itself are not modelled,
+  and a perfect-foresight dispatch positions the battery for a declared outage, so the margin
+  stays an upper bound.
+- Timing is the whole content of the scenario and the model gives no help choosing it: the same
+  outage costs almost nothing in a low-spread week and a great deal in a high-spread one.
 
 ## Scenario-ensemble range reporting
 
@@ -25,10 +52,15 @@ remain unapproved and out of scope
   percentile, likelihood, expected value, loss metric, ranking or central case is produced, and
   the exclusion is executable: every emitted column name and summary key is checked against
   `FORBIDDEN_REPORT_TERMS`, and a match raises instead of being written.
-- Scenarios are combined only on an equivalent basis. Battery parameters, the terminal-energy
-  constraint, the availability assumption, the selected source era and the path identities must
-  match, and a difference is refused with the mismatching basis and both values named. The
-  terminal-energy constraint is checked separately, with the derived terminal energy recorded.
+- Scenarios are combined only on an equivalent basis, and the basis is the asset and the sample:
+  battery parameters, the terminal-energy constraint, the selected source era and the path
+  identities must match, and a difference is refused with the mismatching basis and both values
+  named. The terminal-energy constraint is checked separately, with the derived terminal energy
+  recorded.
+- The price transformation and the availability schedule are the judgments under examination
+  rather than part of the basis, and are carried as provenance on every reported figure. Without
+  that line an ensemble could never place a declared outage against a baseline (decision entry
+  2026-08-31). An unrecorded availability assumption is still refused.
 - Every reported figure carries its scenario name, transformation method and parameters, the
   source-era selection and the input run identity, so a range traces back to the runs behind it.
 - The range is bounded by the scenarios the caller chose. Adding or removing one changes it with

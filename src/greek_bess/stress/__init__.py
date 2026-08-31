@@ -1,5 +1,13 @@
 """Reproducible research stress-path generators."""
 
+from .availability import (
+    AVAILABILITY_POLICY,
+    AvailabilityInputError,
+    AvailabilityProfile,
+    AvailabilityScheduleConfig,
+    OutageWindow,
+    build_availability_profile,
+)
 from .bootstrap import (
     SOURCE_ERA_POLICY,
     BootstrapConfig,
@@ -49,6 +57,12 @@ __all__ = [
     "detect_source_eras",
     "select_source_era",
     "generate_seasonal_bootstrap_paths",
+    "AVAILABILITY_POLICY",
+    "AvailabilityInputError",
+    "AvailabilityProfile",
+    "AvailabilityScheduleConfig",
+    "OutageWindow",
+    "build_availability_profile",
     "BootstrapDispatchInputError",
     "BootstrapDispatchResult",
     "dispatch_bootstrap_paths",

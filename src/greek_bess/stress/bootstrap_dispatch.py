@@ -13,6 +13,8 @@ from greek_bess.data.quality import assess_quality
 from greek_bess.data.schema import ensure_canonical
 from greek_bess.dispatch import BatteryDispatchConfig, optimize_perfect_foresight
 
+from .availability import AvailabilityProfile
+
 
 class BootstrapDispatchInputError(ValueError):
     """Raised when bootstrap paths are not equivalent, complete synthetic paths."""
@@ -31,9 +33,14 @@ def dispatch_bootstrap_paths(
     paths: pd.DataFrame,
     config: BatteryDispatchConfig,
     *,
-    availability: float | Sequence[float] | pd.Series = 1.0,
+    availability: float | Sequence[float] | pd.Series | AvailabilityProfile = 1.0,
 ) -> BootstrapDispatchResult:
     """Optimize every path independently under one battery and availability profile.
+
+    ``availability`` may be a constant, one common interval profile, or an
+    ``AvailabilityProfile`` built from a declared outage schedule. A declared schedule records
+    its own identity in the summary, so a margin can be traced back to the outage assumption
+    that produced it rather than to an anonymous array of fractions.
 
     This is a collection of perfect-foresight gross-margin upper bounds on synthetic paths,
     not a forecast, probability model, or estimate of expected revenue.
@@ -41,6 +48,10 @@ def dispatch_bootstrap_paths(
 
     validated, path_ids = _validate_paths(paths)
     intervals_per_path = len(validated) // len(path_ids)
+    declaration: dict[str, Any] | None = None
+    if isinstance(availability, AvailabilityProfile):
+        declaration = dict(availability.declaration)
+        availability = availability.values
     availability_values = _common_availability(availability, intervals_per_path)
     schedules: list[pd.DataFrame] = []
     summaries: list[dict[str, Any]] = []
@@ -68,16 +79,26 @@ def dispatch_bootstrap_paths(
             "path_count": len(path_ids),
             "interval_count_per_path": intervals_per_path,
             "battery_configuration": config.to_dict(),
-            "availability_assumption": (
-                {"type": "constant", "fraction": float(availability_values[0])}
-                if np.all(availability_values == availability_values[0])
-                else {"type": "common_interval_profile", "interval_count": intervals_per_path}
+            "availability_assumption": _availability_assumption(
+                availability_values, intervals_per_path, declaration
             ),
             "input_source": "synthetic seasonal bootstrap paths",
             "is_forecast": False,
             "is_investment_evidence": False,
         },
     )
+
+
+def _availability_assumption(
+    values: np.ndarray, interval_count: int, declaration: dict[str, Any] | None
+) -> dict[str, Any]:
+    """Record what the dispatch assumed about availability, by name where one was declared."""
+
+    if declaration is not None:
+        return declaration
+    if np.all(values == values[0]):
+        return {"type": "constant", "fraction": float(values[0])}
+    return {"type": "common_interval_profile", "interval_count": interval_count}
 
 
 def _validate_paths(paths: pd.DataFrame) -> tuple[pd.DataFrame, list[int]]:

@@ -6,6 +6,41 @@ All notable project changes are documented here.
 
 ### Added
 
+- `greek_bess.stress.build_availability_profile` and `dispatch-bootstrap-paths
+  --availability-schedule`, completing the last approved v0.7 modeling item. An availability
+  schedule is a declared baseline available fraction with **no default** plus zero or more
+  declared outage windows, each with its own available fraction in [0, 1]. Timing, duration and
+  depth are judgmental scenario inputs and are never sampled: a forced-outage rate would be an
+  uncalibrated probability, and a configuration carrying one is refused by name.
+- A window is applied whole to every interval it covers. A boundary falling strictly inside a
+  delivery interval is refused, naming the interval, rather than prorated or rounded — prorating
+  would apply a schedule finer than the one declared. Overlapping windows, a window covering no
+  dispatched interval, reversed or empty windows, naive timestamps, duplicate outage identifiers
+  and out-of-range fractions are all refused. A schedule with an empty window list is the
+  declared full-availability scenario.
+- The profile is built from the paths' own canonical UTC keys, so 23/25-hour market days and the
+  quarter-hour regime are handled by construction, and paths that do not share one interval
+  identity are refused. Per-interval provenance records the schedule, the baseline, the outage
+  covering each interval and the applied fraction, and `dispatch-bootstrap-paths` writes it as an
+  `.availability.csv` sidecar.
+- The dispatch summary records a declared schedule by identity — `schedule_id`, baseline,
+  window count, derated intervals and hours, minimum fraction and each window with its applied
+  interval count — so a margin traces back to the outage assumption rather than to an anonymous
+  array of fractions.
+
+### Changed
+
+- The scenario-ensemble equivalent-basis check no longer covers the availability assumption.
+  The basis is now the asset and the sample — battery parameters, terminal-energy constraint,
+  source-era selection and path identity — while the price transformation and the availability
+  schedule are the judgments under examination and are expected to differ. Without this an
+  ensemble could never place a declared outage against a baseline, which is the comparison an
+  outage scenario exists to make. Availability is carried as provenance instead: every margin
+  row gains `availability_type`, `availability_schedule_id` and `availability_declaration`, each
+  range row names the availability at both ends, and the summary records each scenario's
+  declaration. An unrecorded availability assumption is still refused. See the dated
+  `DECISIONS.md` entries of 2026-08-31.
+
 - `report-scenario-ensemble` command and `greek_bess.stress.report_scenario_ensemble`, which
   compose bootstrap-path dispatch results already produced under two or more named scenarios and
   report the minimum, maximum and spread of their margin outcomes. Ranges are taken per bootstrap

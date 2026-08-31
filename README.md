@@ -10,7 +10,7 @@ on that replay core.
 This is not financial advice, an investment-grade forecast, a bankable revenue study or a
 substitute for legal, tax, grid-connection and market-access diligence.
 
-**Current release:** `v0.7.7` — non-probabilistic scenario-ensemble range reporting.
+**Current release:** `v0.7.8` — deterministic declared availability and outage paths.
 
 ## What this tool cannot tell you
 
@@ -218,6 +218,58 @@ almost entirely, so it contains no episode from which a competitive spread respo
 inferred. No probability, percentile, loss metric or ranking attaches to a factor. See
 [`LIMITATIONS.md`](LIMITATIONS.md).
 
+## Declare an availability or outage path
+
+`dispatch-bootstrap-paths --availability-schedule` applies a declared availability schedule to
+every path of a run. A schedule is a baseline available fraction plus zero or more declared
+outage windows:
+
+```json
+{
+  "schedule_id": "planned_maintenance_2026",
+  "baseline_available_fraction": 1.0,
+  "windows": [
+    {
+      "outage_id": "summer_maintenance",
+      "start_utc": "2026-07-06T00:00:00+00:00",
+      "end_utc": "2026-07-13T00:00:00+00:00",
+      "available_fraction": 0.0
+    }
+  ]
+}
+```
+
+```bash
+greek-bess dispatch-bootstrap-paths data/processed/bootstrap_paths.csv \
+  --config examples/battery_50mw_100mwh.json \
+  --availability-schedule config/availability-schedule.json \
+  --output data/processed/outage_dispatch.csv
+```
+
+`baseline_available_fraction` is **declared with no default**, like the source era and the
+compression reference basis: availability is one of the assumptions the project requires to be
+explicit. A window list of `[]` is the declared full-availability scenario, which is preferable
+to an implied one. `--availability` and `--availability-schedule` are mutually exclusive.
+
+**Outages are declared, never sampled.** A forced-outage rate would be a probability, and
+nothing calibrates one — no Greek merchant battery has operated, and no fleet maintenance record
+or warranty series is in scope — so a configuration carrying one is refused by name. A schedule
+states what to examine; it is not a rate, a guarantee, a maintenance plan or a reliability model.
+
+A window applies whole to every interval it covers. A boundary falling strictly inside a delivery
+interval is refused, naming the interval, rather than prorated — prorating would apply a schedule
+finer than the one declared. Overlapping windows, a window covering no dispatched interval,
+reversed windows, naive timestamps and out-of-range fractions are refused too.
+
+The run writes an `.availability.csv` sidecar recording the schedule, the baseline, the outage
+covering each interval and the applied fraction, and the dispatch summary records the schedule by
+identity, so a margin traces back to the outage assumption behind it.
+
+Availability scales grid-side charge and discharge power only, and dispatch retains perfect
+foresight, so it positions the battery for a declared outage and the margin stays an upper bound.
+Timing is the whole content of the scenario: the same outage costs almost nothing in a low-spread
+week and a great deal in a high-spread one. See [`LIMITATIONS.md`](LIMITATIONS.md).
+
 ## Report a range across named scenarios
 
 The `report-scenario-ensemble` command composes scenarios that have **already been dispatched**
@@ -271,10 +323,15 @@ probability, percentile, likelihood, expected value, loss metric, ranking or cen
 produced, and the rule is executable: an emitted column or summary key matching
 `greek_bess.stress.FORBIDDEN_REPORT_TERMS` raises rather than being written.
 
-Scenarios are combined only on an **equivalent basis**. Differing battery parameters,
-terminal-energy constraint, availability assumption, source-era selection or path identity are
-refused by name rather than reconciled, because comparing strategies only under equivalent
-physical and terminal-energy constraints is a standing project invariant.
+Scenarios are combined only on an **equivalent basis**, and the basis is the asset and the
+sample: differing battery parameters, terminal-energy constraint, source-era selection or path
+identity are refused by name rather than reconciled, because comparing strategies only under
+equivalent physical and terminal-energy constraints is a standing project invariant.
+
+The price transformation and the availability schedule are on the other side of that line. They
+are the judgments under examination, are expected to differ, and are carried as provenance on
+every reported figure — so a declared outage can be ranged against a baseline, and each end of a
+range names the availability it was solved under.
 
 ## Repository guide
 
@@ -907,6 +964,7 @@ src/greek_bess/
     forecast_dispatch.py
     ml_dispatch.py
   stress/
+    availability.py
     bootstrap.py
     bootstrap_dispatch.py
     ensemble.py
@@ -924,8 +982,9 @@ tests/
 The next modeling phase is deterministic scenario stress testing. The explicit bootstrap
 source-era/resolution policy, the spread-compression transformations (the first-order
 cannibalisation risk, expressed as explicit judgmental scenarios) and the non-probabilistic
-scenario-ensemble range reporting have landed; deterministic availability/outage paths and
-negative-price-event transformations remain unapproved and out of scope.
+scenario-ensemble range reporting and the declared availability/outage paths have landed,
+completing the approved v0.7 modeling scope; negative-price-event transformations remain
+deferred and unapproved.
 Percentile outputs (P5/P50/P95) and loss probabilities were removed from the roadmap because
 the seasonal bootstrap resamples a non-stationary 2020-2026 history uniformly and therefore
 supports no calibrated probability interpretation; see the 2026-08-27 decision entries.
@@ -982,6 +1041,7 @@ ruff check . && mypy && pytest -v && python -m build --wheel
 - [Implementation report v0.7.5 bootstrap source-era policy](docs/implementation_report_v0.7.5.md)
 - [Implementation report v0.7.6 spread compression](docs/implementation_report_v0.7.6.md)
 - [Implementation report v0.7.7 scenario-ensemble range reporting](docs/implementation_report_v0.7.7.md)
+- [Implementation report v0.7.8 availability and outage paths](docs/implementation_report_v0.7.8.md)
 - [Official annual-history acceptance](docs/official_history_acceptance_2026-08-26.md)
 - [Official multi-year operational acceptance](docs/official_multiyear_operational_acceptance_2026-08-27.md)
 - [Official HEnEx to ENTSO-E reconciliation](docs/official_source_reconciliation_2026-08-27.md)
