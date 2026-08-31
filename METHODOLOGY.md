@@ -12,7 +12,8 @@ The project is intentionally modular:
 6. plan dispatch on forecasts and settle the plan on realized prices;
 7. evolve usable energy and power through degradation and augmentation cohorts;
 8. transform a continuous operating path into explicit unlevered cash flows;
-9. generate reproducible synthetic price paths for later stress scenarios (v0.7 foundation).
+9. generate reproducible synthetic price paths for later stress scenarios (v0.7 foundation);
+10. report non-probabilistic ranges of margin outcomes across explicitly named scenarios.
 
 Each stage emits auditable interval, daily and summary outputs rather than only a headline
 return.
@@ -246,7 +247,40 @@ compression factor, reference basis, the reference level applied, original and c
 and input source/version. Outputs are synthetic scenarios and not forecasts or investment
 evidence.
 
-## 13. Validation
+## 13. Scenario-ensemble range reporting
+
+The final v0.7 layer composes accepted outputs rather than computing new ones. Given two or more
+scenarios, each of which is a bootstrap-path dispatch that has already been solved and recorded,
+the report gives, for every bootstrap path \(k\) the scenarios share,
+
+\[\min_{s\in S} m_{s,k},\qquad \max_{s\in S} m_{s,k},\qquad
+\max_{s\in S} m_{s,k}-\min_{s\in S} m_{s,k},\]
+
+where \(m_{s,k}\) is the settled net market margin of path \(k\) under named scenario \(s\).
+Nothing is aggregated across paths: a total or an average over sampled paths would read as an
+expectation, and uniform block resampling of a non-stationary history supports no such reading.
+
+The scenario set \(S\) is supplied by the caller and every member is named. There is no default
+scenario set and no implicit baseline; an untransformed replay is declared as a member like any
+other, because a scenario the report supplies itself would be a judgment the reader never made.
+
+A range across named scenarios is a range across judgments, not a distribution. No probability,
+percentile, likelihood, expected value, loss metric, ranking or central case is produced. The
+rule is executable rather than documentary: every emitted column and summary key is checked
+against a list of excluded terms, and a match raises instead of being written.
+
+Scenarios are combined only on an equivalent basis. Battery parameters, the terminal-energy
+constraint, the availability assumption, the selected source era and the path identities must
+match across the ensemble, and a difference is refused with the mismatching basis named. This is
+the standing invariant that strategies are compared only under equivalent physical and
+terminal-energy constraints: a range taken across two different batteries or two different source
+eras would report a modelling difference as if it were a scenario difference.
+
+Each reported figure carries its scenario name, the transformation method and parameters that
+produced it, the source-era selection and the input run identity, so a range traces back to the
+runs behind it.
+
+## 14. Validation
 
 Code changes must pass Ruff, mypy, pytest and a clean wheel build. Tests use deterministic
 synthetic inputs or small purpose-built fixtures. Official-data acceptance is recorded as

@@ -173,6 +173,28 @@
 - Compressed paths are synthetic scenarios. No likelihood, percentile, loss metric or ranking
   is attached to a factor, and no dispatch, finance or investment conclusion follows from one.
 
+## Scenario-ensemble limitations
+
+- A range across named scenarios is a range across judgments, not a distribution. The scenarios
+  carry no weights and no likelihoods, so no probability, percentile, expected value, loss metric,
+  ranking or central case is produced, and none can be inferred from the reported minimum and
+  maximum. A midpoint of the range is not a central case.
+- The range is bounded by the scenarios the caller chose. It says nothing about outcomes outside
+  that set, and adding or removing a scenario moves the range without any new evidence. A wide
+  range describes disagreement between named judgments; a narrow one is not confirmation.
+- Each end of a range is a perfect-foresight gross-margin upper bound on synthetic bootstrap
+  paths and inherits every limitation of the bootstrap, the transformation and the dispatch that
+  produced it. A range of upper bounds is still a range of upper bounds.
+- Ranges are reported per bootstrap path and never aggregated across paths, because a total or an
+  average over sampled paths would read as an expectation the uniform block resampling cannot
+  support. A per-path range is not a statement about any particular future.
+- Scenarios solved under different battery parameters, terminal-energy constraints, availability
+  assumptions, source eras or path identities are refused rather than reconciled. This is a
+  refusal to approximate, not evidence that such a comparison would otherwise be meaningful.
+- The report composes recorded summaries. It cannot detect that two scenarios were produced from
+  different price histories if their recorded bases agree, so the summaries supplied must be the
+  ones the runs actually emitted.
+
 ## Price-level shock limitations
 
 - The additive constant is a user-configured sensitivity, not an estimated price process or a

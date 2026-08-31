@@ -68,8 +68,15 @@ Suggested future branch sequence:
     every within-day range by a declared factor in [0, 1] about a declared daily reference
     basis with no default, preserves zero and negative results without clipping, and reports
     the intervals whose sign changes. Widening is out of scope (decision entry 2026-08-28).
-  - [ ] Scenario-ensemble range reporting (minimum/maximum/spread across named scenarios),
-    explicitly labelled non-probabilistic.
+  - [x] Scenario-ensemble range reporting (minimum/maximum/spread across named scenarios),
+    explicitly labelled non-probabilistic. `report-scenario-ensemble` composes bootstrap-path
+    dispatch results already produced under two or more scenarios the caller names, and reports
+    the range per bootstrap path. There is no default scenario set and no implicit baseline, and
+    nothing is aggregated across paths. No probability, percentile, expected value, loss metric,
+    ranking or central case is produced, and the exclusion is executable: an emitted column or
+    summary key matching `FORBIDDEN_REPORT_TERMS` raises. Scenarios solved under different
+    battery parameters, terminal-energy constraints, availability assumptions, source eras or
+    path identities are refused with the mismatch named (decision entries 2026-08-31).
   - Removed from scope on 2026-08-27: P5/P50/P95 percentiles and loss probabilities. Uniform
     block resampling of the non-stationary 2020-2026 history supports no calibrated
     probability interpretation, and additional constant price-level shocks, which leave

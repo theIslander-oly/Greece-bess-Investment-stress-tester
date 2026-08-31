@@ -59,11 +59,14 @@ from .stress import (
     BootstrapInputError,
     PriceLevelShockConfig,
     PriceLevelShockInputError,
+    ScenarioEnsembleInputError,
+    ScenarioRun,
     SpreadCompressionConfig,
     apply_price_level_shock,
     apply_spread_compression,
     dispatch_bootstrap_paths,
     generate_seasonal_bootstrap_paths,
+    report_scenario_ensemble,
 )
 
 
@@ -335,6 +338,32 @@ def build_parser() -> argparse.ArgumentParser:
     compression.add_argument("--output", required=True, type=Path, help="Compressed paths CSV")
     compression.add_argument("--provenance", type=Path, help="Interval provenance CSV")
     compression.add_argument("--summary", type=Path, help="Method and configuration JSON")
+
+    ensemble = subparsers.add_parser(
+        "report-scenario-ensemble",
+        help=(
+            "Report the non-probabilistic range of margins across named, already-dispatched "
+            "scenarios"
+        ),
+    )
+    ensemble.add_argument(
+        "--manifest",
+        required=True,
+        type=Path,
+        help=(
+            "Scenario manifest JSON. Every scenario is named explicitly; there is no default "
+            "scenario set and no implicit baseline"
+        ),
+    )
+    ensemble.add_argument("--output", required=True, type=Path, help="Per-path range CSV")
+    ensemble.add_argument(
+        "--margins",
+        type=Path,
+        help="Per-scenario, per-path margin CSV with provenance; defaults beside output",
+    )
+    ensemble.add_argument(
+        "--summary", type=Path, help="Method summary JSON; defaults beside output"
+    )
 
     annual = subparsers.add_parser(
         "decompose-annual-replay",
@@ -636,6 +665,15 @@ def main(argv: list[str] | None = None) -> int:
             _write_json(bootstrap_dispatch_result.summary, summary_path)
             print(json.dumps(bootstrap_dispatch_result.summary, indent=2))
             return 0
+        elif args.command == "report-scenario-ensemble":
+            ensemble_result = report_scenario_ensemble(_read_scenario_manifest(args.manifest))
+            margins_path = args.margins or _sibling_path(args.output, ".margins.csv")
+            summary_path = args.summary or args.output.with_suffix(".summary.json")
+            _write_plain_csv(ensemble_result.scenario_ranges, args.output)
+            _write_plain_csv(ensemble_result.scenario_margins, margins_path)
+            _write_json(ensemble_result.summary, summary_path)
+            print(json.dumps(ensemble_result.summary, indent=2))
+            return 0
         elif args.command == "decompose-annual-replay":
             annual_result = decompose_annual_replay(
                 _read_canonical_csv(args.prices),
@@ -730,6 +768,7 @@ def main(argv: list[str] | None = None) -> int:
         BootstrapInputError,
         BootstrapDispatchInputError,
         PriceLevelShockInputError,
+        ScenarioEnsembleInputError,
         AnnualDecompositionError,
         CustodyError,
         OSError,
@@ -871,6 +910,77 @@ def _read_bootstrap_config(path: Path) -> BootstrapConfig:
 def _read_price_level_config(path: Path) -> PriceLevelShockConfig:
     payload = json.loads(path.read_text(encoding="utf-8"))
     return PriceLevelShockConfig.from_dict(payload)
+
+
+def _read_scenario_manifest(path: Path) -> list[ScenarioRun]:
+    """Read the explicit list of named scenarios an ensemble is built from.
+
+    Every field is required, including ``transformation_summary_json``: a scenario with no
+    transformation states that as ``null`` rather than omitting the key, so an untransformed
+    replay is a declared member of the ensemble and never an implicit baseline. Relative
+    paths resolve against the manifest's own directory.
+    """
+
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ScenarioEnsembleInputError("Scenario manifest JSON must contain one object")
+    unknown = sorted(set(payload) - {"scenarios"})
+    if unknown:
+        raise ScenarioEnsembleInputError(
+            f"Unknown scenario manifest fields: {', '.join(unknown)}"
+        )
+    declared = payload.get("scenarios")
+    if not isinstance(declared, list):
+        raise ScenarioEnsembleInputError("Scenario manifest must declare a scenarios list")
+
+    root = path.parent
+    required = {
+        "name",
+        "run_id",
+        "path_summaries_csv",
+        "dispatch_summary_json",
+        "bootstrap_summary_json",
+        "transformation_summary_json",
+    }
+    runs: list[ScenarioRun] = []
+    for entry in declared:
+        if not isinstance(entry, dict):
+            raise ScenarioEnsembleInputError("Every manifest scenario must be one object")
+        unknown = sorted(set(entry) - required)
+        missing = sorted(required - set(entry))
+        if unknown:
+            raise ScenarioEnsembleInputError(
+                f"Unknown scenario fields: {', '.join(unknown)}"
+            )
+        if missing:
+            raise ScenarioEnsembleInputError(
+                f"Missing scenario fields: {', '.join(missing)}"
+            )
+        transformation = entry["transformation_summary_json"]
+        runs.append(
+            ScenarioRun(
+                name=entry["name"],
+                run_id=entry["run_id"],
+                path_summaries=pd.read_csv(root / str(entry["path_summaries_csv"])),
+                dispatch_summary=_read_summary_json(root / str(entry["dispatch_summary_json"])),
+                bootstrap_summary=_read_summary_json(
+                    root / str(entry["bootstrap_summary_json"])
+                ),
+                transformation_summary=(
+                    None
+                    if transformation is None
+                    else _read_summary_json(root / str(transformation))
+                ),
+            )
+        )
+    return runs
+
+
+def _read_summary_json(path: Path) -> dict[str, object]:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ScenarioEnsembleInputError(f"{path.name} must contain one summary object")
+    return payload
 
 
 def _read_spread_compression_config(path: Path) -> SpreadCompressionConfig:

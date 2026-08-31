@@ -15,6 +15,16 @@ from .bootstrap_dispatch import (
     BootstrapDispatchResult,
     dispatch_bootstrap_paths,
 )
+from .ensemble import (
+    ENSEMBLE_POLICY,
+    FORBIDDEN_REPORT_TERMS,
+    MARGIN_COLUMN,
+    NO_TRANSFORMATION,
+    ScenarioEnsembleInputError,
+    ScenarioEnsembleResult,
+    ScenarioRun,
+    report_scenario_ensemble,
+)
 from .price_level import (
     PriceLevelShockConfig,
     PriceLevelShockInputError,
@@ -42,6 +52,14 @@ __all__ = [
     "BootstrapDispatchInputError",
     "BootstrapDispatchResult",
     "dispatch_bootstrap_paths",
+    "ENSEMBLE_POLICY",
+    "FORBIDDEN_REPORT_TERMS",
+    "MARGIN_COLUMN",
+    "NO_TRANSFORMATION",
+    "ScenarioEnsembleInputError",
+    "ScenarioEnsembleResult",
+    "ScenarioRun",
+    "report_scenario_ensemble",
     "PriceLevelShockConfig",
     "PriceLevelShockInputError",
     "PriceLevelShockResult",

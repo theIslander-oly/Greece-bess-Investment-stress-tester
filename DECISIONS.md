@@ -3,6 +3,56 @@
 This file records decisions that materially affect interpretation or reproducibility. Add a
 dated entry when a milestone changes scope, assumptions, data handling or validation.
 
+## 2026-08-31 — Report scenario ranges as judgments, and refuse an unequal basis
+
+- **Decision:** Report the minimum, maximum and spread of margin outcomes across scenarios the
+  caller names, and label the result non-probabilistic in the output rather than only in prose.
+  No probability, percentile, likelihood, expected value, loss metric, ranking or central case is
+  produced, including no mean or median across scenarios or across bootstrap paths. The exclusion
+  is enforced in code: `greek_bess.stress.FORBIDDEN_REPORT_TERMS` is checked against every emitted
+  column name and summary key, and a match raises instead of being written. Every scenario is
+  named by the caller; there is no default scenario set and no implicit baseline, so an
+  untransformed replay is declared as a member like any other and an ensemble of fewer than two
+  scenarios is refused.
+- **Reason:** A range across named scenarios is a range across judgments, not a draw from a
+  distribution. The scenarios carry no weights and nothing calibrates them: the 2026-08-27 entry
+  removed percentiles and loss probabilities because uniform block resampling of a non-stationary
+  2020-2026 history supports no calibrated probability interpretation, and that reasoning applies
+  unchanged to an expected value, a central case or a ranking built from the same paths. A prose
+  disclaimer beside a field named `p50` loses; a report that cannot emit the field does not. An
+  implicit baseline would be the same failure in a different place — a scenario the reader never
+  chose, presented as the reference the others deviate from.
+- **Consequence:** Ensembles are supplied explicitly and read as bounded sets of judgments. The
+  summary's ensemble-wide figures are the lowest and highest margin with the scenario and path
+  that attained each, and the widest and narrowest per-path spread; none of them is a central
+  case. Adding or removing a scenario changes the range without new evidence, which is a property
+  of the method and is recorded in `LIMITATIONS.md`. A future probability layer would need an
+  independently validated calibration methodology and its own decision entry, and would have to
+  amend the forbidden-term list deliberately rather than by accident.
+
+## 2026-08-31 — Combine scenarios only on an equivalent basis, and name the mismatch
+
+- **Decision:** Refuse to report a range across scenarios that were not solved on the same basis.
+  Battery parameters, the terminal-energy constraint, the availability assumption, the selected
+  source era and the path identities must match across the ensemble, and a difference raises with
+  the mismatching basis named and both values shown. The terminal-energy constraint is checked
+  separately from the rest of the battery configuration, with the derived terminal energy in MWh
+  recorded, so a scenario differing only in day-end energy is refused by that name. A scenario
+  whose recorded dispatch summary carries no battery configuration, or whose bootstrap summary
+  carries no selected source era, is refused rather than admitted on partial evidence.
+- **Reason:** `AGENTS.md` holds it as a standing invariant that strategies are compared only under
+  equivalent physical and terminal-energy constraints. A range is a comparison. Taking one across
+  two different batteries, two different day-end energy constraints or two different source eras
+  reports a modelling difference as if it were a scenario difference, and the wider the resulting
+  range the more convincing the artifact looks. Approximating over the difference — rescaling by
+  capacity, aligning path counts, blending eras — would manufacture the comparability the inputs
+  do not have.
+- **Consequence:** An ensemble is only as wide as its equivalent members, and building one across
+  bases is a deliberate act of re-running the scenarios on a common basis rather than a flag. The
+  refusal names what differs, so the operator can see which run to redo. Path identity, not only
+  path count, must match: two scenarios with two paths each but different `path_id` values are
+  different sampled paths and are refused.
+
 ## 2026-08-28 — Fail on warnings this project emits, report the rest
 
 - **Decision:** Build pandas timedeltas from numeric values with an explicit unit, and configure
