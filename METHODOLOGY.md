@@ -380,7 +380,33 @@ demonstrates no forecasting skill, and does not lift the quarantine on its own; 
 carries that exclusion in its own output. The policy is in
 `docs/admie_publication_timing_policy.md`.
 
-## 17. Validation
+## 17. Run manifest and report contract
+
+Every result-producing module emits a summary. A recorded run wraps one of those summaries in a
+versioned manifest that carries it verbatim and adds a stable projection: a declared result kind
+from a closed registry, the basis that kind reports on, the required non-empty result label, the
+producing command, the project version, the caller's declared inputs and the project's standing
+exclusions.
+
+The projection exists so that a consumer can read a result without knowing which module produced
+it, and so that the requirement in `PROMPT.md` that outputs retain their source and limitation
+labels through downstream analysis is enforced rather than remembered. A summary without a
+non-empty label, or without the keys its kind guarantees, is refused.
+
+The basis distinguishes what a figure describes: a historical replay upper bound, a historical
+forecast backtest, a synthetic scenario, screening arithmetic, or data-acceptance evidence. The
+same euro amount means something different under each.
+
+The check on distributional terms is scoped to the result kinds that declare it, because the term
+list bans claims about the distribution of outcomes rather than the words themselves; a settled
+average input price, a model's mean absolute error and a publisher's median lead time are none of
+them distributional claims. Where a summary declares the standing claims itself, the contract
+verifies them rather than ignoring them.
+
+A manifest is refused on read when its schema version, result kind or declared basis is not one
+this build understands. Policy in `docs/run_manifest_contract.md`.
+
+## 18. Validation
 
 Code changes must pass Ruff, mypy, pytest and a clean wheel build. Tests use deterministic
 synthetic inputs or small purpose-built fixtures. Official-data acceptance is recorded as

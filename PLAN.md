@@ -97,6 +97,17 @@ Suggested future branch sequence:
     partial intervals and windows covering nothing are refused (decision entry 2026-08-31).
 - [ ] v0.8 — Research interface and exportable reports (the corrected v0.7 scope and its formal
   review are complete, but v0.8 remains gated until the user explicitly approves its design).
+  - [x] Prerequisite: a versioned run manifest and report contract (v0.7.11), which the
+    completed-v0.7 review named as the thing to define before any consumer couples to incidental
+    summary keys. `greek_bess.reporting` carries any result summary verbatim under a stable
+    projection and makes label retention executable. It adds no interface, exporter, rendering
+    surface or dependency, and does not open v0.8. Policy in `docs/run_manifest_contract.md`.
+  - [ ] A design answering, at minimum: what the landing state is when no judgmental input has
+    been declared (every one of them has no default by recorded decision, and an interface must
+    render something); how every rendered figure carries its label and the standing exclusions;
+    and what an export refuses to contain. Reconsidered 2026-08-31: v0.8 appears in the suggested
+    branch sequence but not in `PROMPT.md`'s approved scope, so opening it is a scope change
+    rather than the next milestone.
 
 ## Parallel acceptance track
 

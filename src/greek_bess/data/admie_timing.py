@@ -41,6 +41,12 @@ from zoneinfo import ZoneInfo
 
 import pandas as pd
 
+ADMIE_TIMING_LABEL = (
+    "Pre-auction publication-timing audit of quarantined ADMIE forecast files; data-acceptance "
+    "evidence about publication timing only, not a file-format acceptance, a forecast or "
+    "investment evidence."
+)
+
 ADMIE_TIMING_POLICY = (
     "An ADMIE forecast file is usable as a causal day-ahead feature for a delivery day only if "
     "it was published strictly before that day's declared gate closure. The gate closure is "
@@ -715,6 +721,7 @@ def _summary(
         is_accepted and (delivery_days["day_status"] == WITNESSED_PRE_GATE).all()
     )
     return {
+        "result_label": ADMIE_TIMING_LABEL,
         "method": "admie_publication_timing_audit",
         "policy": ADMIE_TIMING_POLICY,
         "gate_closure_schedule": schedule.to_dict(),

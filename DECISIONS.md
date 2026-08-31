@@ -3,6 +3,43 @@
 This file records decisions that materially affect interpretation or reproducibility. Add a
 dated entry when a milestone changes scope, assumptions, data handling or validation.
 
+## 2026-08-31 — Define a versioned run manifest before any presentation layer
+
+- **Decision:** Introduce `greek_bess.reporting`, a versioned run manifest and report contract,
+  as a standalone milestone rather than as part of a v0.8 interface. A manifest carries the
+  producing module's summary verbatim and adds a stable projection: a `result_kind` from a closed
+  registry, the `basis` that kind reports on, the required non-empty `result_label`, the caller's
+  declared identifiers and inputs, and the project's standing exclusions. `schema_version` is
+  checked on read and a newer contract is refused rather than reinterpreted.
+- **Reason:** The completed-v0.7 review named this as the prerequisite for any future interface,
+  and it is worth doing whether or not one is ever built. Sixteen modules emit summaries across
+  twenty-seven commands, and before this exactly one artifact carried a schema version. More
+  importantly, `PROMPT.md` requires outputs to retain their source and limitation labels through
+  downstream analysis; fifteen of sixteen modules kept that convention and nothing enforced it.
+  A consumer could drop the label and no check would notice.
+- **Consequence:** The contract adds no interface, exporter, rendering surface or dependency, and
+  does not open v0.8. The label is carried from the summary rather than re-declared in the
+  registry, so the two cannot drift. `audit-admie-publication-timing` gained the `result_label` it
+  was missing; no other module changed.
+
+## 2026-08-31 — Scope the distributional-term check to the kinds that declare it
+
+- **Decision:** Apply `FORBIDDEN_REPORT_TERMS` in the report contract only to result kinds
+  declaring `forbids_distributional_terms` — today `scenario_ensemble_range` alone, matching the
+  ensemble's existing behaviour exactly — rather than to every manifest. Where a summary declares
+  `is_probabilistic`, `is_forecast` or `is_investment_evidence`, cross-check it and refuse any
+  value but false.
+- **Reason:** The term list bans claims about the distribution of **outcomes**, not the words
+  themselves. The perfect-foresight optimizer's own summary reports
+  `average_charge_price_eur_per_mwh`, a settled input price; a forecast benchmark reports a mean
+  absolute error, an accuracy statistic about a model; the publication-timing audit reports a
+  median lead time, a statistic about a publisher. A blanket ban would refuse all three. A check
+  that refuses honest arithmetic teaches its readers to route around it, which is worse than no
+  check.
+- **Consequence:** A regression test asserts that a genuine optimizer summary carries such a
+  term, so the reason for the scoping stays visible rather than being tidied away later. A kind
+  that should forbid the terms declares it explicitly when it is added.
+
 ## 2026-08-31 — Make ADMIE pre-auction timing an executable audit with a declared closure
 
 - **Decision:** Discharge the 2026-08-26 ADMIE quarantine through an audit rather than a

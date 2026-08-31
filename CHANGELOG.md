@@ -6,6 +6,35 @@ All notable project changes are documented here.
 
 ### Added
 
+- `greek_bess.reporting` and the `record-run-manifest` / `verify-run-manifest` commands: the
+  versioned run manifest and report contract the completed-v0.7 review named as the prerequisite
+  for any future presentation layer. A manifest carries the producing module's summary verbatim
+  and adds a stable projection: declared `result_kind` from a closed registry, the `basis` that
+  kind reports on, the required non-empty `result_label`, `produced_by`, `project_version`,
+  declared inputs and the project's standing exclusions.
+- Label retention is now executable rather than conventional. `PROMPT.md` requires that model
+  outputs retain their source and limitation labels through downstream analysis; a result whose
+  summary lacks a non-empty `result_label`, or a kind's other guaranteed keys, is refused.
+- `schema_version` is checked on read: a manifest from a newer contract is refused rather than
+  read on the assumption its fields still mean the same thing, as is a declared basis that
+  disagrees with its result kind, and an unknown kind names the closed registry.
+- The distributional-term check is scoped to the result kinds that declare it — today
+  `scenario_ensemble_range` alone, exactly matching the ensemble's existing behaviour. A blanket
+  ban would refuse the optimizer's own `average_charge_price_eur_per_mwh`, a forecast benchmark's
+  mean absolute error and the ADMIE audit's median lead time, none of which claim a distribution
+  over outcomes. A regression test pins a real summary carrying such a term so the reason stays
+  visible.
+- Where a summary declares the standing claims itself, the contract cross-checks rather than
+  ignores them: `is_probabilistic`, `is_forecast` or `is_investment_evidence` set to anything but
+  false is refused as a scope change requiring a recorded decision.
+- `docs/run_manifest_contract.md`, `docs/implementation_report_v0.7.11.md`, and a dated decision.
+
+### Changed
+
+- `audit-admie-publication-timing` summaries now carry a `result_label`, closing the one gap in
+  the project's otherwise universal labelling convention and letting the audit be recorded under
+  the contract. No verdict, refusal or provenance behaviour changed.
+
 - `audit-admie-publication-timing` and `greek_bess.data.admie_timing`, turning the
   `requires_pre_auction_timing_validation` quarantine label into an executable acceptance step.
   The audit reads ADMIE retrieval manifests and answers, per filetype and delivery day, whether a

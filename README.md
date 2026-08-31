@@ -10,8 +10,8 @@ on that replay core.
 This is not financial advice, an investment-grade forecast, a bankable revenue study or a
 substitute for legal, tax, grid-connection and market-access diligence.
 
-**Current release:** `v0.7.10` — executable pre-auction publication-timing acceptance for
-the quarantined ADMIE forecast files.
+**Current release:** `v0.7.11` — a versioned run manifest and report contract over every
+recorded result.
 
 ## What this tool cannot tell you
 
@@ -85,7 +85,11 @@ The current implementation provides:
   basis, exact per-day range scaling and preserved zero and negative prices;
 - an executable pre-auction publication-timing audit for the quarantined ADMIE forecast files,
   against a declared dated gate-closure schedule with no default, separating contemporaneously
-  witnessed evidence from publisher-asserted timestamps and naming the decision-time revision.
+  witnessed evidence from publisher-asserted timestamps and naming the decision-time revision;
+- a versioned run manifest and report contract that carries any result summary verbatim under a
+  stable projection — declared result kind, the basis it reports on, its required non-empty
+  result label and the project's standing exclusions — refusing an unlabelled result and a
+  manifest from a schema version it does not understand.
 
 The first v0.7 foundation also provides deterministic, seeded seasonal block-bootstrap price
 paths with sampled-block provenance. Each validated path can now be dispatched independently
@@ -594,6 +598,28 @@ Passing establishes publication timing and nothing else. It accepts no file form
 forecasting skill, and does not lift the quarantine on its own; the summary says so in its own
 output. See `docs/admie_publication_timing_policy.md`.
 
+## Record a result under the report contract
+
+Every result summary can be recorded under a versioned run manifest, so a consumer reads a
+stable projection rather than one of sixteen modules' incidental summary keys:
+
+```bash
+greek-bess record-run-manifest dispatch.summary.json \
+  --result-kind perfect_foresight_dispatch \
+  --manifest-id 2026-08-31-replay \
+  --produced-by optimize-perfect-foresight \
+  --output dispatch.manifest.json
+
+greek-bess verify-run-manifest dispatch.manifest.json
+```
+
+The manifest carries the producing module's summary verbatim and adds the declared result kind,
+the basis it reports on (`historical_replay_upper_bound`, `historical_forecast_backtest`,
+`synthetic_scenario`, `screening_arithmetic` or `data_acceptance_evidence`), the required
+non-empty result label and the project's standing exclusions. A result whose summary lacks its
+label is refused, as is a manifest whose schema version or result kind this build does not
+understand. See `docs/run_manifest_contract.md`.
+
 ## 3. Fetch ENTSO-E prices
 
 Register on the ENTSO-E Transparency Platform and obtain REST API access. Store the personal token in the environment:
@@ -1048,6 +1074,8 @@ src/greek_bess/
     degradation_dispatch.py
     forecast_dispatch.py
     ml_dispatch.py
+  reporting/
+    contract.py
   stress/
     availability.py
     bootstrap.py
@@ -1133,6 +1161,7 @@ ruff check . && mypy && pytest -v && python -m build --wheel
 - [Implementation report v0.7.8 availability and outage paths](docs/implementation_report_v0.7.8.md)
 - [Implementation report v0.7.9 declared negative-price events](docs/implementation_report_v0.7.9.md)
 - [Implementation report v0.7.10 ADMIE publication-timing acceptance](docs/implementation_report_v0.7.10.md)
+- [Implementation report v0.7.11 run manifest and report contract](docs/implementation_report_v0.7.11.md)
 - [Official annual-history acceptance](docs/official_history_acceptance_2026-08-26.md)
 - [Official multi-year operational acceptance](docs/official_multiyear_operational_acceptance_2026-08-27.md)
 - [Official HEnEx to ENTSO-E reconciliation](docs/official_source_reconciliation_2026-08-27.md)
@@ -1140,6 +1169,7 @@ ruff check . && mypy && pytest -v && python -m build --wheel
 - [Durable custody of accepted official artifacts](docs/official_artifact_custody.md)
 - [Bootstrap source-era and resolution policy](docs/bootstrap_source_era_policy.md)
 - [ADMIE pre-auction publication-timing policy](docs/admie_publication_timing_policy.md)
+- [Run manifest and report contract](docs/run_manifest_contract.md)
 - [Current status](STATUS.md)
 - [Implementation plan](PLAN.md)
 - [Contributing guidance](CONTRIBUTING.md)
