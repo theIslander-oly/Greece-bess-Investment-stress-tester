@@ -226,6 +226,21 @@
   different price histories if their recorded bases agree, so the summaries supplied must be the
   ones the runs actually emitted.
 
+## Declared negative-price-event limitations
+
+- Event timing, duration and depth are user declarations, not estimates. The transformation
+  gives no evidence about how often negative prices occur, how long they last, how deep they are
+  or which future intervals they affect.
+- Applying the same named windows to every bootstrap path is a controlled sensitivity, not a
+  calibrated joint price process. The bootstrap seed reproduces the input paths; it does not
+  make the event declaration probable.
+- An absolute replacement price deliberately overwrites the sampled price inside a named window.
+  Results therefore depend directly on the selected timing and depth and cannot support a
+  forecast, expected count, likelihood, percentile, ranking or investment conclusion.
+- Windows operate only at the path's delivery-interval resolution. Sub-interval events are
+  refused, not prorated, and interactions with separate transformations are neither composed nor
+  silently resolved by this command.
+
 ## Price-level shock limitations
 
 - The additive constant is a user-configured sensitivity, not an estimated price process or a

@@ -10,7 +10,7 @@ on that replay core.
 This is not financial advice, an investment-grade forecast, a bankable revenue study or a
 substitute for legal, tax, grid-connection and market-access diligence.
 
-**Current release:** `v0.7.8` — deterministic declared availability and outage paths.
+**Current release:** `v0.7.9` — deterministic declared negative-price events.
 
 ## What this tool cannot tell you
 
@@ -217,6 +217,46 @@ replayed history calibrates it: the 2020-2026 record predates operating battery 
 almost entirely, so it contains no episode from which a competitive spread response could be
 inferred. No probability, percentile, loss metric or ranking attaches to a factor. See
 [`LIMITATIONS.md`](LIMITATIONS.md).
+
+## Apply declared negative-price events
+
+The `apply-negative-price-events` command replaces prices only in explicitly declared,
+interval-aligned UTC windows. Each event declares its identifier, inclusive start, exclusive end
+and strictly negative replacement price in EUR/MWh; none has a default. An empty event list is
+the exact identity. For example, `config/negative-price-events.json` may contain:
+
+```json
+{
+  "transformation_id": "declared_midday_events",
+  "events": [
+    {
+      "event_id": "day_one_midday",
+      "start_utc": "2026-06-01T09:00:00+00:00",
+      "end_utc": "2026-06-01T12:00:00+00:00",
+      "price_eur_per_mwh": -50.0
+    }
+  ]
+}
+```
+
+```bash
+greek-bess apply-negative-price-events data/processed/bootstrap_paths.csv \
+  --config config/negative-price-events.json \
+  --output data/processed/negative_event_paths.csv
+```
+
+The event times are declarations, never draws or estimates. The command does not accept a
+frequency, likelihood, fitted rate, expected count, percentile, ranking or threshold search. A
+window is applied to every path and must begin and end on interval edges, cover at least one
+interval and not overlap another event. A partial, empty or overlapping window is refused rather
+than rounded, prorated or ignored.
+
+This is not a level shift or spread compression in disguise: only named windows are replaced by
+absolute declared negative prices. Every other price, including an existing zero or negative
+price, stays numerically unchanged. No price is clipped or floored. The sibling provenance CSV
+has one row per path interval, including untouched intervals, and the summary reports negative
+and zero interval counts before and after. Outputs remain labelled synthetic, non-probabilistic,
+non-forecast and unsuitable as investment evidence.
 
 ## Declare an availability or outage path
 
@@ -979,12 +1019,11 @@ tests/
 
 ## Next phase
 
-The next modeling phase is deterministic scenario stress testing. The explicit bootstrap
-source-era/resolution policy, the spread-compression transformations (the first-order
-cannibalisation risk, expressed as explicit judgmental scenarios) and the non-probabilistic
-scenario-ensemble range reporting and the declared availability/outage paths have landed,
-completing the approved v0.7 modeling scope; negative-price-event transformations remain
-deferred and unapproved.
+The approved v0.7 deterministic scenario scope is complete: source-era selection, additive
+level sensitivity, spread compression, declared availability/outage paths, non-probabilistic
+scenario ranges and declared negative-price events have landed. The v0.8 research interface and
+exportable reports remain gated until the completed v0.7 scope is reviewed; no v0.8 surface is
+implemented or prepared here.
 Percentile outputs (P5/P50/P95) and loss probabilities were removed from the roadmap because
 the seasonal bootstrap resamples a non-stationary 2020-2026 history uniformly and therefore
 supports no calibrated probability interpretation; see the 2026-08-27 decision entries.
@@ -1042,6 +1081,7 @@ ruff check . && mypy && pytest -v && python -m build --wheel
 - [Implementation report v0.7.6 spread compression](docs/implementation_report_v0.7.6.md)
 - [Implementation report v0.7.7 scenario-ensemble range reporting](docs/implementation_report_v0.7.7.md)
 - [Implementation report v0.7.8 availability and outage paths](docs/implementation_report_v0.7.8.md)
+- [Implementation report v0.7.9 declared negative-price events](docs/implementation_report_v0.7.9.md)
 - [Official annual-history acceptance](docs/official_history_acceptance_2026-08-26.md)
 - [Official multi-year operational acceptance](docs/official_multiyear_operational_acceptance_2026-08-27.md)
 - [Official HEnEx to ENTSO-E reconciliation](docs/official_source_reconciliation_2026-08-27.md)

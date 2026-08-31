@@ -231,6 +231,81 @@ class CliTests(unittest.TestCase):
             self.assertEqual(summary["configuration"]["transformation_id"], "half_spread")
             self.assertEqual(summary["configuration"]["reference_basis"], "daily_mean")
 
+    def test_negative_price_event_command_writes_auditable_outputs(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            prices = root / "prices.csv"
+            bootstrap_config = root / "bootstrap.json"
+            paths = root / "paths.csv"
+            event_config = root / "events.json"
+            transformed = root / "negative-events.csv"
+            with redirect_stdout(io.StringIO()):
+                main(
+                    [
+                        "generate-synthetic",
+                        "--start-day",
+                        "2025-01-01",
+                        "--end-day",
+                        "2025-01-04",
+                        "--output",
+                        str(prices),
+                    ]
+                )
+            bootstrap_config.write_text(
+                json.dumps({"start_day": "2026-01-01", "end_day": "2026-01-02"}),
+                encoding="utf-8",
+            )
+            with redirect_stdout(io.StringIO()):
+                main(
+                    [
+                        "generate-bootstrap-paths",
+                        str(prices),
+                        "--config",
+                        str(bootstrap_config),
+                        "--output",
+                        str(paths),
+                    ]
+                )
+            raw_paths = pd.read_csv(paths)
+            event_config.write_text(
+                json.dumps(
+                    {
+                        "transformation_id": "declared_dip",
+                        "events": [
+                            {
+                                "event_id": "two_hours",
+                                "start_utc": raw_paths.loc[2, "delivery_start_utc"],
+                                "end_utc": raw_paths.loc[4, "delivery_start_utc"],
+                                "price_eur_per_mwh": -75.0,
+                            }
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            with redirect_stdout(io.StringIO()):
+                exit_code = main(
+                    [
+                        "apply-negative-price-events",
+                        str(paths),
+                        "--config",
+                        str(event_config),
+                        "--output",
+                        str(transformed),
+                    ]
+                )
+
+            output = pd.read_csv(transformed)
+            provenance = pd.read_csv(root / "negative-events.provenance.csv")
+            summary = json.loads((root / "negative-events.summary.json").read_text())
+            self.assertEqual(exit_code, 0)
+            self.assertEqual(output.loc[2:3, "price_eur_per_mwh"].tolist(), [-75.0, -75.0])
+            self.assertEqual(len(provenance), len(output))
+            self.assertEqual(int(provenance["event_applied"].sum()), 2)
+            self.assertEqual(summary["negative_interval_count_after"], 2)
+            self.assertEqual(summary["configuration"]["transformation_id"], "declared_dip")
+
     def test_bootstrap_command_writes_paths_provenance_and_summary(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -811,7 +886,6 @@ class CliTests(unittest.TestCase):
                 )
             self.assertEqual(exit_code, 1)
 
-
     def test_scenario_ensemble_command_reports_a_range_across_named_scenarios(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -833,9 +907,7 @@ class CliTests(unittest.TestCase):
                 encoding="utf-8",
             )
             (root / "bootstrap.json").write_text(
-                json.dumps(
-                    {"start_day": "2026-01-01", "end_day": "2026-01-02", "path_count": 2}
-                ),
+                json.dumps({"start_day": "2026-01-01", "end_day": "2026-01-02", "path_count": 2}),
                 encoding="utf-8",
             )
             (root / "compression.json").write_text(
@@ -1042,7 +1114,6 @@ class CliTests(unittest.TestCase):
             self.assertEqual(exit_code, 1)
             self.assertIn("at least two named scenarios", errors.getvalue())
             self.assertFalse((root / "ensemble.csv").exists())
-
 
     def _availability_fixture(self, root: Path) -> Path:
         battery = root / "battery.json"
