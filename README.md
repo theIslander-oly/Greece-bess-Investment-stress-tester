@@ -10,7 +10,7 @@ on that replay core.
 This is not financial advice, an investment-grade forecast, a bankable revenue study or a
 substitute for legal, tax, grid-connection and market-access diligence.
 
-**Current release:** `v0.7.6` — deterministic spread compression about a daily reference level.
+**Current release:** `v0.7.7` — non-probabilistic scenario-ensemble range reporting.
 
 ## What this tool cannot tell you
 
@@ -217,6 +217,64 @@ replayed history calibrates it: the 2020-2026 record predates operating battery 
 almost entirely, so it contains no episode from which a competitive spread response could be
 inferred. No probability, percentile, loss metric or ranking attaches to a factor. See
 [`LIMITATIONS.md`](LIMITATIONS.md).
+
+## Report a range across named scenarios
+
+The `report-scenario-ensemble` command composes scenarios that have **already been dispatched**
+and reports the minimum, maximum and spread of their margin outcomes. It computes no price,
+dispatch, forecast or finance quantity of its own.
+
+Every scenario is named by the caller in a manifest. There is no default scenario set and no
+implicit baseline: an untransformed replay states `"transformation_summary_json": null` and takes
+its place in the ensemble like any other named judgment.
+
+```json
+{
+  "scenarios": [
+    {
+      "name": "baseline_replay",
+      "run_id": "bootstrap-2026-08-31-seed-42",
+      "path_summaries_csv": "baseline.paths.csv",
+      "dispatch_summary_json": "baseline.summary.json",
+      "bootstrap_summary_json": "bootstrap_paths.summary.json",
+      "transformation_summary_json": null
+    },
+    {
+      "name": "spreads_down_30_percent",
+      "run_id": "bootstrap-2026-08-31-seed-42",
+      "path_summaries_csv": "compressed.paths.csv",
+      "dispatch_summary_json": "compressed.summary.json",
+      "bootstrap_summary_json": "bootstrap_paths.summary.json",
+      "transformation_summary_json": "compressed_paths.summary.json"
+    }
+  ]
+}
+```
+
+```bash
+greek-bess report-scenario-ensemble \
+  --manifest config/scenario-ensemble.json \
+  --output data/processed/scenario_ensemble.csv
+```
+
+The range is taken **per bootstrap path**: for each path the scenarios share, the report gives the
+lowest and highest margin any named scenario produced, the spread between them, and which
+scenario attained each end. Nothing is aggregated across paths, because a total or an average over
+sampled paths would read as an expectation the uniform block resampling cannot support.
+
+The command writes sibling `.margins.csv` and `.summary.json` artifacts. Every margin row carries
+its scenario name, transformation method and parameters, the selected source era and the input run
+identity, so any reported figure traces back to the runs that produced it.
+
+**A range across named scenarios is a range across judgments, not a distribution.** No
+probability, percentile, likelihood, expected value, loss metric, ranking or central case is
+produced, and the rule is executable: an emitted column or summary key matching
+`greek_bess.stress.FORBIDDEN_REPORT_TERMS` raises rather than being written.
+
+Scenarios are combined only on an **equivalent basis**. Differing battery parameters,
+terminal-energy constraint, availability assumption, source-era selection or path identity are
+refused by name rather than reconciled, because comparing strategies only under equivalent
+physical and terminal-energy constraints is a standing project invariant.
 
 ## Repository guide
 
@@ -848,6 +906,12 @@ src/greek_bess/
     degradation_dispatch.py
     forecast_dispatch.py
     ml_dispatch.py
+  stress/
+    bootstrap.py
+    bootstrap_dispatch.py
+    ensemble.py
+    price_level.py
+    spread.py
 examples/
   battery_50mw_100mwh.json
   illustrative_degradation_with_augmentation.json
@@ -857,10 +921,11 @@ tests/
 
 ## Next phase
 
-The next modeling phase is deterministic scenario stress testing: an explicit bootstrap
-source-era/resolution policy, deterministic availability/outage paths, spread-compression
-transformations (the first-order cannibalisation risk, expressed as explicit judgmental
-scenarios), and scenario-ensemble range reporting that is labelled non-probabilistic.
+The next modeling phase is deterministic scenario stress testing. The explicit bootstrap
+source-era/resolution policy, the spread-compression transformations (the first-order
+cannibalisation risk, expressed as explicit judgmental scenarios) and the non-probabilistic
+scenario-ensemble range reporting have landed; deterministic availability/outage paths and
+negative-price-event transformations remain unapproved and out of scope.
 Percentile outputs (P5/P50/P95) and loss probabilities were removed from the roadmap because
 the seasonal bootstrap resamples a non-stationary 2020-2026 history uniformly and therefore
 supports no calibrated probability interpretation; see the 2026-08-27 decision entries.
@@ -916,6 +981,7 @@ ruff check . && mypy && pytest -v && python -m build --wheel
 - [Implementation report v0.7.4 per-year replay decomposition](docs/implementation_report_v0.7.4.md)
 - [Implementation report v0.7.5 bootstrap source-era policy](docs/implementation_report_v0.7.5.md)
 - [Implementation report v0.7.6 spread compression](docs/implementation_report_v0.7.6.md)
+- [Implementation report v0.7.7 scenario-ensemble range reporting](docs/implementation_report_v0.7.7.md)
 - [Official annual-history acceptance](docs/official_history_acceptance_2026-08-26.md)
 - [Official multi-year operational acceptance](docs/official_multiyear_operational_acceptance_2026-08-27.md)
 - [Official HEnEx to ENTSO-E reconciliation](docs/official_source_reconciliation_2026-08-27.md)

@@ -1,12 +1,39 @@
 # Project status
 
-**Version:** 0.7.6
-**Updated:** 28 August 2026
+**Version:** 0.7.7
+**Updated:** 31 August 2026
 **Status:** Official multi-year operational acceptance and HEnEx-to-ENTSO-E cross-source
 reconciliation passed; artifact custody tooling in place awaiting the operator upload;
 per-delivery-year replay decomposition accepted against the official history;
-bootstrap source-era policy and spread compression landed; scenario-ensemble range reporting and
-availability/outage integration awaiting approval
+bootstrap source-era policy, spread compression and non-probabilistic scenario-ensemble range
+reporting landed; availability/outage integration and negative-price-event transformations
+remain unapproved and out of scope
+
+## Scenario-ensemble range reporting
+
+- `report-scenario-ensemble` and `greek_bess.stress.report_scenario_ensemble` compose
+  bootstrap-path dispatch results already produced under two or more named scenarios and report
+  the minimum, maximum and spread of their margin outcomes. Nothing new is computed: no price
+  transformation, dispatch mode, forecast method or finance treatment is introduced.
+- The range is taken per bootstrap path, naming the scenario at each end. Nothing is aggregated
+  across paths: a total or an average over sampled paths would read as an expectation the uniform
+  block resampling of a non-stationary history cannot support.
+- Every scenario is named by the caller in an explicit manifest. There is no default scenario set
+  and no implicit baseline — `transformation_summary_json` is required, so an untransformed replay
+  declares itself as `null` — and an ensemble of fewer than two scenarios is refused.
+- A range across named scenarios is a range across judgments, not a distribution. No probability,
+  percentile, likelihood, expected value, loss metric, ranking or central case is produced, and
+  the exclusion is executable: every emitted column name and summary key is checked against
+  `FORBIDDEN_REPORT_TERMS`, and a match raises instead of being written.
+- Scenarios are combined only on an equivalent basis. Battery parameters, the terminal-energy
+  constraint, the availability assumption, the selected source era and the path identities must
+  match, and a difference is refused with the mismatching basis and both values named. The
+  terminal-energy constraint is checked separately, with the derived terminal energy recorded.
+- Every reported figure carries its scenario name, transformation method and parameters, the
+  source-era selection and the input run identity, so a range traces back to the runs behind it.
+- The range is bounded by the scenarios the caller chose. Adding or removing one changes it with
+  no new evidence, and a wide range describes disagreement between judgments rather than
+  measurable uncertainty.
 
 ## Spread compression about a daily reference level
 

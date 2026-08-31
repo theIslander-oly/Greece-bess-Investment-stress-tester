@@ -4,7 +4,7 @@ import io
 import json
 import tempfile
 import unittest
-from contextlib import redirect_stdout
+from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 
 import numpy as np
@@ -810,6 +810,238 @@ class CliTests(unittest.TestCase):
                     ]
                 )
             self.assertEqual(exit_code, 1)
+
+
+    def test_scenario_ensemble_command_reports_a_range_across_named_scenarios(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            battery = root / "battery.json"
+            battery.write_text(
+                json.dumps(
+                    {
+                        "charge_power_mw": 1,
+                        "discharge_power_mw": 1,
+                        "energy_capacity_mwh": 1,
+                        "soc_min_fraction": 0,
+                        "soc_max_fraction": 1,
+                        "initial_soc_fraction": 0,
+                        "terminal_soc_fraction": 0,
+                        "charge_efficiency": 1,
+                        "discharge_efficiency": 1,
+                    }
+                ),
+                encoding="utf-8",
+            )
+            (root / "bootstrap.json").write_text(
+                json.dumps(
+                    {"start_day": "2026-01-01", "end_day": "2026-01-02", "path_count": 2}
+                ),
+                encoding="utf-8",
+            )
+            (root / "compression.json").write_text(
+                json.dumps(
+                    {
+                        "compression_factor": 0.5,
+                        "reference_basis": "daily_mean",
+                        "transformation_id": "half_spread",
+                    }
+                ),
+                encoding="utf-8",
+            )
+            with redirect_stdout(io.StringIO()):
+                main(
+                    [
+                        "generate-synthetic",
+                        "--start-day",
+                        "2025-01-01",
+                        "--end-day",
+                        "2025-01-04",
+                        "--output",
+                        str(root / "prices.csv"),
+                    ]
+                )
+                main(
+                    [
+                        "generate-bootstrap-paths",
+                        str(root / "prices.csv"),
+                        "--config",
+                        str(root / "bootstrap.json"),
+                        "--output",
+                        str(root / "paths.csv"),
+                    ]
+                )
+                main(
+                    [
+                        "dispatch-bootstrap-paths",
+                        str(root / "paths.csv"),
+                        "--config",
+                        str(battery),
+                        "--output",
+                        str(root / "baseline.csv"),
+                    ]
+                )
+                main(
+                    [
+                        "compress-spread",
+                        str(root / "paths.csv"),
+                        "--config",
+                        str(root / "compression.json"),
+                        "--output",
+                        str(root / "compressed.csv"),
+                    ]
+                )
+                main(
+                    [
+                        "dispatch-bootstrap-paths",
+                        str(root / "compressed.csv"),
+                        "--config",
+                        str(battery),
+                        "--output",
+                        str(root / "compressed_dispatch.csv"),
+                    ]
+                )
+            manifest = root / "ensemble.json"
+            manifest.write_text(
+                json.dumps(
+                    {
+                        "scenarios": [
+                            {
+                                "name": "baseline_replay",
+                                "run_id": "local-baseline",
+                                "path_summaries_csv": "baseline.paths.csv",
+                                "dispatch_summary_json": "baseline.summary.json",
+                                "bootstrap_summary_json": "paths.summary.json",
+                                "transformation_summary_json": None,
+                            },
+                            {
+                                "name": "half_spread",
+                                "run_id": "local-compression",
+                                "path_summaries_csv": "compressed_dispatch.paths.csv",
+                                "dispatch_summary_json": "compressed_dispatch.summary.json",
+                                "bootstrap_summary_json": "paths.summary.json",
+                                "transformation_summary_json": "compressed.summary.json",
+                            },
+                        ]
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            with redirect_stdout(io.StringIO()):
+                exit_code = main(
+                    [
+                        "report-scenario-ensemble",
+                        "--manifest",
+                        str(manifest),
+                        "--output",
+                        str(root / "ensemble.csv"),
+                    ]
+                )
+
+            ranges = pd.read_csv(root / "ensemble.csv")
+            margins = pd.read_csv(root / "ensemble.margins.csv")
+            summary = json.loads((root / "ensemble.summary.json").read_text())
+            self.assertEqual(exit_code, 0)
+            self.assertEqual(len(ranges), 2)
+            self.assertEqual(len(margins), 4)
+            self.assertEqual(summary["scenario_count"], 2)
+            self.assertEqual(summary["scenario_names"], ["baseline_replay", "half_spread"])
+            self.assertFalse(summary["is_probabilistic"])
+            # Compressing the spread cannot raise a perfect-foresight margin, so the
+            # baseline is the maximum of every path and the range is non-negative.
+            self.assertTrue((ranges["maximum_scenario_name"] == "baseline_replay").all())
+            self.assertTrue((ranges["minimum_scenario_name"] == "half_spread").all())
+            self.assertTrue((ranges["spread_net_market_margin_eur"] >= 0).all())
+            self.assertTrue(
+                np.allclose(
+                    ranges["spread_net_market_margin_eur"],
+                    ranges["maximum_net_market_margin_eur"]
+                    - ranges["minimum_net_market_margin_eur"],
+                )
+            )
+            self.assertEqual(
+                sorted(margins["input_run_id"].unique().tolist()),
+                ["local-baseline", "local-compression"],
+            )
+            compression_row = margins.loc[margins["scenario_name"] == "half_spread"].iloc[0]
+            self.assertEqual(
+                json.loads(compression_row["transformation_parameters"])["compression_factor"],
+                0.5,
+            )
+            self.assertEqual(compression_row["source_era_resolution_minutes"], 60)
+
+    def test_scenario_ensemble_command_refuses_a_single_scenario_ensemble(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            pd.DataFrame({"path_id": [0], "net_market_margin_eur": [10.0]}).to_csv(
+                root / "paths.csv", index=False
+            )
+            (root / "dispatch.json").write_text(
+                json.dumps(
+                    {
+                        "battery_configuration": {
+                            "charge_power_mw": 1.0,
+                            "discharge_power_mw": 1.0,
+                            "energy_capacity_mwh": 1.0,
+                            "soc_min_fraction": 0.0,
+                            "soc_max_fraction": 1.0,
+                            "initial_soc_fraction": 0.0,
+                            "terminal_soc_fraction": 0.0,
+                        },
+                        "availability_assumption": {"type": "constant", "fraction": 1.0},
+                        "path_count": 1,
+                    }
+                ),
+                encoding="utf-8",
+            )
+            (root / "bootstrap.json").write_text(
+                json.dumps(
+                    {
+                        "selected_source_era": {
+                            "resolution_minutes": 60,
+                            "first_day": "2025-01-01",
+                            "last_day": "2025-01-03",
+                            "market_day_count": 3,
+                        },
+                        "configuration": {"random_seed": 42},
+                    }
+                ),
+                encoding="utf-8",
+            )
+            manifest = root / "ensemble.json"
+            manifest.write_text(
+                json.dumps(
+                    {
+                        "scenarios": [
+                            {
+                                "name": "baseline_replay",
+                                "run_id": "local-baseline",
+                                "path_summaries_csv": "paths.csv",
+                                "dispatch_summary_json": "dispatch.json",
+                                "bootstrap_summary_json": "bootstrap.json",
+                                "transformation_summary_json": None,
+                            }
+                        ]
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            errors = io.StringIO()
+            with redirect_stdout(io.StringIO()), redirect_stderr(errors):
+                exit_code = main(
+                    [
+                        "report-scenario-ensemble",
+                        "--manifest",
+                        str(manifest),
+                        "--output",
+                        str(root / "ensemble.csv"),
+                    ]
+                )
+
+            self.assertEqual(exit_code, 1)
+            self.assertIn("at least two named scenarios", errors.getvalue())
+            self.assertFalse((root / "ensemble.csv").exists())
 
 
 if __name__ == "__main__":

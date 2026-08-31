@@ -4,6 +4,38 @@ All notable project changes are documented here.
 
 ## [Unreleased]
 
+### Added
+
+- `report-scenario-ensemble` command and `greek_bess.stress.report_scenario_ensemble`, which
+  compose bootstrap-path dispatch results already produced under two or more named scenarios and
+  report the minimum, maximum and spread of their margin outcomes. Ranges are taken per bootstrap
+  path — nothing is aggregated across paths, because a total or an average over sampled paths
+  would read as an expectation the uniform block resampling cannot support. The milestone
+  composes accepted outputs and adds no price transformation, dispatch mode, forecast method or
+  finance treatment.
+- Every scenario is named by the caller through an explicit manifest. There is no default
+  scenario set and no implicit baseline: `transformation_summary_json` is a required key, so a
+  scenario with no transformation declares that as `null`, and an ensemble of fewer than two
+  scenarios is refused.
+- The non-probabilistic framing is enforced rather than described.
+  `greek_bess.stress.FORBIDDEN_REPORT_TERMS` lists the excluded vocabulary — probability,
+  percentile, likelihood, expected value, mean, median, quantile, loss, rank, central and others —
+  and every emitted column name and summary key, including nested provenance keys, is checked
+  against it before the result is returned. A field such as `p95_margin_eur` raises rather than
+  being written.
+- Scenarios are combined only on an equivalent basis. Differing battery parameters,
+  terminal-energy constraint, availability assumption, selected source era or path identity are
+  refused with the mismatching basis named and both values shown; the terminal-energy constraint
+  is checked separately from the rest of the battery configuration so a day-end energy difference
+  is refused by that name.
+- Provenance on every reported figure: `scenario_margins` carries the scenario name,
+  transformation method, transformation ID, recorded transformation parameters, source-era
+  resolution and day span, input run identity and bootstrap seed for each scenario and path, and
+  `scenario_ranges` repeats scenario name, transformation and run identity for the scenarios at
+  both ends of each path's range.
+- `docs/implementation_report_v0.7.7.md`, and dated `DECISIONS.md` entries covering the
+  non-probabilistic framing and the equivalent-basis refusal rule.
+
 ### Fixed
 
 - Replaced generic-unit `pd.Timedelta` construction with explicit units in synthetic, HEnEx and
