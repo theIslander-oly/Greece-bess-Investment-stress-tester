@@ -3,6 +3,24 @@
 This file records decisions that materially affect interpretation or reproducibility. Add a
 dated entry when a milestone changes scope, assumptions, data handling or validation.
 
+## 2026-08-31 — Close the completed-v0.7 review without changing the model
+
+- **Decision:** Accept the completed-v0.7 consistency review with no correctness or
+  data-integrity defect. Reconcile the one contradictory roadmap sentence so it matches the
+  existing implemented contract: battery parameters, terminal-energy constraint, selected
+  source era and path identity form the equivalent basis; differing declared availability
+  schedules are scenario judgments carried as provenance, while an unrecorded availability
+  assumption is refused. Keep v0.8 closed until its design receives explicit user approval.
+- **Reason:** The public API, CLI, provenance, summaries, methodology, limitations and tests
+  consistently implement the amended same-day availability decision below. Only `PLAN.md`
+  retained the superseded wording. Treating it as authoritative would make a future interface
+  refuse the intended declared-outage-versus-baseline comparison even though the core correctly
+  supports and audits it.
+- **Consequence:** No dispatch, forecast, stress, degradation, finance or data behavior changes.
+  A metadata regression keeps the roadmap aligned with the tested ensemble contract. The formal
+  review is recorded in `docs/implementation_report_v0.7_review.md`; no v0.8 branch, dependency,
+  stub or implementation is authorized by this decision.
+
 ## 2026-08-31 — Define negative-price events as declared interval replacements
 
 - **Decision:** A negative-price event is a sequence of whole market intervals selected by a

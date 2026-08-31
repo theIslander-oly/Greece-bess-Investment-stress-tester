@@ -1021,9 +1021,11 @@ tests/
 
 The approved v0.7 deterministic scenario scope is complete: source-era selection, additive
 level sensitivity, spread compression, declared availability/outage paths, non-probabilistic
-scenario ranges and declared negative-price events have landed. The v0.8 research interface and
-exportable reports remain gated until the completed v0.7 scope is reviewed; no v0.8 surface is
-implemented or prepared here.
+scenario ranges and declared negative-price events have landed. The formal completed-v0.7 review
+found no correctness or data-integrity defect and reconciled one roadmap wording contradiction
+about availability provenance. The v0.8 research interface and exportable reports remain gated
+until their design receives explicit user approval; no v0.8 surface is implemented or prepared
+here.
 Percentile outputs (P5/P50/P95) and loss probabilities were removed from the roadmap because
 the seasonal bootstrap resamples a non-stationary 2020-2026 history uniformly and therefore
 supports no calibrated probability interpretation; see the 2026-08-27 decision entries.

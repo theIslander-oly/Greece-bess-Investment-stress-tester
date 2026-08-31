@@ -62,5 +62,20 @@ class ProjectVersionTests(unittest.TestCase):
         )
 
 
+class DocumentationContractTests(unittest.TestCase):
+    def test_plan_keeps_declared_availability_outside_the_equivalent_basis(self) -> None:
+        plan = (PROJECT_ROOT / "PLAN.md").read_text(encoding="utf-8")
+        normalized = " ".join(plan.split())
+
+        self.assertIn(
+            "Differing declared availability schedules are permitted scenario judgments",
+            normalized,
+        )
+        self.assertNotIn(
+            "terminal-energy constraints, availability assumptions, source eras",
+            normalized,
+        )
+
+
 if __name__ == "__main__":  # pragma: no cover
     unittest.main()

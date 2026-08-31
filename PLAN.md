@@ -82,8 +82,10 @@ Suggested future branch sequence:
     nothing is aggregated across paths. No probability, percentile, expected value, loss metric,
     ranking or central case is produced, and the exclusion is executable: an emitted column or
     summary key matching `FORBIDDEN_REPORT_TERMS` raises. Scenarios solved under different
-    battery parameters, terminal-energy constraints, availability assumptions, source eras or
-    path identities are refused with the mismatch named (decision entries 2026-08-31).
+    battery parameters, terminal-energy constraints, source eras or path identities are refused
+    with the mismatch named. Differing declared availability schedules are permitted scenario
+    judgments and are carried as provenance; an unrecorded availability assumption is refused
+    (decision entries 2026-08-31).
   - Removed from scope on 2026-08-27: P5/P50/P95 percentiles and loss probabilities. Uniform
     block resampling of the non-stationary 2020-2026 history supports no calibrated
     probability interpretation, and additional constant price-level shocks, which leave
@@ -93,8 +95,8 @@ Suggested future branch sequence:
     strictly negative replacement price in EUR/MWh. Timing and depth have no defaults and are
     never sampled, inferred, fitted or searched. An empty event list is the identity; overlap,
     partial intervals and windows covering nothing are refused (decision entry 2026-08-31).
-- [ ] v0.8 — Research interface and exportable reports (the corrected v0.7 scope is complete,
-  but v0.8 remains gated until that completed scope is reviewed).
+- [ ] v0.8 — Research interface and exportable reports (the corrected v0.7 scope and its formal
+  review are complete, but v0.8 remains gated until the user explicitly approves its design).
 
 ## Parallel acceptance track
 
