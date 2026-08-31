@@ -1,12 +1,16 @@
 from __future__ import annotations
 
+import io
 import json
 import tempfile
 import unittest
+from contextlib import redirect_stderr, redirect_stdout
 from datetime import date
 from pathlib import Path
+from unittest import mock
 from urllib.parse import parse_qs, urlsplit
 
+from greek_bess.cli import main
 from greek_bess.data.admie import (
     AdmieClient,
     AdmieError,
@@ -84,6 +88,82 @@ class AdmieClientTests(unittest.TestCase):
             client.find_files(
                 "DayAheadLoadForecast", date(2026, 8, 26), date(2026, 8, 26)
             )
+
+
+class EmptyDiscoveryTests(unittest.TestCase):
+    """An empty ADMIE retrieval must not be written as an empty manifest.
+
+    The first live audit run (2026-08-31) discovered zero files and produced `no_record` for
+    every audited delivery day — a verdict that reads as "the publisher published nothing",
+    which is one of the four things the timing audit explicitly does not establish. A wrong
+    filetype name must not be able to impersonate that finding.
+    """
+
+    def _run(self, catalog: list[str]) -> str:
+        client = mock.MagicMock()
+        client.find_files.return_value = []
+        client.list_filetypes.return_value = [{"filetype": name} for name in catalog]
+        errors = io.StringIO()
+        with tempfile.TemporaryDirectory() as directory:
+            with (
+                mock.patch("greek_bess.cli.AdmieClient", return_value=client),
+                redirect_stdout(io.StringIO()),
+                redirect_stderr(errors),
+            ):
+                code = main(
+                    [
+                        "fetch-admie-files",
+                        "--filetypes",
+                        "DayAheadLoadForecast",
+                        "--start-day",
+                        "2026-08-26",
+                        "--end-day",
+                        "2026-08-28",
+                        "--raw-dir",
+                        directory,
+                    ]
+                )
+        self.assertEqual(code, 1)
+        return errors.getvalue()
+
+    def test_a_filetype_the_provider_does_not_publish_is_named(self) -> None:
+        message = self._run(["ISP1DayAheadLoadForecast", "RealTimeSCADARES"])
+
+        self.assertIn("publishes no filetype named DayAheadLoadForecast", message)
+        self.assertIn("ISP1DayAheadLoadForecast", message)
+
+    def test_a_valid_filetype_with_an_empty_window_is_reported_differently(self) -> None:
+        message = self._run(["DayAheadLoadForecast"])
+
+        self.assertIn("empty window rather than a wrong name", message)
+
+    def test_an_unreadable_catalog_still_refuses_the_empty_retrieval(self) -> None:
+        client = mock.MagicMock()
+        client.find_files.return_value = []
+        client.list_filetypes.side_effect = AdmieError("catalog unavailable")
+        errors = io.StringIO()
+        with tempfile.TemporaryDirectory() as directory:
+            with (
+                mock.patch("greek_bess.cli.AdmieClient", return_value=client),
+                redirect_stdout(io.StringIO()),
+                redirect_stderr(errors),
+            ):
+                code = main(
+                    [
+                        "fetch-admie-files",
+                        "--filetypes",
+                        "DayAheadLoadForecast",
+                        "--start-day",
+                        "2026-08-26",
+                        "--end-day",
+                        "2026-08-28",
+                        "--raw-dir",
+                        directory,
+                    ]
+                )
+
+        self.assertEqual(code, 1)
+        self.assertIn("could not be read to check the names", errors.getvalue())
 
 
 if __name__ == "__main__":

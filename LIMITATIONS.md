@@ -34,6 +34,11 @@
   larger or ambiguous disagreements remain errors.
 - HEnEx incremental daily discovery depends on a website asset-catalog layout rather than a
   documented data API and may need maintenance when the site changes.
+- The ADMIE filetype names the code treats as leakage-relevant have not been confirmed against
+  the live catalog. The first live audit run on 2026-08-31 discovered no files for
+  `DayAheadLoadForecast` or `DayAheadRESForecast` over 26-28 August 2026, so those names, the
+  window, or both are wrong. Retrieval now refuses an empty discovery and names the live
+  catalog, but no ADMIE forecast file has yet been retrieved or audited.
 - ADMIE catalog retrieval is implemented and publication timing is now auditable per delivery
   day against a declared gate closure, but no live audited window has been recorded and no file
   format has been accepted, so no exogenous ADMIE field may enter forecasting.

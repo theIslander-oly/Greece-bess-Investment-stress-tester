@@ -6,6 +6,15 @@ All notable project changes are documented here.
 
 ### Added
 
+- `fetch-admie-files` refuses an empty discovery instead of writing an empty manifest and
+  exiting zero, matching the existing HEnEx daily behaviour. The live catalog is consulted so the
+  message distinguishes a filetype the provider does not publish (naming the catalog's actual
+  filetypes) from a valid filetype over a window it published nothing for.
+- Found by the first live audit run on 2026-08-31, which discovered zero files for
+  `DayAheadLoadForecast` and `DayAheadRESForecast` and reported `no_record` for all six audited
+  filetype-days. That verdict reads as "the publisher published nothing", which is one of the
+  four things the timing audit explicitly does not establish, so a wrong or renamed filetype must
+  not be able to impersonate it.
 - `greek_bess.reporting` and the `record-run-manifest` / `verify-run-manifest` commands: the
   versioned run manifest and report contract the completed-v0.7 review named as the prerequisite
   for any future presentation layer. A manifest carries the producing module's summary verbatim
@@ -28,12 +37,6 @@ All notable project changes are documented here.
   ignores them: `is_probabilistic`, `is_forecast` or `is_investment_evidence` set to anything but
   false is refused as a scope change requiring a recorded decision.
 - `docs/run_manifest_contract.md`, `docs/implementation_report_v0.7.11.md`, and a dated decision.
-
-### Changed
-
-- `audit-admie-publication-timing` summaries now carry a `result_label`, closing the one gap in
-  the project's otherwise universal labelling convention and letting the audit be recorded under
-  the contract. No verdict, refusal or provenance behaviour changed.
 
 - `audit-admie-publication-timing` and `greek_bess.data.admie_timing`, turning the
   `requires_pre_auction_timing_validation` quarantine label into an executable acceptance step.
@@ -104,6 +107,10 @@ All notable project changes are documented here.
   array of fractions.
 
 ### Changed
+
+- `audit-admie-publication-timing` summaries now carry a `result_label`, closing the one gap in
+  the project's otherwise universal labelling convention and letting the audit be recorded under
+  the contract. No verdict, refusal or provenance behaviour changed.
 
 - Completed the formal v0.7 consistency review across public APIs, CLI surfaces, provenance,
   summaries, tests, methodology, limitations, decisions and implementation reports. The review

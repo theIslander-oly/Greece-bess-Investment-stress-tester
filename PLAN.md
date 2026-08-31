@@ -158,7 +158,13 @@ Suggested future branch sequence:
   - [ ] Operator declaration of the gate-closure schedule. The repository ships the format in
     `config/admie_gate_closure.example.json` and refuses to supply the market rule: the audit
     reports whatever closure it is given and cannot check a declaration against the rulebook.
-  - [ ] A live audited window against the official ADMIE catalog, recorded as evidence.
+  - [~] A live audited window against the official ADMIE catalog, recorded as evidence. Run
+    `33390328722` on 2026-08-31 exercised the whole path live (retrieval, audit, evidence upload)
+    against delivery days 26-28 August 2026, but discovered **zero** files for
+    `DayAheadLoadForecast` and `DayAheadRESForecast`, so no publication timestamp has been
+    audited yet. The filetype names in `LEAKAGE_RELEVANT_FILETYPES` have never been confirmed
+    against the live catalog and are the first thing to check; retrieval now refuses an empty
+    discovery and names the catalog's actual filetypes rather than writing an empty manifest.
   - [ ] File-format acceptance against real load/RES files. Timing acceptance establishes
     publication timing alone; the quarantine is lifted only by format acceptance and a recorded
     decision as well.

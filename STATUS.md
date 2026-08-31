@@ -256,9 +256,17 @@ presentation layer
 - **This establishes publication timing only.** It accepts no file format, proves no forecasting
   skill, and does not lift the forecast-feature quarantine; the summary states that in its own
   output. Policy in `docs/admie_publication_timing_policy.md`.
-- **Outstanding:** the operator's declared gate-closure schedule
+- **First live run (2026-08-31, run `33390328722`)** exercised the whole path — retrieval, audit
+  and evidence upload all succeeded — but discovered **zero** ADMIE files for
+  `DayAheadLoadForecast` and `DayAheadRESForecast` over 26-28 August 2026. No publication
+  timestamp has been audited yet. The leakage-relevant filetype names have never been confirmed
+  against the live catalog and are the first thing to check.
+- Retrieval no longer writes an empty manifest on an empty discovery: it refuses and names the
+  live catalog's actual filetypes, so a wrong name cannot impersonate `no_record`, which reads as
+  a publisher that published nothing.
+- **Outstanding:** the correct ADMIE filetype names, the operator's declared gate-closure schedule
   (`config/admie_gate_closure.example.json` ships the format with a placeholder reference), a
-  live audited window recorded as evidence, and file-format acceptance.
+  live audited window that actually retrieves files, and file-format acceptance.
 
 ## Official cross-source reconciliation
 
