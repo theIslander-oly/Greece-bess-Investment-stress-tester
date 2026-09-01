@@ -15,7 +15,7 @@ on:
       history_run_id:
         description: Run ID holding the greek-dam-official-history artifact
         required: true
-        default: "32971677163"
+        default: "33483975614"
         type: string
       reconciliation_run_id:
         description: Run ID holding the henex-entsoe-reconciliation artifact; empty skips it
@@ -25,7 +25,7 @@ on:
       history_digest:
         description: SHA-256 GitHub publishes for the history artifact archive; recorded as provenance
         required: false
-        default: "127915bc6e143a6bf2a4cb0a559b798e231062097bdaf9bf467a051260c4b198"
+        default: "de30f4cc5938751dc00b8f08c2dbdbf24e2b23910ce6e59a6ccb3ff1dce48009"
         type: string
       reconciliation_digest:
         description: SHA-256 GitHub publishes for the reconciliation artifact archive
@@ -57,11 +57,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
-      HISTORY_RUN_ID: ${{ inputs.history_run_id || '32971677163' }}
+      HISTORY_RUN_ID: ${{ inputs.history_run_id || '33483975614' }}
       RECONCILIATION_RUN_ID: ${{ inputs.reconciliation_run_id || '33073631530' }}
       HISTORY_DIGEST: >-
         ${{ inputs.history_digest
-        || '127915bc6e143a6bf2a4cb0a559b798e231062097bdaf9bf467a051260c4b198' }}
+        || 'de30f4cc5938751dc00b8f08c2dbdbf24e2b23910ce6e59a6ccb3ff1dce48009' }}
       RECONCILIATION_DIGEST: >-
         ${{ inputs.reconciliation_digest
         || 'bee557eaf4f2fa449fe9284bf2d80225e51350c622321cf921f3cbab033b816a' }}

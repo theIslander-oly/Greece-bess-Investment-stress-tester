@@ -22,11 +22,11 @@ open item is waiting on an engineering decision. The artifact expiry is retired:
 identical to the accepted baseline. Four items remain: the ADMIE gate-closure schedule and the
 encrypted custody upload each wait on an operator declaration the repository refuses to supply;
 the ADMIE forecast quarantine and any v0.8 successor scope each wait on a decision by the user.
-One question is newly open and belongs to the operator: whether to re-record the committed
-custody record against the replacement run, since the per-file digests it holds describe an
-artifact that expires 2 September 2026. Live market endpoints are reachable only from GitHub
-Actions runners, so every live acceptance step is a workflow dispatch rather than a command in a
-checkout. See `PLAN.md`.
+The committed custody record now fingerprints the replacement run. One newly recorded blocker
+belongs to the operator: `ENTSOE_SECURITY_TOKEN` is no longer configured as a repository secret,
+so the reconciliation retrieval cannot run and that artifact has no replacement before it expires
+3 September 2026. Live market endpoints are reachable only from GitHub Actions runners, so every
+live acceptance step is a workflow dispatch rather than a command in a checkout. See `PLAN.md`.
 
 ## Declared negative-price events
 
@@ -238,12 +238,31 @@ checkout. See `PLAN.md`.
   `docs/official_artifact_custody.md`.
 - Normalization did not change either: the only data-layer edit since the accepted run is a
   behaviour-preserving `pd.Timedelta` call in `data/henex.py`.
-- **The committed custody record was not replaced.** Whether to re-record against
-  `33483975614` is an operator decision, with the consequence that after 2 September 2026 no
-  obtainable copy will match the committed per-file digests. Options are recorded in
-  `docs/official_history_replacement_2026-09-01.md`.
+- The finding was reported before the record was touched. The record was then **re-recorded
+  against run `33483975614`** as a separate decision, because after 2 September 2026 no obtainable
+  copy could match the superseded per-file digests and a record that verifies against nothing
+  preserves no evidence. Run `33489920268` generated it in `record` mode and the committed file is
+  what that run emitted; against the superseded record only `source_run_id`, the published digest,
+  `recorded_at_utc` and the four per-file digests changed, with every content fingerprint
+  unchanged. The superseded record stays in Git history.
+- `record_mode` makes a deliberate re-record an explicit request. Previously it required deleting
+  the committed record so the "no record exists" branch would fire, which is indistinguishable
+  from tampering. Neither mode writes to `docs/custody/`.
 - The same run re-verified `henex-entsoe-reconciliation` from run `33073631530` with
-  `difference_count: 0`.
+  `difference_count: 0`, and its regenerated record matched, so that record is unchanged.
+
+## Blocked: the reconciliation artifact has no replacement
+
+- `henex-entsoe-reconciliation` from run `33073631530` expires **3 September 2026 at 12:50 UTC**
+  and is the only copy of the ENTSO-E interval series and retrieval metadata behind the passed
+  reconciliation.
+- A refresh dispatched on 1 September (run `33489364087`) was refused ten seconds in by the
+  workflow's own guard: **`ENTSOE_SECURITY_TOKEN` is no longer configured as a repository
+  secret.** No ENTSO-E request was made and no artifact was produced. The guard behaved
+  correctly; it failed loudly rather than retrieving nothing and calling it a reconciliation.
+- Restoring the secret is an operator action. Until then the encrypted upload of the existing
+  artifact, which needs no secret, is the only thing that preserves the evidence past
+  3 September.
 
 ## Run manifest and report contract
 

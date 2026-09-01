@@ -45,13 +45,13 @@ The plan below is therefore organised by what each item waits on, not by milesto
   unchanged interval for interval. This is a faithful re-retrieval, now recorded as case 4 of
   the custody failure taxonomy; evidence in
   `docs/official_history_replacement_2026-09-01.md`.
-- [ ] **Operator decision: whether to re-record the custody record against `33483975614`.** The
-  record was not replaced, as required. Its per-file digests describe an artifact that expires
-  2 September 2026, so after that date every verification of an obtainable copy returns exit
-  code 2 on those four lines. Re-recording, keeping the record as the original fingerprint, or
-  separating provenance columns from data in what a record compares are the three options; the
-  `Record official artifact custody` workflow's `history_run_id` default still points at
-  `32971677163` and follows whichever is chosen.
+- [x] **The custody record was re-recorded against `33483975614`.** The finding was reported
+  before the record was touched, and the replacement was then taken as a separate decision: after
+  2 September 2026 no obtainable copy could match the superseded per-file digests, and a record
+  that verifies against nothing preserves no evidence. Run `33489920268` generated it in
+  `record` mode; the committed file is what that run emitted, and every content fingerprint is
+  unchanged. The workflow's `history_run_id` and `history_digest` defaults now point at the same
+  run, and the superseded record remains in Git history.
 
 ### Waiting on an operator declaration
 
@@ -204,7 +204,11 @@ evidence, never from a working checkout. Plan any live acceptance step as a work
 - [x] Record the accepted HEnEx source versions, retrieval date and raw hashes.
 - [~] Record the ENTSO-E retrieval metadata and raw-response hashes. The reconciliation
   artifact from run `33073631530` carries them and is covered by the same custody procedure;
-  the operator upload remains outstanding.
+  the operator upload remains outstanding. **That artifact expires 3 September 2026 at 12:50 UTC
+  and has no replacement:** a refresh dispatched on 1 September (run `33489364087`) was refused by
+  the workflow guard because `ENTSOE_SECURITY_TOKEN` is no longer configured as a repository
+  secret. Restoring the secret is an operator action; the encrypted upload of the existing
+  artifact needs no secret and is what preserves the evidence in the meantime.
 - [x] Run and accept the 2020-2025 HEnEx annual archives live.
 - [x] Run and accept the incremental 2026 HEnEx daily retrieval live.
   - Workflow run `32971677163` completed both retrieval stages successfully.
