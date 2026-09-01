@@ -28,6 +28,13 @@ All notable project changes are documented here.
   record. Neither mode writes to `docs/custody/`. The workflow's history defaults now point at
   the replacement run.
 
+- A `Publish encrypted custody copies` workflow, which verifies each accepted artifact against
+  its committed custody record, encrypts it to an operator-supplied age recipient, and attaches
+  the ciphertext to a private release. An age recipient is a public key, so the automation can
+  encrypt and cannot decrypt; the private key stays with the operator. This reverses the recorded
+  exclusion that the procedure does not automate the upload, and reduces the operator's part to
+  generating one key pair. An artifact that does not verify is never encrypted.
+
 ### Known blocker
 
 - `ENTSOE_SECURITY_TOKEN` is no longer configured as a repository secret, so

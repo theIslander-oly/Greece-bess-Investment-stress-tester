@@ -125,6 +125,29 @@ One release is one failure domain. Keep at least one further encrypted copy unde
 control — an external disk or a private object store. Both copies hold ciphertext, so the
 choice of location carries no redistribution question.
 
+## Publishing the encrypted copies from Actions
+
+The steps above can be performed by the `Publish encrypted custody copies` workflow instead,
+which reduces the operator's part to generating a key pair once and supplying the public half.
+
+```
+age-keygen -o custody-key.txt     # keep this file in a password manager, never in Git
+```
+
+Dispatch the workflow with the printed `age1…` recipient. It downloads each artifact inside
+Actions, **verifies it against its committed custody record and refuses to continue on any
+difference**, encrypts each one to the recipient, and attaches the ciphertext to a private
+release. It then records the release tag, the recipient prefix, and the byte size and SHA-256
+of each encrypted asset in the run summary; no official price is printed.
+
+Two refusals are deliberate. A value beginning `AGE-SECRET-KEY-` is rejected with instructions
+to rotate the key, because pasting a private key into a dispatch input compromises it. And an
+artifact that does not verify is never encrypted: durably preserving the wrong bytes under a
+name that claims otherwise is worse than preserving nothing.
+
+The operator still holds the private key and still owes the second copy under separate control.
+A release is one failure domain.
+
 ## Verification drill
 
 Run the drill before any milestone that consumes the accepted history, and whenever the
@@ -234,6 +257,9 @@ say, and if it differs, that is case 2 no matter how few files moved.
   custodied history, the pinned commit and the recorded configuration. It is guaranteed by
   reproduction, not by custody (decision entry 2026-08-28). Custody is for what cannot be
   reproduced.
-- The procedure does not automate the upload. Encryption keys and release publication stay
-  with the operator, so no automation in this repository holds a key that could decrypt an
-  accepted artifact.
+- **The private key never enters this repository or its automation.** The
+  `Publish encrypted custody copies` workflow encrypts to an operator-supplied age *recipient*,
+  which is a public key: it can encrypt and it cannot decrypt. Generating the key pair, holding
+  the private half and keeping the second copy remain the operator's, so no automation here can
+  read an accepted artifact (decision entry 2026-09-01). The manual procedure above stays valid
+  and is the fallback.

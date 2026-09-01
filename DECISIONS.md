@@ -3,6 +3,29 @@
 This file records decisions that materially affect interpretation or reproducibility. Add a
 dated entry when a milestone changes scope, assumptions, data handling or validation.
 
+## 2026-09-01 — Automate custody encryption and upload to an operator-held recipient
+
+- **Decision:** Add a `Publish encrypted custody copies` workflow that encrypts accepted official
+  artifacts to an operator-supplied age recipient and attaches the ciphertext to a private
+  release. This reverses the recorded exclusion that "the procedure does not automate the
+  upload". Generating the key pair, holding the private half and keeping a second copy under
+  separate control remain the operator's.
+- **Reason:** The exclusion was written to keep decryption capability out of this repository, and
+  that concern is fully preserved: an age recipient is a public key, so the automation can
+  encrypt and cannot decrypt. What the exclusion also did, unintentionally, was put six manual
+  steps between an expiring artifact and a durable copy, and the reconciliation artifact reached
+  within two days of expiry with none of them performed. A procedure that is correct but unused
+  preserves nothing. Reducing the operator's part to one `age-keygen` and one public key removes
+  the reason it kept not happening.
+- **Consequence:** The recipient is a dispatch input rather than a secret, both because it is not
+  secret and so the run record shows which key a copy was encrypted to. Two refusals are
+  deliberate: a value beginning `AGE-SECRET-KEY-` is rejected with instructions to rotate, and an
+  artifact that does not verify against its committed custody record is never encrypted, because
+  durably preserving the wrong bytes under a name that claims otherwise is worse than preserving
+  nothing. The manual procedure remains documented and is the fallback. Custody is still not
+  complete on the repository record: nothing here reads live release state, and the second copy
+  is outside this repository's knowledge.
+
 ## 2026-09-01 — Re-record the history custody record against the replacement artifact
 
 - **Decision:** Replace `docs/custody/greek-dam-official-history.json` so that it fingerprints run

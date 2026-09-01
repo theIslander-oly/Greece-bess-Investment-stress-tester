@@ -218,6 +218,12 @@ live acceptance step is a workflow dispatch rather than a command in a checkout.
   complete until they are. The history copy should now be taken from replacement run
   `33483975614`, which does not expire until 30 November 2026; the reconciliation artifact from
   run `33073631530` still expires 3 September 2026.
+- The `Publish encrypted custody copies` workflow now performs the download, verification,
+  encryption and release upload inside Actions, so the operator's remaining part is generating
+  one age key pair and supplying the public recipient. An age recipient can encrypt and cannot
+  decrypt, so no automation here can read an accepted artifact. An artifact that does not verify
+  against its committed record is refused before encryption. The second copy under separate
+  control, and the private key itself, remain the operator's.
 
 ## Replacement official-history retrieval, 1 September 2026
 

@@ -249,8 +249,13 @@ evidence, never from a working checkout. Plan any live acceptance step as a work
   - [x] Artifact retention raised from 7 to 90 days on every official-data workflow.
   - [x] Replacement retrieval before the original artifact lapsed (run `33483975614`,
     1 September 2026), verified against the committed record with no price-series difference.
-  - [ ] Operator upload of the encrypted copies and the committed custody records. Custody is
-    not complete until this is done.
+  - [x] `Publish encrypted custody copies` workflow, which verifies each artifact against its
+    committed record, refuses to encrypt one that differs, encrypts to an operator-supplied age
+    recipient and attaches the ciphertext to a private release. The recipient is a public key, so
+    no automation here can decrypt an accepted artifact.
+  - [ ] Operator supplies the age recipient and dispatches it. Custody is not complete until the
+    encrypted copies exist, and the second copy under separate control remains outside this
+    repository's knowledge.
 - [x] Add a per-calendar-year decomposition of the accepted replay (annual perfect-foresight
   ceiling and forecast capture), since aggregate 2020-2026 margins conceal regime dependence
   such as the 2022 gas-crisis year.
