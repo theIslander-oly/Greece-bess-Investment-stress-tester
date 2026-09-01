@@ -3,6 +3,23 @@
 This file records decisions that materially affect interpretation or reproducibility. Add a
 dated entry when a milestone changes scope, assumptions, data handling or validation.
 
+## 2026-09-01 — Decline an interactive viewer and complete v0.8 with the static renderer
+
+- **Decision:** Do not add Streamlit or another local interactive viewer in v0.8. The indexed,
+  self-contained static report is the completed research interface. Any future interactive
+  proposal must identify a need the static report cannot meet, define whether approved scope
+  changes, and proceed as its own dated decision and milestone.
+- **Reason:** A viewer creates no new evidence. Controls that compute, filter into derived
+  results, open manifest-declared files or combine manifests would violate the approved design;
+  controls that do none of those things only duplicate navigation already supplied by the report
+  index and stable links. That duplication would still add a runtime dependency, server
+  lifecycle and second rendering surface on which manifest verification, adjacent labels, basis
+  separation and all export refusals would have to remain aligned.
+- **Consequence:** v0.8.2 is a decision-only release with no runtime or rendering-behaviour
+  change, and v0.8 is complete. The project keeps one deterministic presentation surface that
+  works offline and in CI. Interactivity is neither prohibited forever nor carried as hidden
+  unfinished scope; it requires independently approved evidence of need.
+
 ## 2026-09-01 — Record the ensemble's per-path ranges in its summary, rather than reading its CSV
 
 - **Decision:** Extend the scenario-ensemble run summary with `path_ranges`, a per-path

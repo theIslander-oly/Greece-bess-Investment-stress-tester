@@ -10,7 +10,7 @@ on that replay core.
 This is not financial advice, an investment-grade forecast, a bankable revenue study or a
 substitute for legal, tax, grid-connection and market-access diligence.
 
-**Current release:** `v0.8.1` — a deterministic report renderer over verified run manifests,
+**Current release:** `v0.8.2` — a deterministic report renderer over verified run manifests,
 and only verified run manifests, now composing many of them into one indexed report.
 
 ## What this tool cannot tell you
@@ -1206,8 +1206,11 @@ it: an index across many manifests that carries no figure, a scenario ensemble l
 side with its per-path ranges and per-scenario provenance, and explicit rendering of the
 equivalent-basis evidence. Making the per-path ranges renderable required recording them in the
 ensemble's own run summary rather than reading the CSV beside the run, under the 2026-09-01
-decision that keeps the manifest the sole doorway. The next milestone is v0.8.2, a separate
-dated decision on whether any interactive viewer is added on top of the static renderer.
+decision that keeps the manifest the sole doorway. v0.8.2 closes v0.8 with the static renderer:
+the interactive viewer was deliberately declined because it would duplicate a validated
+rendering surface, add a dependency and server lifecycle, and create no new evidence. Any future
+interactive proposal must identify a need the static report cannot meet and proceed as a
+separately approved milestone.
 AI-generated explanations remain outside v0.8.
 Percentile outputs (P5/P50/P95) and loss probabilities were removed from the roadmap because
 the seasonal bootstrap resamples a non-stationary 2020-2026 history uniformly and therefore
@@ -1282,6 +1285,9 @@ ruff check . && mypy && pytest -v && python -m build --wheel
 - [ADMIE pre-auction publication-timing policy](docs/admie_publication_timing_policy.md)
 - [ADMIE day-ahead forecast filetype acceptance](docs/admie_filetype_acceptance_2026-08-31.md)
 - [Run manifest and report contract](docs/run_manifest_contract.md)
+- [Implementation report v0.8.0](docs/implementation_report_v0.8.0.md)
+- [Implementation report v0.8.1](docs/implementation_report_v0.8.1.md)
+- [Implementation report v0.8.2](docs/implementation_report_v0.8.2.md)
 - [Current status](STATUS.md)
 - [Implementation plan](PLAN.md)
 - [Contributing guidance](CONTRIBUTING.md)
