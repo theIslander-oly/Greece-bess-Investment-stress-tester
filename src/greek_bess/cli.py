@@ -64,6 +64,8 @@ from .reporting import (
     ReportContractError,
     build_run_manifest,
     read_run_manifest,
+    render_report,
+    write_report,
     write_run_manifest,
 )
 from .stress import (
@@ -221,6 +223,27 @@ def build_parser() -> argparse.ArgumentParser:
         help="Read a run manifest and refuse an unknown schema version or result kind",
     )
     verify_manifest.add_argument("manifest", type=Path)
+
+    render = subparsers.add_parser(
+        "render-report",
+        help="Render verified run manifests into one self-contained static report",
+    )
+    render.add_argument(
+        "manifests",
+        nargs="*",
+        type=Path,
+        help=(
+            "Run manifest JSON files. Supplying none renders the declaration checklist, which "
+            "is the landing state: no judgmental input has a default, so there is no result to "
+            "show before one is declared"
+        ),
+    )
+    render.add_argument("--output", required=True, type=Path, help="Self-contained report HTML")
+    render.add_argument(
+        "--index",
+        type=Path,
+        help="Machine-readable index of the manifests rendered; defaults beside the output",
+    )
 
     merge = subparsers.add_parser(
         "merge-canonical",
@@ -680,6 +703,21 @@ def main(argv: list[str] | None = None) -> int:
                         "project_version": verified.project_version,
                     },
                     indent=2,
+                )
+            )
+            return 0
+        elif args.command == "render-report":
+            rendered = render_report(args.manifests)
+            index_path = write_report(rendered, args.output, index_path=args.index)
+            print(
+                json.dumps(
+                    {
+                        "report": str(args.output),
+                        "index": str(index_path),
+                        **dict(rendered.index),
+                    },
+                    indent=2,
+                    default=str,
                 )
             )
             return 0

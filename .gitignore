@@ -27,7 +27,9 @@ data/processed/*
 data/curated/*
 !data/curated/.gitkeep
 
-# Large/generated analytical products and credentials.
+# Large/generated analytical products and credentials. Rendered reports are generated
+# research outputs: they are produced from verified run manifests and stay outside Git.
+*.html
 models/
 artifacts/
 credentials/

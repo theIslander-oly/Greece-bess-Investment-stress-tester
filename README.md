@@ -10,8 +10,8 @@ on that replay core.
 This is not financial advice, an investment-grade forecast, a bankable revenue study or a
 substitute for legal, tax, grid-connection and market-access diligence.
 
-**Current release:** `v0.7.11` — a versioned run manifest and report contract over every
-recorded result.
+**Current release:** `v0.8.0` — a deterministic report renderer over verified run manifests,
+and only verified run manifests.
 
 ## What this tool cannot tell you
 
@@ -88,7 +88,13 @@ The current implementation provides:
 - a versioned run manifest and report contract that carries any result summary verbatim under a
   stable projection — declared result kind, the basis it reports on, its required non-empty
   result label and the project's standing exclusions — refusing an unlabelled result and a
-  manifest from a schema version it does not understand.
+  manifest from a schema version it does not understand;
+- a `render-report` command that renders verified run manifests, and only verified run
+  manifests, into one self-contained static HTML report plus a machine-readable index: figures
+  grouped by basis, each carrying its recorded label, its basis in reader-facing words and the
+  standing exclusions beside it, with the declaration checklist as the landing state when no
+  manifest is supplied. It computes nothing, reads no environment and makes no network
+  request.
 
 The first v0.7 foundation also provides deterministic, seeded seasonal block-bootstrap price
 paths with sampled-block provenance. Each validated path can now be dispatched independently
@@ -634,6 +640,59 @@ non-empty result label and the project's standing exclusions. A result whose sum
 label is refused, as is a manifest whose schema version or result kind this build does not
 understand. See `docs/run_manifest_contract.md`.
 
+## Render a report from verified manifests
+
+A report renders verified run manifests, and only verified run manifests. `render-report` is a
+presentation layer: it formats values that a validated module already computed and recorded, and
+there is no side channel through which a figure can reach a report any other way.
+
+```bash
+greek-bess render-report \
+  dispatch.manifest.json ensemble.manifest.json finance.manifest.json \
+  --output reports/generated/report.html
+```
+
+The command writes one self-contained HTML file — no scripts, no external assets, no network
+fetches — and a machine-readable index beside it naming every manifest rendered, its kind,
+basis, label and SHA-256 digest, so a report is auditable back to the exact manifests behind it.
+Reports and indexes are generated research outputs and stay outside Git.
+
+What the report guarantees:
+
+- **Every figure carries its label.** The manifest's `result_label`, its basis in reader-facing
+  words and the project's three standing exclusions are rendered adjacent to the figure, never
+  in a global footer. The label is read from the manifest and never re-declared, so it cannot
+  drift from what the producing module wrote.
+- **Figures are grouped by basis.** A perfect-foresight ceiling, a settled backtest, a synthetic
+  scenario, screening arithmetic and data-acceptance evidence are separate sections, so the
+  distinction is the structure of the document rather than a footnote. Figures of different
+  bases are never merged into one row, total or derived value.
+- **Nothing is computed while rendering.** No dispatch, forecast, transformation, degradation or
+  finance call is reachable from the renderer, and no value is derived across manifests.
+- **A manifest that fails verification refuses the whole report.** There is no partial render: a
+  report that silently omitted a failing manifest would present the remainder as the whole.
+- **Identical inputs render byte-identical documents.** Manifests are ordered by basis, then
+  kind, then manifest ID — never by the order they were supplied. The only timestamp the
+  renderer adds is `rendered_at_utc`, and it lives in the index rather than the document.
+- **An export cannot carry interval-level official prices.** The renderer's only input is the
+  manifest list, and a manifest carries the producing module's summary; a path named in
+  `declared_inputs` is displayed, never opened.
+
+Run it with no manifests to see the landing state:
+
+```bash
+greek-bess render-report --output reports/generated/landing.html
+```
+
+Every judgmental input in this project has no default by recorded decision — the bootstrap
+source era, the spread-compression factor and reference basis, the availability baseline, the
+negative-price event list and the scenario set of an ensemble. So the landing state is the
+declaration checklist itself: each default-free input, the dated decision that made it so, and
+the command that records a result once it is declared. It contains no figures and no example
+numbers, because an example shown before anything is declared becomes the de facto default.
+
+See `docs/v0.8_design.md`.
+
 ## 3. Fetch ENTSO-E prices
 
 Register on the ENTSO-E Transparency Platform and obtain REST API access. Store the personal token in the environment:
@@ -1090,6 +1149,7 @@ src/greek_bess/
     ml_dispatch.py
   reporting/
     contract.py
+    render.py
   stress/
     availability.py
     bootstrap.py
@@ -1111,10 +1171,13 @@ level sensitivity, spread compression, declared availability/outage paths, non-p
 scenario ranges and declared negative-price events have landed. The formal completed-v0.7 review
 found no correctness or data-integrity defect and reconciled one roadmap wording contradiction
 about availability provenance. The v0.8 research interface and exportable reports were opened on
-1 September 2026 by explicit user approval: the approved scope was amended, the design is
-recorded in `docs/v0.8_design.md`, and the next engineering milestone is v0.8.0, a deterministic
-`render-report` CLI that renders verified run manifests — and only verified run manifests — into
-self-contained static reports. No v0.8 surface is implemented yet.
+1 September 2026 by explicit user approval, with the approved scope amended and the design
+recorded in `docs/v0.8_design.md`. v0.8.0, the report rendering foundation, has landed: a
+deterministic `render-report` CLI that renders verified run manifests — and only verified run
+manifests — into self-contained static reports with a machine-readable index, adding no runtime
+dependency, no server and no computation. The next milestones are v0.8.1, multi-run composition,
+and v0.8.2, a separate dated decision on whether any interactive viewer is added on top of the
+static renderer. AI-generated explanations remain outside v0.8.
 Percentile outputs (P5/P50/P95) and loss probabilities were removed from the roadmap because
 the seasonal bootstrap resamples a non-stationary 2020-2026 history uniformly and therefore
 supports no calibrated probability interpretation; see the 2026-08-27 decision entries.

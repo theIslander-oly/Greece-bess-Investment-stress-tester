@@ -6,6 +6,59 @@ All notable project changes are documented here.
 
 ### Added
 
+- **v0.8.0 — the report rendering foundation.** `greek_bess.reporting.render` and a
+  `render-report` command turn verified run manifests, and only verified run manifests, into one
+  self-contained static HTML report plus a machine-readable index. `read_run_manifest` is the
+  sole doorway, so the schema-version check, the closed kind registry, the basis cross-check, the
+  guaranteed-key check and the scoped distributional-term refusal are inherited by the
+  presentation layer rather than restated in it. No new runtime dependency, no server, no
+  computation and no environment or network read.
+- The landing state is the declaration checklist. Rendered with no manifests, the report shows no
+  figure and no example number at all; it lists each judgmental input that has no default — the
+  bootstrap source era, the spread-compression factor and reference basis, the availability
+  baseline, the negative-price event list and the scenario set of an ensemble — with the dated
+  decision that made it default-free and the command that records a result once it is declared.
+  A regression test asserts the page contains no digit outside those decision dates.
+- Every figure renders inside a block carrying its manifest's `result_label`, its basis in
+  reader-facing words and the three standing exclusions, adjacent to the figure and never in a
+  global footer. The label is read from the manifest and never re-declared, so it cannot drift
+  from the sentence the producing module wrote. A regression test renders a manifest for every
+  kind in the registry and asserts all three appear inside that kind's own block.
+- The export refusals are executable. A manifest that fails verification refuses the whole report
+  rather than being skipped, and the CLI writes no file in that case. Two inputs declaring one
+  manifest ID are refused. Renderer vocabulary that would read as a claim about a distribution is
+  refused for kinds that forbid the terms — scoped to the headings and captions the renderer
+  itself emits, because the standing exclusions say "not a probability-calibrated estimate" and a
+  blanket scan would refuse the disclaimer the design requires beside every figure. A test pins
+  that scoping.
+- Reports are deterministic: manifests are ordered by basis, then kind, then manifest ID rather
+  than by input order, and the only timestamp the renderer adds is `rendered_at_utc` in the
+  index, so the document itself is byte-identical for identical inputs. A test renders the full
+  registry in both directions and compares.
+- No figure can be computed while rendering. Every rendered value is recorded as a
+  `RenderedFigure` naming the manifest and summary key it came from, and a test asserts each one
+  equals the value that manifest recorded, so "nothing was computed" is checkable rather than
+  asserted. Values are formatted as the JSON they were recorded as, with no rounding or unit
+  conversion between the manifest and the page.
+- Interval-level official prices cannot enter an export. The renderer's only input is the
+  manifest list; a path a manifest names in `declared_inputs` is displayed, never opened, and a
+  test writes a price CSV, names it in a manifest and asserts its price does not reach the
+  document.
+- A manifest is identified in the index by its ID and the digest of the exact bytes rendered,
+  never by its path on the machine that rendered it: an export travels, and the operator's
+  directory layout is not part of the evidence.
+- The rendered document is self-contained by test: no script, no iframe, no external stylesheet,
+  font or image, and no URL of any kind.
+
+### Changed
+
+- Project version raised to 0.8.0 in `pyproject.toml`, `greek_bess.__version__` and the README
+  release line, which is what stamps the `User-Agent` on official retrievals.
+- `.gitignore` ignores `*.html`. A rendered report is a generated research output produced from
+  verified run manifests, and generated research outputs stay outside Git.
+
+### Added
+
 - **v0.8 opened by explicit user approval on 1 September 2026**, lifting the gate the
   completed-v0.7 review set. `PROMPT.md` gains the amended scope bullet: a read-only research
   interface and exportable reports that render verified run manifests, and only verified run

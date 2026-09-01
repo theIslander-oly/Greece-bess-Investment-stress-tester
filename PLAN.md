@@ -28,8 +28,9 @@ closed the same day. The ADMIE forecast quarantine, open since 26 August, was cl
 ADMIE load and RES forecasts from scope rather than by working it to acceptance.
 
 **v0.8 is open.** The user approved it on 1 September 2026, `PROMPT.md` was amended the same
-day, and `docs/v0.8_design.md` is the design of record. The next engineering milestone is
-v0.8.0, the report rendering foundation.
+day, and `docs/v0.8_design.md` is the design of record. v0.8.0, the report rendering foundation,
+landed on 1 September 2026 and the package is at 0.8.0. The next engineering milestone is
+v0.8.1, multi-run composition.
 
 **Two operator items remain open** (the custody second copy and `ENTSOE_SECURITY_TOKEN`,
 below). The lesson the closed quarantine records is worth keeping in front of the plan: between
@@ -178,13 +179,18 @@ evidence, never from a working checkout. Plan any live acceptance step as a work
     An export refuses any figure not reachable from a verified manifest, interval-level
     official price series, distributional vocabulary where the kind forbids it, unlabeled
     figures, and any value computed across manifests or bases (decision entry 2026-09-01).
-  - [ ] v0.8.0 — Report rendering foundation. `render-report` CLI and
+  - [x] v0.8.0 — Report rendering foundation (completed 2026-09-01;
+    `docs/implementation_report_v0.8.0.md`). `render-report` CLI and
     `greek_bess.reporting.render`: verified-manifest input through `read_run_manifest` only,
     the landing state, per-figure label blocks, basis grouping, the export refusals,
     deterministic self-contained HTML plus a machine-readable index naming every manifest's
     kind, basis, label and digest. No new runtime dependency, no server, no computation.
     Tests cover every registry kind, the landing state's absence of numeric figures, refusal
-    of a failing manifest, and byte-determinism.
+    of a failing manifest, and byte-determinism. The index identifies a manifest by digest and
+    never by its path, recorded values are rendered exactly as recorded, and the
+    distributional-term check is scoped to the renderer's own vocabulary because the standing
+    exclusions the design requires beside every figure themselves contain two of the terms
+    (decision entries 2026-09-01).
   - [ ] v0.8.1 — Multi-run composition. An index across many manifests and side-by-side
     scenario-ensemble presentation with per-path ranges and per-scenario provenance, rendering
     the equivalent-basis evidence the ensemble records. Composition is layout only; nothing is
