@@ -1,6 +1,6 @@
 # Project status
 
-**Version:** 0.8.0
+**Version:** 0.8.1
 **Updated:** 1 September 2026
 **Status:** Official multi-year operational acceptance and HEnEx-to-ENTSO-E cross-source
 reconciliation passed; encrypted custody copies published and the private key exercised;
@@ -13,13 +13,15 @@ approval, with the scope amended and the design recorded in `docs/v0.8_design.md
 ADMIE load and RES forecasts are removed from scope and that quarantine is closed as never
 accepted, with the retrieval client and timing audit retained and documented as unused; a
 versioned run manifest and report contract now carries every recorded result, making label
-retention executable; and v0.8.0, the report rendering foundation, has landed — a deterministic
-`render-report` command that renders verified run manifests, and only verified run manifests,
-into self-contained static reports
+retention executable; and v0.8.0, the report rendering foundation, and v0.8.1, multi-run
+composition, have both landed — a deterministic `render-report` command that renders verified run
+manifests, and only verified run manifests, into self-contained static reports, now composing
+many of them into one indexed report that computes nothing across them
 
 **Standing position, 1 September 2026:** the approved `PROMPT.md` scope is implemented, v0.7
 was re-verified on the unchanged v0.7.11 implementation (Ruff, mypy, 301 tests, clean wheel
-build), and v0.8 is open with v0.8.0 complete and v0.8.1 the next engineering milestone. The
+build), and v0.8 is open with v0.8.0 and v0.8.1 complete; v0.8.2 is a decision rather than an
+implementation and is not assumed. The
 artifact expiry is retired: run
 `33483975614` produced a replacement official-history artifact on 1 September 2026 under the
 90-day retention, expiring 30 November 2026 at 07:49 UTC, and its price series verifies as
@@ -64,8 +66,44 @@ live acceptance step is a workflow dispatch rather than a command in a checkout.
   Recorded values render exactly as recorded, with no display rounding or unit conversion.
 - Every rendered value is recorded as a `RenderedFigure` naming the manifest and summary key it
   came from, so "nothing was computed while rendering" is checked rather than asserted.
-- Reports and indexes are generated research outputs and stay outside Git. Ruff, mypy over 43
-  source files, 326 tests and a clean wheel build pass.
+- Reports and indexes are generated research outputs and stay outside Git.
+
+## v0.8.1 landed — multi-run composition
+
+- A report now composes many verified manifests, and composition is layout only: nothing is
+  computed across manifests, and figures of different bases are never merged into one row, total
+  or derived value (`docs/implementation_report_v0.8.1.md`).
+- **An index across every manifest, grouped by basis**, naming each manifest by ID, result kind,
+  recorded label, producing command, recorded time and SHA-256 digest, linking to the block that
+  holds its figures, and naming the bases the report does *not* cover — a reader cannot otherwise
+  tell an absent basis from an absent question.
+- **The index carries no figure at all**, which is the point of it. A summary table spanning the
+  whole report is the one place a perfect-foresight ceiling would sit in a column beside a
+  settled backtest, and combining them is a short second step producing a number whose basis is
+  none of the five the contract defines. A test asserts every cell of the index is one of the
+  manifest's identity, label or provenance fields.
+- **A scenario ensemble is laid out side by side**: one column per named scenario with its
+  provenance, the equivalent-basis evidence the ensemble recorded — battery parameters,
+  terminal-energy basis, source era and path identity, the properties every scenario was required
+  to share — and one row per bootstrap path with the lowest and highest margin any named scenario
+  produced for it, which scenario attained each end, and the spread. The scenario name joins the
+  two tables, and nothing is totalled or reordered across paths.
+- **The design tension the milestone opened was resolved by recording, not by routing around the
+  manifest.** The per-path ranges lived only in the ranges CSV, and a report reads a verified
+  manifest and nothing else. So `report_scenario_ensemble` now records `path_ranges` in its own
+  summary — a projection of the same frame the CSV is written from, in the same order, nothing
+  rounded or re-reduced — and `scenario_ensemble_range` guarantees `scenarios`,
+  `equivalent_basis`, `path_count` and `path_ranges`. The renderer was given no permission to
+  open any file a run wrote (decision entry 2026-09-01; amendment in `docs/v0.8_design.md`).
+- What a manifest does not record is stated rather than filled in. An ensemble manifest recorded
+  before its module carried a key renders an explicit "records no ..." note and still renders
+  everything else; the manifest envelope is unchanged, so `schema_version` stays at 1 and older
+  manifests still verify.
+- Every composition cell is still a `RenderedFigure`, now naming the exact place in the summary
+  it was read from, so "nothing was computed while rendering" stays checkable once layout reaches
+  inside a summary. The contract's distributional-term check reaches nested key names for the
+  kinds that declare it, because a report renders a nested key as a visible column heading.
+- Ruff, mypy over 43 source files, 355 tests and a clean wheel build pass on Python 3.12.
 
 ## v0.8 opened — research interface and exportable reports
 
@@ -85,8 +123,8 @@ live acceptance step is a workflow dispatch rather than a command in a checkout.
   manifests or bases.
 - The core is a deterministic `render-report` CLI producing self-contained static HTML plus a
   machine-readable index, with no new runtime dependency and no server. Milestones: v0.8.0
-  report rendering foundation (landed 1 September 2026), v0.8.1 multi-run composition, v0.8.2 a
-  separate dated decision on any interactive viewer.
+  report rendering foundation and v0.8.1 multi-run composition (both landed 1 September 2026),
+  and v0.8.2, a separate dated decision on any interactive viewer.
 - No dispatch, forecast, stress, degradation, finance or data behaviour changes in the plan
   itself; exports remain generated research outputs outside Git.
 
@@ -630,9 +668,11 @@ the approved v0.7 modeling scope. The formal completed-v0.7 review found no corr
 data-integrity defect and reconciled one roadmap wording contradiction about availability
 provenance. The v0.8 interface and exportable reports were gated until the user explicitly
 approved their design; that approval arrived on 1 September 2026, `PROMPT.md` was amended, and
-`docs/v0.8_design.md` was adopted as the design of record, so **the immediate next milestone is
-v0.8.0, the report rendering foundation**. The versioned run manifest and report contract the
-review named as the prerequisite landed on 2026-08-31. ENTSO-E reconciliation passed on 2026-08-27. Custody tooling and the storage
+`docs/v0.8_design.md` was adopted as the design of record. v0.8.0, the report rendering
+foundation, and v0.8.1, multi-run composition, both landed on 1 September 2026, so **the only
+item left in v0.8 is v0.8.2, a decision on whether an interactive viewer is added at all**. The
+versioned run manifest and report contract the review named as the prerequisite landed on
+2026-08-31. ENTSO-E reconciliation passed on 2026-08-27. Custody tooling and the storage
 procedure landed on 2026-08-27; the encrypted copies were published on 2026-09-01 and the key was
 exercised the same day. The ADMIE publication-timing audit, workflow and policy landed on
 2026-08-31 and are retained as unused: ADMIE load and RES forecasts were removed from scope on

@@ -324,6 +324,14 @@ Each reported figure carries its scenario name, the transformation method and pa
 produced it, the source-era selection and the input run identity, so a range traces back to the
 runs behind it.
 
+The run summary records the per-path ranges themselves, not only the lowest, highest, widest and
+narrowest figures across them (amended 1 September 2026). The recorded rows are a projection of
+the same reduced frame the range CSV is written from, in the same path order, with nothing
+rounded, converted or re-reduced; per-scenario provenance is recorded once under `scenarios` and
+joined by scenario name rather than repeated on every path row. Recording them is what allows a
+report to render a range without opening any file beside the run: a report reads a verified run
+manifest and nothing else, so a range absent from the summary is a range no report can show.
+
 ## 15. Declared negative-price-event transformation
 
 A negative-price event is defined at the resolution of the validated price path: one or more

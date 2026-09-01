@@ -23,6 +23,14 @@ What this module deliberately cannot do:
 - **Render an unlabeled figure.** The label block is built from the manifest, adjacent to the
   figure rather than in a global footer, and is not optional.
 
+v0.8.1 adds composition across manifests, and composition is layout only. An index names
+every manifest the report carries and where to find it, and deliberately carries no figure at
+all: a table spanning two bases is exactly where a figure of one basis would end up beside — and
+then inside — a figure of another. A scenario ensemble's per-path ranges, its per-scenario
+provenance and the equivalent-basis evidence it recorded are laid out side by side, and every
+cell of every one of those tables is still one recorded value of one manifest, walked back to
+its exact place in that manifest's summary by ``RenderedFigure.summary_path``.
+
 The distributional-term check applies to the renderer's **own** vocabulary — the headings and
 key captions it emits for a block whose kind declares ``forbids_distributional_terms`` — and
 not to text carried verbatim from the manifest. That scoping is load-bearing: the project's
@@ -53,7 +61,7 @@ from .contract import (
     read_run_manifest,
 )
 
-REPORT_RENDER_VERSION = 1
+REPORT_RENDER_VERSION = 2
 
 REPORT_TITLE = "Greek DAM battery stress tester — recorded run report"
 
@@ -98,6 +106,70 @@ BASIS_HEADING: dict[str, str] = {
     "synthetic_scenario": "Synthetic scenarios",
     "screening_arithmetic": "Screening arithmetic",
     "data_acceptance_evidence": "Data-acceptance evidence",
+}
+
+#: What the index across manifests is, stated in the index itself. The temptation a multi-manifest
+#: report creates is a summary table spanning the whole report, and that table is where a figure
+#: of one basis would first sit beside a figure of another and then be combined with it.
+INDEX_RULE = (
+    "This index is layout across manifests, not a result across them. It names what the report "
+    "contains and where to find it, and it carries no figure at all. Every figure stays inside "
+    "its own manifest's block below, beside the label that says what it is and what it is not."
+)
+
+#: The composition sections a result kind lays out itself, as (summary key, section name) pairs
+#: in rendering order. A key listed here is rendered by its section and not also as a generic
+#: headline or detail row, so one recorded value appears exactly once.
+COMPOSITION_SECTIONS: dict[str, tuple[tuple[str, str], ...]] = {
+    "scenario_ensemble_range": (
+        ("scenarios", "scenarios_side_by_side"),
+        ("equivalent_basis", "equivalent_basis"),
+        ("path_ranges", "per_path_ranges"),
+    ),
+}
+
+#: The per-scenario provenance rows of the side-by-side table, as (caption, path within the
+#: scenario's recorded entry). The order is what a reader needs in order: which recorded run,
+#: what judgment was applied to it, what availability was declared, and over how many paths.
+SCENARIO_PROVENANCE_ROWS: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("Recorded run", ("input_run_id",)),
+    ("Transformation", ("transformation", "method")),
+    ("Transformation identifier", ("transformation", "transformation_id")),
+    ("Transformation parameters", ("transformation", "parameters")),
+    ("Declared availability", ("availability",)),
+    ("Source era", ("source_era",)),
+    ("Bootstrap configuration", ("bootstrap_configuration",)),
+    ("Paths dispatched", ("path_count",)),
+)
+
+#: Heading and lead paragraph for each composition section. They are renderer vocabulary, so
+#: they are checked against ``FORBIDDEN_REPORT_TERMS`` for a kind that declares it.
+COMPOSITION_HEADINGS: dict[str, str] = {
+    "scenarios_side_by_side": "Scenarios side by side",
+    "equivalent_basis": "The basis every scenario shared",
+    "per_path_ranges": "Range per bootstrap path",
+}
+
+COMPOSITION_LEADS: dict[str, str] = {
+    "scenarios_side_by_side": (
+        "One column per named scenario, in the order the scenarios were declared. There is no "
+        "baseline column and no default scenario set: every scenario here was named by the "
+        "caller, and an untransformed replay is one of the named scenarios rather than an "
+        "implicit reference."
+    ),
+    "equivalent_basis": (
+        "These are the properties every scenario was required to share before the ensemble "
+        "would place them in one range at all. A difference in any of them is refused and "
+        "named rather than reconciled, because comparing strategies only under equivalent "
+        "physical and terminal-energy constraints is a standing project invariant."
+    ),
+    "per_path_ranges": (
+        "One row per bootstrap path: the lowest and the highest margin any named scenario "
+        "produced for that path, which scenario attained each end, and the spread between "
+        "them. Nothing is totalled or combined across paths, and nothing here is ordered by "
+        "anything but path identity. The scenario names join these rows to the provenance "
+        "above, which is recorded once per scenario rather than repeated per path."
+    ),
 }
 
 
@@ -189,6 +261,12 @@ class RenderedFigure:
     Every figure in a rendered report is one of these, so "no figure was computed while
     rendering" is checkable rather than asserted: each entry names the manifest and the summary
     key its text came from.
+
+    ``summary_path`` is where that value sits inside the manifest's summary —
+    ``("interval_count",)`` for a top-level figure, ``("path_ranges", 3, "spread_...")`` for one
+    cell of a composition table. Composition lays recorded values out beside each other, so the
+    check that nothing was computed has to reach into the layout rather than stop at the top
+    level of the summary.
     """
 
     manifest_id: str
@@ -197,6 +275,7 @@ class RenderedFigure:
     key: str
     value_text: str
     is_headline: bool
+    summary_path: tuple[str | int, ...]
 
 
 @dataclass(frozen=True)
@@ -286,7 +365,7 @@ def _render_manifest_body(sources: Sequence[_Source], figures: list[RenderedFigu
     anchors = _anchors(sources)
     parts: list[str] = [
         "<p class=\"governing-rule\">" + html.escape(GOVERNING_RULE) + "</p>",
-        _render_contents(sources, anchors),
+        _render_index_section(sources, anchors),
     ]
     for basis in RESULT_BASES:
         grouped = [source for source in sources if source.manifest.basis == basis]
@@ -305,26 +384,90 @@ def _render_manifest_body(sources: Sequence[_Source], figures: list[RenderedFigu
     return "\n".join(parts)
 
 
-def _render_contents(sources: Sequence[_Source], anchors: Mapping[str, str]) -> str:
-    rows = [
-        "<tr><th scope=\"col\">Manifest</th><th scope=\"col\">Result kind</th>"
-        "<th scope=\"col\">Basis</th><th scope=\"col\">Recorded</th></tr>"
-    ]
-    for source in sources:
-        manifest = source.manifest
-        rows.append(
-            "<tr>"
-            f"<td><a href=\"#{html.escape(anchors[manifest.manifest_id])}\">"
-            f"{html.escape(manifest.manifest_id)}</a></td>"
-            f"<td>{html.escape(manifest.result_kind)}</td>"
-            f"<td>{html.escape(manifest.basis)}</td>"
-            f"<td>{html.escape(manifest.created_at_utc)}</td>"
-            "</tr>"
+def _render_index_section(sources: Sequence[_Source], anchors: Mapping[str, str]) -> str:
+    """The index across every manifest the report carries.
+
+    It is grouped by basis, names each manifest by ID, kind, label, producing command, recorded
+    time and digest, and links to the block that holds its figures. It carries no figure itself,
+    deliberately: an index is the one table in a multi-manifest report that spans bases, and a
+    number placed in it would be a number sitting outside the basis grouping that makes the rest
+    of the document readable.
+    """
+
+    present = _bases_present(sources)
+    absent = [basis for basis in RESULT_BASES if basis not in present]
+    manifest_word = "manifest" if len(sources) == 1 else "manifests"
+    group_word = "basis" if len(present) == 1 else "bases"
+    parts: list[str] = [
+        "<section class=\"report-index\">",
+        "<h2>Index of rendered manifests</h2>",
+        "<p class=\"index-composition\">"
+        + html.escape(
+            f"This report carries {len(sources)} run {manifest_word}, in "
+            f"{len(present)} of the five recorded {group_word}."
         )
+        + "</p>",
+        "<p class=\"index-rule\">" + html.escape(INDEX_RULE) + "</p>",
+    ]
+    for basis in present:
+        parts.append(f"<h3>{html.escape(BASIS_HEADING[basis])}</h3>")
+        parts.append(
+            "<p class=\"basis-wording\">Every figure in this group is "
+            + html.escape(BASIS_WORDING[basis])
+            + ".</p>"
+        )
+        rows = [
+            "<tr><th scope=\"col\">Manifest</th><th scope=\"col\">Result kind</th>"
+            "<th scope=\"col\">What it is</th><th scope=\"col\">Produced by</th>"
+            "<th scope=\"col\">Recorded</th><th scope=\"col\">Manifest digest</th></tr>"
+        ]
+        for source in sources:
+            manifest = source.manifest
+            if manifest.basis != basis:
+                continue
+            rows.append(
+                "<tr>"
+                f"<td><a href=\"#{html.escape(anchors[manifest.manifest_id])}\">"
+                f"{html.escape(manifest.manifest_id)}</a></td>"
+                f"<td>{html.escape(manifest.result_kind)}</td>"
+                f"<td class=\"index-label\">{html.escape(manifest.result_label)}</td>"
+                f"<td>{html.escape(manifest.produced_by)}</td>"
+                f"<td>{html.escape(manifest.created_at_utc)}</td>"
+                f"<td class=\"digest\">{html.escape(source.digest)}</td>"
+                "</tr>"
+            )
+        parts.append("<table class=\"index-table\">" + "".join(rows) + "</table>")
+    parts.append(_render_bases_absent(absent))
+    parts.append("</section>")
+    return "".join(parts)
+
+
+def _render_bases_absent(absent: Sequence[str]) -> str:
+    """Say which of the five bases this report does not cover.
+
+    A reader cannot tell an absent basis from an absent question. Naming what is missing keeps a
+    report from reading as the whole of what the project can record.
+    """
+
+    if not absent:
+        return (
+            "<p class=\"bases-absent\">All five recorded bases are represented in this "
+            "report.</p>"
+        )
+    named = ", ".join(BASIS_HEADING[basis].lower() for basis in absent)
     return (
-        "<section class=\"contents\"><h2>Manifests rendered</h2>"
-        "<table>" + "".join(rows) + "</table></section>"
+        "<p class=\"bases-absent\">Not represented in this report: "
+        f"{html.escape(named)}. An absent basis is a question this report does not answer, not "
+        "a question with no answer.</p>"
     )
+
+
+def _bases_present(sources: Sequence[_Source]) -> list[str]:
+    return [
+        basis
+        for basis in RESULT_BASES
+        if any(source.manifest.basis == basis for source in sources)
+    ]
 
 
 def _render_manifest(
@@ -332,11 +475,28 @@ def _render_manifest(
 ) -> str:
     manifest = source.manifest
     kind = RESULT_KINDS[manifest.result_kind]
+    composition_keys = _composition_keys(manifest.result_kind)
     headline_keys = tuple(
-        key for key in kind.required_summary_keys if key != "result_label"
+        key
+        for key in kind.required_summary_keys
+        if key != "result_label" and key not in composition_keys
     )
-    rendered_elsewhere = {*headline_keys, "result_label"}
+    rendered_elsewhere = {*headline_keys, *composition_keys, "result_label"}
     detail_keys = tuple(key for key in manifest.summary if key not in rendered_elsewhere)
+
+    if kind.forbids_distributional_terms:
+        _refuse_distributional_vocabulary(
+            manifest.result_kind,
+            [
+                kind.description,
+                "What this figure is",
+                "Recorded detail",
+                "Declared inputs",
+                "Provenance",
+                *(_caption(key) for key in (*headline_keys, *detail_keys)),
+                *_composition_chrome(source),
+            ],
+        )
 
     headline_rows = [
         _figure_row(source, key, is_headline=True, figures=figures) for key in headline_keys
@@ -344,17 +504,6 @@ def _render_manifest(
     detail_rows = [
         _figure_row(source, key, is_headline=False, figures=figures) for key in detail_keys
     ]
-
-    chrome = [
-        kind.description,
-        "What this figure is",
-        "Recorded detail",
-        "Declared inputs",
-        "Provenance",
-        *(_caption(key) for key in (*headline_keys, *detail_keys)),
-    ]
-    if kind.forbids_distributional_terms:
-        _refuse_distributional_vocabulary(manifest.result_kind, chrome)
 
     headline_block = (
         "<table class=\"headline\">" + "".join(headline_rows) + "</table>"
@@ -373,11 +522,283 @@ def _render_manifest(
         f"<p class=\"kind-description\">{html.escape(kind.description)}</p>"
         f"{headline_block}"
         f"{_render_label_block(source)}"
+        f"{_render_composition(source, figures)}"
         f"{detail_block}"
         f"{_render_declared_inputs(manifest)}"
         f"{_render_provenance(source)}"
         "</article>"
     )
+
+
+def _composition_keys(result_kind: str) -> tuple[str, ...]:
+    return tuple(key for key, _ in COMPOSITION_SECTIONS.get(result_kind, ()))
+
+
+def _composition_chrome(source: _Source) -> list[str]:
+    """Every phrase a composition section would emit in its own voice.
+
+    That includes the nested key names it turns into column headings and row captions. The
+    contract clears those names when the manifest is built; checking them again here is what
+    keeps the rule "the renderer checks what the renderer says" true now that the renderer says
+    nested key names out loud.
+    """
+
+    phrases: list[str] = []
+    summary = source.manifest.summary
+    for key, section in COMPOSITION_SECTIONS.get(source.manifest.result_kind, ()):
+        phrases.append(COMPOSITION_HEADINGS[section])
+        phrases.append(COMPOSITION_LEADS[section])
+        if key not in summary:
+            continue
+        if section == "scenarios_side_by_side":
+            phrases.extend(caption for caption, _ in SCENARIO_PROVENANCE_ROWS)
+            phrases.append("Scenario")
+        elif section == "equivalent_basis":
+            phrases.extend(_caption(name) for name in _equivalent_basis_captions(summary[key]))
+        elif section == "per_path_ranges":
+            phrases.extend(_caption(name) for name in _path_range_columns(summary[key]))
+    return phrases
+
+
+def _equivalent_basis_captions(recorded: Any) -> list[str]:
+    names: list[str] = []
+    if isinstance(recorded, Mapping):
+        for group, value in recorded.items():
+            names.append(str(group))
+            if isinstance(value, Mapping):
+                names.extend(str(name) for name in value)
+    return names
+
+
+def _render_composition(source: _Source, figures: list[RenderedFigure]) -> str:
+    """Lay a kind's recorded composition out, section by section, in declared order."""
+
+    summary = source.manifest.summary
+    parts: list[str] = []
+    for key, section in COMPOSITION_SECTIONS.get(source.manifest.result_kind, ()):
+        heading = f"<h4>{html.escape(COMPOSITION_HEADINGS[section])}</h4>"
+        if key not in summary:
+            parts.append(heading + _not_recorded(key))
+            continue
+        parts.append(
+            heading
+            + "<p class=\"composition-lead\">"
+            + html.escape(COMPOSITION_LEADS[section])
+            + "</p>"
+            + _COMPOSITION_RENDERERS[section](source, key, figures)
+        )
+    return "".join(parts)
+
+
+def _not_recorded(key: str, *, empty: bool = False) -> str:
+    """State plainly what a manifest records here, rather than filling it in.
+
+    A manifest recorded before its producing module carried this key is still a verified
+    manifest, and the report says what it records. The alternative — opening the CSV the run
+    wrote beside it — would put a figure in a report that never passed through the manifest,
+    which is the one thing this layer must not do.
+
+    An empty recording and an absent one are stated differently. They are different facts about
+    the run, and a report that reported one as the other would be wrong about its own evidence.
+    """
+
+    if empty:
+        return (
+            "<p class=\"not-recorded\">This manifest records an empty "
+            f"<code>{html.escape(key)}</code>, so there is nothing to lay out.</p>"
+        )
+    return (
+        "<p class=\"not-recorded\">This manifest records no "
+        f"<code>{html.escape(key)}</code>, so the report shows none. A report reads the "
+        "manifest and nothing else; it does not open the files a run wrote beside it.</p>"
+    )
+
+
+def _render_scenarios_side_by_side(
+    source: _Source, key: str, figures: list[RenderedFigure]
+) -> str:
+    """One column per named scenario, with the provenance each figure has to carry."""
+
+    scenarios = _recorded_sequence(source, key)
+    if not scenarios:
+        return _not_recorded(key, empty=scenarios is not None)
+
+    header = ["<tr><th scope=\"col\">Scenario</th>"]
+    for position, scenario in enumerate(scenarios):
+        header.append(
+            "<th scope=\"col\">"
+            + _figure_cell(
+                source,
+                key="scenario_name",
+                summary_path=(key, position, "scenario_name"),
+                recorded=_lookup(scenario, ("scenario_name",)),
+                figures=figures,
+            )
+            + "</th>"
+        )
+    header.append("</tr>")
+
+    rows: list[str] = ["".join(header)]
+    for caption, path in SCENARIO_PROVENANCE_ROWS:
+        cells = [f"<tr><th scope=\"row\">{html.escape(caption)}</th>"]
+        for position, scenario in enumerate(scenarios):
+            cells.append(
+                "<td>"
+                + _figure_cell(
+                    source,
+                    key=path[-1],
+                    summary_path=(key, position, *path),
+                    recorded=_lookup(scenario, path),
+                    figures=figures,
+                )
+                + "</td>"
+            )
+        cells.append("</tr>")
+        rows.append("".join(cells))
+    return (
+        "<div class=\"side-by-side\"><table class=\"scenarios\">"
+        + "".join(rows)
+        + "</table></div>"
+    )
+
+
+def _render_equivalent_basis(
+    source: _Source, key: str, figures: list[RenderedFigure]
+) -> str:
+    """Render the equivalence the ensemble checked, group by group, as it recorded it."""
+
+    recorded = source.manifest.summary.get(key)
+    if not isinstance(recorded, Mapping):
+        return _not_recorded(key)
+    if not recorded:
+        return _not_recorded(key, empty=True)
+
+    parts: list[str] = []
+    for group, value in recorded.items():
+        parts.append(
+            f"<p class=\"basis-group-name\">{html.escape(_caption(str(group)))}</p>"
+        )
+        entries: list[tuple[str, tuple[str, ...]]]
+        if isinstance(value, Mapping):
+            entries = [(str(name), (key, str(group), str(name))) for name in value]
+        else:
+            entries = [(str(group), (key, str(group)))]
+        rows = "".join(
+            "<tr>"
+            f"<th scope=\"row\">{html.escape(_caption(name))}</th>"
+            "<td>"
+            + _figure_cell(
+                source,
+                key=path[-1],
+                summary_path=path,
+                recorded=_lookup(recorded, path[1:]),
+                figures=figures,
+            )
+            + "</td></tr>"
+            for name, path in entries
+        )
+        parts.append(f"<table class=\"equivalent-basis\">{rows}</table>")
+    return "".join(parts)
+
+
+def _render_path_ranges(source: _Source, key: str, figures: list[RenderedFigure]) -> str:
+    """One row per bootstrap path, in the columns and the order the manifest recorded."""
+
+    records = _recorded_sequence(source, key)
+    if not records:
+        return _not_recorded(key, empty=records is not None)
+    columns = _path_range_columns(records)
+    if not columns:
+        return _not_recorded(key, empty=True)
+
+    header = "<tr>" + "".join(
+        f"<th scope=\"col\">{html.escape(_caption(column))}</th>" for column in columns
+    ) + "</tr>"
+    rows = [header]
+    for position, record in enumerate(records):
+        cells = "".join(
+            "<td>"
+            + _figure_cell(
+                source,
+                key=column,
+                summary_path=(key, position, column),
+                recorded=_lookup(record, (column,)),
+                figures=figures,
+            )
+            + "</td>"
+            for column in columns
+        )
+        rows.append(f"<tr>{cells}</tr>")
+    return (
+        "<div class=\"side-by-side\"><table class=\"path-ranges\">"
+        + "".join(rows)
+        + "</table></div>"
+    )
+
+
+def _path_range_columns(records: Any) -> tuple[str, ...]:
+    """The recorded columns, taken from the recorded rows rather than restated here.
+
+    Every row must declare the same columns. A ragged table is refused instead of rendered with
+    blanks, because a blank cell in a range table reads as a value rather than as an absence.
+    """
+
+    if not isinstance(records, Sequence) or isinstance(records, (str, bytes)) or not records:
+        return ()
+    rows = [record for record in records if isinstance(record, Mapping)]
+    if len(rows) != len(records):
+        raise ReportRenderError(
+            "A recorded per-path range row is not an object; the report renders the table a "
+            "manifest recorded, and cannot render a row it cannot read"
+        )
+    columns = tuple(str(name) for name in rows[0])
+    for row in rows[1:]:
+        if tuple(str(name) for name in row) != columns:
+            raise ReportRenderError(
+                "Recorded per-path range rows declare different columns. A ragged table would "
+                "be rendered with blank cells, and a blank cell in a range table reads as a "
+                "value rather than as an absence"
+            )
+    return columns
+
+
+def _recorded_sequence(source: _Source, key: str) -> tuple[Mapping[str, Any], ...] | None:
+    """The recorded rows of a composition table, or ``None`` when the key is not a list of rows.
+
+    An empty tuple and ``None`` are different answers: the first says the manifest records an
+    empty table, the second that it records no such table at all.
+    """
+
+    if key not in source.manifest.summary:
+        return None
+    recorded = source.manifest.summary[key]
+    if not isinstance(recorded, Sequence) or isinstance(recorded, (str, bytes)):
+        return None
+    entries = tuple(item for item in recorded if isinstance(item, Mapping))
+    if len(entries) != len(recorded):
+        raise ReportRenderError(
+            f"Recorded {key} contains an entry that is not an object; the report renders what "
+            "a manifest recorded and cannot render an entry it cannot read"
+        )
+    return entries
+
+
+def _lookup(recorded: Any, path: Sequence[str]) -> tuple[bool, Any]:
+    """Resolve a recorded value by path, distinguishing a recorded null from an absent key."""
+
+    current: Any = recorded
+    for name in path:
+        if not isinstance(current, Mapping) or name not in current:
+            return (False, None)
+        current = current[name]
+    return (True, current)
+
+
+_COMPOSITION_RENDERERS: dict[str, Any] = {
+    "scenarios_side_by_side": _render_scenarios_side_by_side,
+    "equivalent_basis": _render_equivalent_basis,
+    "per_path_ranges": _render_path_ranges,
+}
 
 
 def _render_label_block(source: _Source) -> str:
@@ -430,8 +851,41 @@ def _render_provenance(source: _Source) -> str:
 def _figure_row(
     source: _Source, key: str, *, is_headline: bool, figures: list[RenderedFigure]
 ) -> str:
+    cell = _figure_cell(
+        source,
+        key=key,
+        summary_path=(key,),
+        recorded=(True, source.manifest.summary[key]),
+        figures=figures,
+        is_headline=is_headline,
+    )
+    return (
+        f"<tr><th scope=\"row\">{html.escape(_caption(key))}</th>"
+        f"<td>{cell}</td></tr>"
+    )
+
+
+def _figure_cell(
+    source: _Source,
+    *,
+    key: str,
+    summary_path: tuple[str | int, ...],
+    recorded: tuple[bool, Any],
+    figures: list[RenderedFigure],
+    is_headline: bool = False,
+) -> str:
+    """Render one recorded value, and record where in the manifest it came from.
+
+    An absent key is stated as absent rather than shown as a blank or a zero, and no figure is
+    recorded for it: there is no value to attribute. A recorded ``null`` is a value, and renders
+    as the JSON null it was recorded as.
+    """
+
+    present, value = recorded
+    if not present:
+        return "<span class=\"absent-value\">not recorded</span>"
     manifest = source.manifest
-    value_text = _format_value(manifest.summary[key])
+    value_text = _format_value(value)
     figures.append(
         RenderedFigure(
             manifest_id=manifest.manifest_id,
@@ -440,12 +894,10 @@ def _figure_row(
             key=key,
             value_text=value_text,
             is_headline=is_headline,
+            summary_path=summary_path,
         )
     )
-    return (
-        f"<tr><th scope=\"row\">{html.escape(_caption(key))}</th>"
-        f"<td><span class=\"figure-value\">{html.escape(value_text)}</span></td></tr>"
-    )
+    return f"<span class=\"figure-value\">{html.escape(value_text)}</span>"
 
 
 def _caption(key: str) -> str:
@@ -571,11 +1023,18 @@ def _index(
         "state": "rendered_manifests" if sources else "declaration_checklist",
         "manifest_count": len(sources),
         "figure_count": len(figures),
-        "bases_rendered": [
-            basis
-            for basis in RESULT_BASES
-            if any(source.manifest.basis == basis for source in sources)
+        "bases_rendered": _bases_present(sources),
+        "bases_absent": [
+            basis for basis in RESULT_BASES if basis not in _bases_present(sources)
         ],
+        "manifests_by_basis": {
+            basis: [
+                source.manifest.manifest_id
+                for source in sources
+                if source.manifest.basis == basis
+            ]
+            for basis in _bases_present(sources)
+        },
         "standing_exclusions": list(STANDING_EXCLUSIONS),
         "manifests": [
             {
@@ -587,15 +1046,37 @@ def _index(
                 "project_version": source.manifest.project_version,
                 "created_at_utc": source.manifest.created_at_utc,
                 "manifest_sha256": source.digest,
-                "rendered_figure_keys": [
-                    figure.key
-                    for figure in figures
-                    if figure.manifest_id == source.manifest.manifest_id
+                "rendered_summary_keys": _rendered_summary_keys(source, figures),
+                "composition_sections": [
+                    section
+                    for key, section in COMPOSITION_SECTIONS.get(
+                        source.manifest.result_kind, ()
+                    )
+                    if key in source.manifest.summary
                 ],
             }
             for source in sources
         ],
     }
+
+
+def _rendered_summary_keys(
+    source: _Source, figures: Sequence[RenderedFigure]
+) -> list[str]:
+    """The summary keys a manifest contributed, in rendering order and without repetition.
+
+    A composition table renders many cells out of one summary key, so the audit index names the
+    key once. What each individual cell was read from is carried by the figure itself.
+    """
+
+    keys: list[str] = []
+    for figure in figures:
+        if figure.manifest_id != source.manifest.manifest_id:
+            continue
+        name = str(figure.summary_path[0])
+        if name not in keys:
+            keys.append(name)
+    return keys
 
 
 def _document(body: str) -> str:
@@ -651,7 +1132,15 @@ code, pre, .figure-value { font-family: ui-monospace, monospace; }
 .label-block { border-left: 4px solid currentColor; margin: 0.75rem 0; padding: 0.25rem 0.9rem; }
 .result-label { font-style: italic; }
 .standing-exclusions { margin: 0.25rem 0 0.25rem 1rem; padding: 0; }
-.kind-description, .basis-wording { opacity: 0.85; }
+.kind-description, .basis-wording, .composition-lead, .index-rule { opacity: 0.85; }
+.side-by-side { overflow-x: auto; }
+.side-by-side table { min-width: 100%; width: auto; }
+.side-by-side th[scope="row"] { white-space: nowrap; width: auto; }
+.basis-group-name { font-weight: 600; margin-bottom: 0; }
+.absent-value, .not-recorded { font-style: italic; opacity: 0.8; }
+.index-table td.digest { font-size: 0.75rem; }
+.index-table td.index-label { font-style: italic; }
+.bases-absent { font-size: 0.9rem; opacity: 0.85; }
 footer { border-top: 1px solid currentColor; font-size: 0.85rem; margin-top: 3rem;
   padding-top: 0.75rem; }
 """

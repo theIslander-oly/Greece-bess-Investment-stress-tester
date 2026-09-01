@@ -127,19 +127,96 @@ class BuildTests(unittest.TestCase):
         self.assertEqual(manifest.result_kind, "perfect_foresight_dispatch")
 
 
+def _ensemble_summary(**overrides: Any) -> dict[str, Any]:
+    """A summary carrying every key the ensemble kind guarantees, including the nesting."""
+
+    summary: dict[str, Any] = {
+        "result_label": "non-probabilistic range across named scenarios",
+        "scenario_count": 2,
+        "scenario_names": ["a", "b"],
+        "scenarios": [
+            {
+                "scenario_name": "a",
+                "input_run_id": "run-a",
+                "transformation": {"method": "none", "transformation_id": None},
+                "availability": {"type": "constant", "fraction": 1.0},
+                "path_count": 1,
+            },
+            {
+                "scenario_name": "b",
+                "input_run_id": "run-b",
+                "transformation": {"method": "none", "transformation_id": None},
+                "availability": {"type": "constant", "fraction": 1.0},
+                "path_count": 1,
+            },
+        ],
+        "equivalent_basis": {"path_identity": {"path_count": 1, "path_ids": [0]}},
+        "path_count": 1,
+        "path_ranges": [
+            {
+                "path_id": 0,
+                "scenario_count": 2,
+                "minimum_net_market_margin_eur": 10.0,
+                "minimum_scenario_name": "a",
+                "maximum_net_market_margin_eur": 12.0,
+                "maximum_scenario_name": "b",
+                "spread_net_market_margin_eur": 2.0,
+            }
+        ],
+    }
+    summary.update(overrides)
+    return summary
+
+
 class DistributionalTermScopeTests(unittest.TestCase):
     def test_the_ensemble_refuses_a_distributional_key(self) -> None:
-        summary = {
-            "result_label": "non-probabilistic range across named scenarios",
-            "scenario_count": 2,
-            "scenario_names": ["a", "b"],
-            "mean_net_market_margin_eur": 10.0,
-        }
         with self.assertRaisesRegex(ReportContractError, "reads as 'mean'"):
+            build_run_manifest(
+                _ensemble_summary(mean_net_market_margin_eur=10.0),
+                kind_id="scenario_ensemble_range",
+                manifest_id="run-2",
+                produced_by="report-scenario-ensemble",
+            )
+
+    def test_the_ensemble_refuses_a_distributional_key_nested_in_a_table(self) -> None:
+        """The check reaches the depth a report renders, because a report renders nested keys.
+
+        A per-path range table becomes visible column headings. A scan that stopped at the top
+        level of the summary would clear a manifest whose headings claim a percentile, and the
+        heading is what a reader takes away.
+        """
+
+        summary = _ensemble_summary()
+        summary["path_ranges"][0]["p95_net_market_margin_eur"] = 11.0
+        with self.assertRaisesRegex(ReportContractError, "reads as 'p95'"):
             build_run_manifest(
                 summary,
                 kind_id="scenario_ensemble_range",
-                manifest_id="run-2",
+                manifest_id="run-2b",
+                produced_by="report-scenario-ensemble",
+            )
+
+    def test_the_ensemble_records_its_composition_keys(self) -> None:
+        """The per-path ranges, the per-scenario provenance and the basis are guaranteed."""
+
+        manifest = build_run_manifest(
+            _ensemble_summary(),
+            kind_id="scenario_ensemble_range",
+            manifest_id="run-2c",
+            produced_by="report-scenario-ensemble",
+        )
+        for key in ("scenarios", "equivalent_basis", "path_count", "path_ranges"):
+            self.assertIn(key, RESULT_KINDS["scenario_ensemble_range"].required_summary_keys)
+            self.assertIn(key, manifest.summary)
+
+    def test_an_ensemble_summary_without_its_per_path_ranges_is_refused(self) -> None:
+        summary = _ensemble_summary()
+        del summary["path_ranges"]
+        with self.assertRaisesRegex(ReportContractError, "path_ranges"):
+            build_run_manifest(
+                summary,
+                kind_id="scenario_ensemble_range",
+                manifest_id="run-2d",
                 produced_by="report-scenario-ensemble",
             )
 

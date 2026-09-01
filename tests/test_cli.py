@@ -1042,6 +1042,55 @@ class CliTests(unittest.TestCase):
             )
             self.assertEqual(compression_row["source_era_resolution_minutes"], 60)
 
+            # v0.8.1: the summary records the per-path ranges the CSV carries, so the report
+            # layer can render them through the manifest rather than by opening this CSV.
+            self.assertEqual(len(summary["path_ranges"]), len(ranges))
+            for position, row in enumerate(summary["path_ranges"]):
+                for column, value in row.items():
+                    self.assertEqual(value, ranges.iloc[position][column])
+
+            with redirect_stdout(io.StringIO()):
+                self.assertEqual(
+                    main(
+                        [
+                            "record-run-manifest",
+                            str(root / "ensemble.summary.json"),
+                            "--result-kind",
+                            "scenario_ensemble_range",
+                            "--manifest-id",
+                            "local-ensemble",
+                            "--produced-by",
+                            "report-scenario-ensemble",
+                            "--output",
+                            str(root / "ensemble.manifest.json"),
+                        ]
+                    ),
+                    0,
+                )
+                self.assertEqual(
+                    main(
+                        [
+                            "render-report",
+                            str(root / "ensemble.manifest.json"),
+                            "--output",
+                            str(root / "ensemble.report.html"),
+                        ]
+                    ),
+                    0,
+                )
+
+            document = (root / "ensemble.report.html").read_text(encoding="utf-8")
+            report_index = json.loads(
+                (root / "ensemble.report.index.json").read_text(encoding="utf-8")
+            )
+            self.assertEqual(
+                report_index["manifests"][0]["composition_sections"],
+                ["scenarios_side_by_side", "equivalent_basis", "per_path_ranges"],
+            )
+            self.assertIn("Range per bootstrap path", document)
+            for row in summary["path_ranges"]:
+                self.assertIn(json.dumps(row["spread_net_market_margin_eur"]), document)
+
     def test_scenario_ensemble_command_refuses_a_single_scenario_ensemble(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

@@ -29,6 +29,10 @@ outcomes; it is not a ban on the words themselves. A forecast benchmark's mean a
 is an accuracy statistic about a model, and a publication audit's median lead time is a
 statistic about a publisher — neither asserts a distribution over investment outcomes. Applying
 one list everywhere would refuse honest arithmetic and teach a reader that the check is noise.
+
+Where the check does apply it reaches every key name at any depth, because a report renders
+nested keys as visible column headings. A summary that recorded a per-path table whose columns
+claimed a percentile would otherwise pass a top-level scan and reach a reader as a heading.
 """
 
 from __future__ import annotations
@@ -174,7 +178,15 @@ def _kinds() -> dict[str, ResultKind]:
             "scenario_ensemble_range",
             "synthetic_scenario",
             "Non-probabilistic minimum, maximum and spread across named scenarios.",
-            ("result_label", "scenario_count", "scenario_names"),
+            (
+                "result_label",
+                "scenario_count",
+                "scenario_names",
+                "scenarios",
+                "equivalent_basis",
+                "path_count",
+                "path_ranges",
+            ),
             forbids_distributional_terms=True,
         ),
         ResultKind(
@@ -362,8 +374,16 @@ def read_run_manifest(path: Path) -> RunManifest:
 
 
 def _refuse_distributional_terms(kind_id: str, summary: Mapping[str, Any]) -> None:
-    for name in summary:
-        lowered = str(name).lower()
+    """Check every key name a consumer could render, at any depth of the summary.
+
+    The check reaches nested keys because a report does. A scenario ensemble records its
+    per-path ranges and its per-scenario provenance as nested objects, and a renderer that
+    displays a nested key displays its name; a check that stopped at the top level would clear
+    a manifest whose visible column headings claim a distribution the kind forbids.
+    """
+
+    for name in _nested_key_names(summary):
+        lowered = name.lower()
         for term in FORBIDDEN_REPORT_TERMS:
             if term in lowered:
                 raise ReportContractError(
@@ -371,6 +391,20 @@ def _refuse_distributional_terms(kind_id: str, summary: Mapping[str, Any]) -> No
                     "and this result kind reports a range across named judgments rather than a "
                     "distribution over outcomes"
                 )
+
+
+def _nested_key_names(payload: Any) -> list[str]:
+    """Collect every mapping key name in a summary, at any depth."""
+
+    names: list[str] = []
+    if isinstance(payload, Mapping):
+        for key, value in payload.items():
+            names.append(str(key))
+            names.extend(_nested_key_names(value))
+    elif isinstance(payload, (list, tuple)):
+        for item in payload:
+            names.extend(_nested_key_names(item))
+    return names
 
 
 def _refuse_contradicted_standing_claims(kind_id: str, summary: Mapping[str, Any]) -> None:

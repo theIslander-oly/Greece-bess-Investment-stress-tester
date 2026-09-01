@@ -13,9 +13,13 @@ from .contract import (
     write_run_manifest,
 )
 from .render import (
+    BASIS_HEADING,
     BASIS_WORDING,
+    COMPOSITION_SECTIONS,
     DECLARATION_CHECKLIST,
+    INDEX_RULE,
     REPORT_RENDER_VERSION,
+    SCENARIO_PROVENANCE_ROWS,
     DeclarationRequirement,
     RenderedFigure,
     RenderedReport,
@@ -25,12 +29,16 @@ from .render import (
 )
 
 __all__ = [
+    "BASIS_HEADING",
     "BASIS_WORDING",
+    "COMPOSITION_SECTIONS",
     "DECLARATION_CHECKLIST",
+    "INDEX_RULE",
     "REPORT_CONTRACT_VERSION",
     "REPORT_RENDER_VERSION",
     "RESULT_BASES",
     "RESULT_KINDS",
+    "SCENARIO_PROVENANCE_ROWS",
     "STANDING_EXCLUSIONS",
     "DeclarationRequirement",
     "RenderedFigure",

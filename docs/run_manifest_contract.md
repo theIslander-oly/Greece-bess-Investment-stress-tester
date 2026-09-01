@@ -103,6 +103,26 @@ greek-bess verify-run-manifest dispatch.manifest.json
 `verify-run-manifest` refuses a manifest from an unknown schema version or result kind, and one
 whose declared basis disagrees with its kind.
 
+## Amendment, 1 September 2026 (v0.8.1)
+
+Two changes, both recorded in `DECISIONS.md` under *"Record the ensemble's per-path ranges in its
+summary, rather than reading its CSV"*.
+
+**`scenario_ensemble_range` guarantees more.** Its required summary keys are now `result_label`,
+`scenario_count`, `scenario_names`, `scenarios`, `equivalent_basis`, `path_count` and
+`path_ranges`. A report renders verified manifests and nothing else, so a range the ensemble did
+not record in its summary is a range no report can show; `report_scenario_ensemble` therefore
+records its per-path ranges as well as the four extreme aggregates. The envelope is unchanged, so
+`schema_version` stays at 1 and an ensemble manifest recorded before this amendment still reads
+and still renders — the guaranteed-key check runs when a manifest is built, not when one is read,
+and the report says plainly that such a manifest records no per-path ranges.
+
+**The distributional-term check reaches nested keys.** For the kinds that declare
+`forbids_distributional_terms`, every key name at any depth of the summary is checked, not only
+the top-level names. The scoping to those kinds is unchanged and still load-bearing for the
+reasons above; the depth changed because a report renders a nested key as a visible column
+heading, and a top-level scan would clear a per-path table whose headings claimed a percentile.
+
 ## What this does not do
 
 It does not open v0.8. No interface, dashboard, exporter or rendering surface is added, and no

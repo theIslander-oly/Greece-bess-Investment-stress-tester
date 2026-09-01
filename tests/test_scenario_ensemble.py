@@ -16,6 +16,7 @@ import pandas as pd
 from greek_bess.stress import (
     FORBIDDEN_REPORT_TERMS,
     NO_TRANSFORMATION,
+    PATH_RANGE_SUMMARY_COLUMNS,
     ScenarioEnsembleInputError,
     ScenarioRun,
     report_scenario_ensemble,
@@ -508,3 +509,76 @@ def _keys(payload: object) -> list[str]:
 
 if __name__ == "__main__":  # pragma: no cover
     unittest.main()
+
+
+class RecordedPathRangeTests(unittest.TestCase):
+    """The summary records the per-path ranges, so a report can render them.
+
+    A report reads a run manifest and nothing else. Before this the per-path ranges lived only
+    in the CSV beside the run, which meant a report could show the four extreme aggregates and
+    nothing in between — or reach past the manifest for the rest, which is the one thing the
+    reporting layer must never do. Recording the ranges is what closes that gap; these tests
+    pin that recording it changed no number.
+    """
+
+    def test_the_summary_records_one_row_per_path_in_frame_order(self) -> None:
+        result = report_scenario_ensemble(_ensemble())
+        recorded = result.summary["path_ranges"]
+
+        self.assertEqual(len(recorded), len(result.scenario_ranges))
+        self.assertEqual(result.summary["path_count"], len(recorded))
+        self.assertEqual(
+            [row["path_id"] for row in recorded],
+            result.scenario_ranges["path_id"].tolist(),
+        )
+
+    def test_every_recorded_cell_equals_the_frame_the_csv_is_written_from(self) -> None:
+        result = report_scenario_ensemble(_ensemble())
+
+        for position, row in enumerate(result.summary["path_ranges"]):
+            self.assertEqual(tuple(row), PATH_RANGE_SUMMARY_COLUMNS)
+            for column in PATH_RANGE_SUMMARY_COLUMNS:
+                self.assertEqual(row[column], result.scenario_ranges.iloc[position][column])
+
+    def test_recorded_cells_are_plain_json_values(self) -> None:
+        """A summary is written as JSON, and a frame carries NumPy scalars."""
+
+        result = report_scenario_ensemble(_ensemble())
+        round_tripped = json.loads(json.dumps(result.summary["path_ranges"]))
+        self.assertEqual(round_tripped, result.summary["path_ranges"])
+        for row in result.summary["path_ranges"]:
+            self.assertIsInstance(row["path_id"], int)
+            self.assertIsInstance(row["spread_net_market_margin_eur"], float)
+            self.assertIsInstance(row["minimum_scenario_name"], str)
+
+    def test_the_recorded_projection_carries_no_probability_vocabulary(self) -> None:
+        report_scenario_ensemble(_ensemble())
+        for column in PATH_RANGE_SUMMARY_COLUMNS:
+            for term in FORBIDDEN_REPORT_TERMS:
+                self.assertNotIn(term, column.lower())
+
+    def test_per_scenario_provenance_is_recorded_once_rather_than_per_path(self) -> None:
+        """The scenario name is the join; repeating provenance per path adds no fact."""
+
+        result = report_scenario_ensemble(_ensemble())
+        recorded_names = {
+            row["minimum_scenario_name"] for row in result.summary["path_ranges"]
+        } | {row["maximum_scenario_name"] for row in result.summary["path_ranges"]}
+
+        declared = {scenario["scenario_name"] for scenario in result.summary["scenarios"]}
+        self.assertTrue(recorded_names.issubset(declared))
+        for row in result.summary["path_ranges"]:
+            self.assertNotIn("minimum_scenario_transformation_parameters", row)
+
+    def test_recording_the_ranges_changed_no_reported_figure(self) -> None:
+        """The recorded rows are a projection of the same frame, not a second reduction."""
+
+        result = report_scenario_ensemble(_ensemble())
+        widest = max(
+            result.summary["path_ranges"],
+            key=lambda row: row["spread_net_market_margin_eur"],
+        )
+        self.assertEqual(
+            widest["spread_net_market_margin_eur"], result.summary["widest_path_spread_eur"]
+        )
+        self.assertEqual(widest["path_id"], result.summary["widest_spread_path_id"])
