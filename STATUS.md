@@ -214,10 +214,18 @@ live acceptance step is a workflow dispatch rather than a command in a checkout.
 - Custody covers retrieved official artifacts only. Derived evidence computed from a custodied
   history, such as the `annual-replay-decomposition` artifact, is guaranteed by reproduction
   from the recorded history, commit and configuration instead.
-- **Outstanding operator action:** the encrypted copies must be uploaded. Custody is not
-  complete until they are. The history copy should now be taken from replacement run
-  `33483975614`, which does not expire until 30 November 2026; the reconciliation artifact from
-  run `33073631530` still expires 3 September 2026.
+- **The encrypted copies now exist.** Run `33497084006` verified both artifacts against their
+  committed records, encrypted them to the operator's recipient and published release
+  `custody-2026-09-01` on 1 September 2026: `greek-dam-official-history.tar.gz.age`
+  (1,312,353 B, ciphertext SHA-256 `3fa76c75…0329bf`) and
+  `henex-entsoe-reconciliation.tar.gz.age` (1,672,921 B, `43c5b07b…0ae431`). The reconciliation
+  copy is the only surviving form of that evidence once its source artifact expires
+  3 September 2026.
+- **Custody is still not recorded as complete**, for two reasons that are not bookkeeping.
+  Nothing has decrypted the copies, so the private key is an assumption rather than a
+  demonstrated capability; the drill in `docs/official_artifact_custody.md` should be run before
+  3 September, while a key failure is still recoverable from the source artifacts. And the second
+  copy under separate control does not exist: one release is one failure domain.
 - The `Publish encrypted custody copies` workflow now performs the download, verification,
   encryption and release upload inside Actions, so the operator's remaining part is generating
   one age key pair and supplying the public recipient. An age recipient can encrypt and cannot

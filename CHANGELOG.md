@@ -6,6 +6,14 @@ All notable project changes are documented here.
 
 ### Added
 
+- Encrypted custody copies published as release `custody-2026-09-01` (run `33497084006`), after
+  verifying both artifacts against their committed records. The reconciliation copy is the only
+  surviving form of that evidence once its source artifact expires 3 September 2026. Ciphertext
+  digests are recorded in `docs/official_artifact_custody.md`.
+- A decryption drill covering both artifacts, recorded as the step that proves the private key
+  opens the copies and that the recovered plaintext is the accepted artifact. Custody is not
+  recorded as complete until it has been run, because an encrypted copy whose key has never been
+  exercised is an assumption rather than a backup and fails silently.
 - Replacement retrieval of the accepted official history before the original artifact's expiry.
   Run `33483975614` re-ran `Fetch official Greek market history` with the inputs that produced
   the accepted baseline, yielding an artifact that expires 30 November 2026 under the 90-day

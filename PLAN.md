@@ -253,9 +253,14 @@ evidence, never from a working checkout. Plan any live acceptance step as a work
     committed record, refuses to encrypt one that differs, encrypts to an operator-supplied age
     recipient and attaches the ciphertext to a private release. The recipient is a public key, so
     no automation here can decrypt an accepted artifact.
-  - [ ] Operator supplies the age recipient and dispatches it. Custody is not complete until the
-    encrypted copies exist, and the second copy under separate control remains outside this
-    repository's knowledge.
+  - [x] Encrypted copies published. Run `33497084006` verified both artifacts, encrypted them to
+    the operator's recipient and published release `custody-2026-09-01` on 1 September 2026.
+  - [ ] **Decryption drill, before 3 September 2026.** Nothing has opened the copies, so the
+    private key is an assumption rather than a demonstrated capability, and the failure mode is
+    silent. Running it while the source artifacts still exist is what makes a key failure
+    recoverable; after the reconciliation artifact expires it would not be.
+  - [ ] Second copy under separate control. One release is one failure domain, and this is
+    outside the repository's knowledge either way.
 - [x] Add a per-calendar-year decomposition of the accepted replay (annual perfect-foresight
   ceiling and forecast capture), since aggregate 2020-2026 margins conceal regime dependence
   such as the 2022 gas-crisis year.
