@@ -29,8 +29,10 @@ ADMIE load and RES forecasts from scope rather than by working it to acceptance.
 
 **v0.8 is open.** The user approved it on 1 September 2026, `PROMPT.md` was amended the same
 day, and `docs/v0.8_design.md` is the design of record. v0.8.0, the report rendering foundation,
-landed on 1 September 2026 and the package is at 0.8.0. The next engineering milestone is
-v0.8.1, multi-run composition.
+and v0.8.1, multi-run composition, both landed on 1 September 2026 and the package is at 0.8.1.
+The only engineering milestone left in v0.8 is v0.8.2, which is a decision rather than an
+implementation: whether an interactive viewer is added on top of the static renderer. It is not
+assumed, and if it is declined v0.8 completes with the static renderer.
 
 **Two operator items remain open** (the custody second copy and `ENTSOE_SECURITY_TOKEN`,
 below). The lesson the closed quarantine records is worth keeping in front of the plan: between
@@ -191,10 +193,18 @@ evidence, never from a working checkout. Plan any live acceptance step as a work
     distributional-term check is scoped to the renderer's own vocabulary because the standing
     exclusions the design requires beside every figure themselves contain two of the terms
     (decision entries 2026-09-01).
-  - [ ] v0.8.1 — Multi-run composition. An index across many manifests and side-by-side
-    scenario-ensemble presentation with per-path ranges and per-scenario provenance, rendering
-    the equivalent-basis evidence the ensemble records. Composition is layout only; nothing is
-    computed across manifests.
+  - [x] v0.8.1 — Multi-run composition (completed 2026-09-01;
+    `docs/implementation_report_v0.8.1.md`). An index across many manifests, grouped by basis,
+    naming each manifest's ID, kind, label, producing command, recorded time and digest, linking
+    to its block and naming the bases the report does not cover — and carrying no figure at all,
+    which is the point of it. A scenario ensemble is laid out side by side: one column per named
+    scenario with its provenance, the equivalent-basis evidence the ensemble recorded, and one
+    row per bootstrap path with the lowest and highest margin, the scenarios that attained each
+    end, and the spread. Composition is layout only; nothing is computed across manifests, and
+    no total spans the paths. The design tension the milestone opened — the per-path ranges lived
+    in the ranges CSV, not in the summary a manifest carries — was resolved by recording them in
+    the ensemble's own summary and guaranteeing them in the contract, never by reading the CSV
+    (decision entries 2026-09-01; amendment in `docs/v0.8_design.md`).
   - [ ] v0.8.2 — Interactive viewer decision. A separate dated decision on whether a local
     interactive viewer (e.g. Streamlit) is added on top of the static renderer; it is a new
     dependency and rendering surface and is not assumed. If declined, v0.8 completes with the

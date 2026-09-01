@@ -21,14 +21,18 @@ from pathlib import Path
 from typing import Any
 from unittest import mock
 
+import pandas as pd
+
 from greek_bess.cli import main
 from greek_bess.data.synthetic import generate_synthetic_prices
 from greek_bess.dispatch import BatteryDispatchConfig, optimize_perfect_foresight
 from greek_bess.reporting import (
+    BASIS_HEADING,
     BASIS_WORDING,
     DECLARATION_CHECKLIST,
     RESULT_BASES,
     RESULT_KINDS,
+    SCENARIO_PROVENANCE_ROWS,
     STANDING_EXCLUSIONS,
     ReportContractError,
     ReportRenderError,
@@ -38,7 +42,96 @@ from greek_bess.reporting import (
     write_report,
     write_run_manifest,
 )
-from greek_bess.stress.ensemble import FORBIDDEN_REPORT_TERMS
+from greek_bess.stress.ensemble import (
+    FORBIDDEN_REPORT_TERMS,
+    PATH_RANGE_SUMMARY_COLUMNS,
+    ScenarioRun,
+    report_scenario_ensemble,
+)
+
+#: The shape a scenario ensemble records for each named scenario, so a fixture exercises the
+#: same nesting a real ``report-scenario-ensemble`` summary carries.
+ENSEMBLE_SCENARIOS: list[dict[str, Any]] = [
+    {
+        "scenario_name": "baseline",
+        "input_run_id": "run-baseline",
+        "transformation": {
+            "method": "none (untransformed bootstrap replay)",
+            "transformation_id": None,
+            "parameters": {},
+        },
+        "availability": {"type": "constant", "fraction": 1.0},
+        "source_era": {
+            "resolution_minutes": 60,
+            "first_day": "2025-01-01",
+            "last_day": "2025-01-31",
+        },
+        "bootstrap_configuration": {"random_seed": 42, "block_days": 7, "path_count": 2},
+        "path_count": 2,
+    },
+    {
+        "scenario_name": "declared_outage",
+        "input_run_id": "run-declared-outage",
+        "transformation": {
+            "method": "none (untransformed bootstrap replay)",
+            "transformation_id": None,
+            "parameters": {},
+        },
+        "availability": {"type": "scheduled", "schedule_id": "outage-a", "fraction": 0.0},
+        "source_era": {
+            "resolution_minutes": 60,
+            "first_day": "2025-01-01",
+            "last_day": "2025-01-31",
+        },
+        "bootstrap_configuration": {"random_seed": 42, "block_days": 7, "path_count": 2},
+        "path_count": 2,
+    },
+]
+
+ENSEMBLE_EQUIVALENT_BASIS: dict[str, Any] = {
+    "battery_configuration": {
+        "charge_power_mw": 25.0,
+        "discharge_power_mw": 25.0,
+        "energy_capacity_mwh": 50.0,
+        "charge_efficiency": 0.94,
+        "discharge_efficiency": 0.94,
+    },
+    "terminal_energy_basis": {
+        "energy_capacity_mwh": 50.0,
+        "soc_min_fraction": 0.05,
+        "soc_max_fraction": 0.95,
+        "initial_soc_fraction": 0.5,
+        "terminal_soc_fraction": None,
+        "terminal_energy_mwh": 25.0,
+    },
+    "source_era": {
+        "resolution_minutes": 60,
+        "first_day": "2025-01-01",
+        "last_day": "2025-01-31",
+    },
+    "path_identity": {"path_count": 2, "path_ids": [0, 1]},
+}
+
+ENSEMBLE_PATH_RANGES: list[dict[str, Any]] = [
+    {
+        "path_id": 0,
+        "scenario_count": 2,
+        "minimum_net_market_margin_eur": 900.0,
+        "minimum_scenario_name": "declared_outage",
+        "maximum_net_market_margin_eur": 1000.0,
+        "maximum_scenario_name": "baseline",
+        "spread_net_market_margin_eur": 100.0,
+    },
+    {
+        "path_id": 1,
+        "scenario_count": 2,
+        "minimum_net_market_margin_eur": 820.5,
+        "minimum_scenario_name": "declared_outage",
+        "maximum_net_market_margin_eur": 1100.25,
+        "maximum_scenario_name": "baseline",
+        "spread_net_market_margin_eur": 279.75,
+    },
+]
 
 #: One realistic value for each guaranteed summary key in the registry, so a manifest can be
 #: built for every kind without running sixteen modules.
@@ -47,6 +140,10 @@ GUARANTEED_VALUES: dict[str, Any] = {
     "net_market_margin_eur": 1234.5,
     "scenario_count": 2,
     "scenario_names": ["baseline", "declared_outage"],
+    "scenarios": ENSEMBLE_SCENARIOS,
+    "equivalent_basis": ENSEMBLE_EQUIVALENT_BASIS,
+    "path_count": 2,
+    "path_ranges": ENSEMBLE_PATH_RANGES,
     "operating_margin_case": "illustrative_supplied_operating_margin",
     "timing_accepted": True,
     "quarantine_lifted": False,
@@ -101,6 +198,89 @@ def _main_text(document: str) -> str:
     body = MAIN_REGION.search(document)
     assert body is not None
     return html_module.unescape(TAG.sub(" ", body.group("body")))
+
+
+INDEX_SECTION = re.compile(
+    r"<section class=\"report-index\">(?P<body>.*?)</section>", re.S
+)
+FIGURE_VALUE = re.compile(r"<span class=\"figure-value\">(?P<value>.*?)</span>", re.S)
+
+
+def _index_section(document: str) -> str:
+    match = INDEX_SECTION.search(document)
+    assert match is not None
+    return match.group("body")
+
+
+def _cells(block: str) -> list[str]:
+    """Every rendered figure value in a block, in document order."""
+
+    return [
+        html_module.unescape(match.group("value")) for match in FIGURE_VALUE.finditer(block)
+    ]
+
+
+def _format_like_manifest(value: Any) -> str:
+    """Format a recorded value the way the renderer does: as the JSON it was recorded as."""
+
+    return value if isinstance(value, str) else json.dumps(value, default=str)
+
+
+def _real_scenarios() -> list[ScenarioRun]:
+    """Two named scenarios in the shape ``dispatch-bootstrap-paths`` actually records."""
+
+    battery = {
+        "charge_power_mw": 25.0,
+        "discharge_power_mw": 25.0,
+        "energy_capacity_mwh": 50.0,
+        "soc_min_fraction": 0.05,
+        "soc_max_fraction": 0.95,
+        "initial_soc_fraction": 0.5,
+        "terminal_soc_fraction": None,
+        "charge_efficiency": 0.94,
+        "discharge_efficiency": 0.94,
+    }
+    era = {"resolution_minutes": 60, "first_day": "2025-01-01", "last_day": "2025-01-31"}
+
+    def scenario(name: str, margins: dict[int, float], availability: dict[str, Any]) -> Any:
+        return ScenarioRun(
+            name=name,
+            run_id=f"run-{name}",
+            path_summaries=pd.DataFrame(
+                {"path_id": list(margins), "net_market_margin_eur": list(margins.values())}
+            ),
+            dispatch_summary={
+                "battery_configuration": dict(battery),
+                "availability_assumption": availability,
+                "path_count": len(margins),
+            },
+            bootstrap_summary={
+                "selected_source_era": dict(era),
+                "configuration": {"random_seed": 42, "block_days": 7, "path_count": 3},
+            },
+        )
+
+    return [
+        scenario(
+            "baseline_replay",
+            {0: 1000.0, 1: 1100.25, 2: 980.0},
+            {"type": "constant", "fraction": 1.0},
+        ),
+        scenario(
+            "declared_outage",
+            {0: 900.0, 1: 820.5, 2: 1010.0},
+            {"type": "scheduled", "schedule_id": "outage-a", "fraction": 0.0},
+        ),
+    ]
+
+
+def _resolve(summary: dict[str, Any], path: tuple[Any, ...]) -> Any:
+    """Walk a recorded summary to the exact value a rendered figure names."""
+
+    value: Any = summary
+    for step in path:
+        value = value[step]
+    return value
 
 
 def _anchor(manifest_id: str) -> str:
@@ -200,13 +380,13 @@ class NoComputationTests(unittest.TestCase):
             recorded = {
                 f"run-{kind.kind_id}": _summary_for(kind) for kind in kinds
             }
-            self.assertEqual(len(report.figures), sum(len(s) - 1 for s in recorded.values()))
+            self.assertTrue(report.figures)
             for figure in report.figures:
                 summary = recorded[figure.manifest_id]
-                self.assertIn(figure.key, summary)
-                value = summary[figure.key]
+                value = _resolve(summary, figure.summary_path)
                 expected = value if isinstance(value, str) else json.dumps(value, default=str)
                 self.assertEqual(figure.value_text, expected)
+                self.assertEqual(str(figure.summary_path[-1]), figure.key)
 
     def test_figures_of_different_bases_are_never_merged(self) -> None:
         """Three bases on one page, and not one value that belongs to none of them."""
@@ -224,7 +404,9 @@ class NoComputationTests(unittest.TestCase):
             self.assertEqual(len(bases), 3)
             for figure in report.figures:
                 recorded = _summary_for(RESULT_KINDS[figure.result_kind])
-                self.assertIn(figure.value_text, json.dumps(recorded, default=str))
+                value = _resolve(recorded, figure.summary_path)
+                expected = value if isinstance(value, str) else json.dumps(value, default=str)
+                self.assertEqual(figure.value_text, expected)
 
     def test_the_renderer_does_not_read_a_path_a_manifest_names(self) -> None:
         """Interval-level official prices cannot enter an export: only the summary is read."""
@@ -479,3 +661,319 @@ class RenderReportCommandTests(unittest.TestCase):
 
 if __name__ == "__main__":  # pragma: no cover
     unittest.main()
+
+
+class MultiRunIndexTests(unittest.TestCase):
+    """v0.8.1: an index across many manifests, and the one table that carries no figure.
+
+    A multi-manifest report creates exactly one temptation the single-manifest report did not:
+    a summary table spanning the whole document. That table is where a figure of one basis would
+    first sit beside a figure of another and then be combined with it. So the index names, links
+    and labels — and carries no number at all.
+    """
+
+    def _rendered(self, directory: Path) -> Any:
+        return render_report(
+            [_manifest_path(directory, kind) for kind in RESULT_KINDS.values()]
+        )
+
+    def test_the_index_names_every_manifest_the_report_carries(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            report = self._rendered(Path(raw))
+
+        index = _index_section(report.html)
+        for kind in RESULT_KINDS.values():
+            self.assertIn(f"run-{kind.kind_id}", index)
+            self.assertIn(kind.kind_id, index)
+
+    def test_the_index_across_manifests_carries_no_figure(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            report = self._rendered(Path(raw))
+
+        index = _index_section(report.html)
+        self.assertNotIn('class="figure-value"', index)
+        self.assertTrue(report.figures)
+
+        # Every cell of the index is one of the identity, label or provenance fields the
+        # manifest declares. Nothing else can appear there, so a recorded figure cannot.
+        permitted = set()
+        for entry in report.index["manifests"]:
+            permitted.update(
+                str(entry[field])
+                for field in (
+                    "manifest_id",
+                    "result_kind",
+                    "result_label",
+                    "produced_by",
+                    "created_at_utc",
+                    "manifest_sha256",
+                )
+            )
+        for cell in re.findall(r"<td[^>]*>(.*?)</td>", index, re.S):
+            self.assertIn(html_module.unescape(TAG.sub("", cell)), permitted)
+
+    def test_the_index_groups_by_basis_in_the_declared_order(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            report = self._rendered(Path(raw))
+
+        index = _index_section(report.html)
+        positions = [index.index(BASIS_HEADING[basis]) for basis in RESULT_BASES]
+        self.assertEqual(positions, sorted(positions))
+        self.assertEqual(report.index["bases_rendered"], list(RESULT_BASES))
+        self.assertEqual(report.index["bases_absent"], [])
+
+    def test_the_index_carries_each_manifest_label_and_digest(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            directory = Path(raw)
+            path = _manifest_path(directory, RESULT_KINDS["perfect_foresight_dispatch"])
+            report = render_report([path])
+
+        index = _index_section(report.html)
+        entry = report.index["manifests"][0]
+        self.assertIn(entry["manifest_sha256"], index)
+        self.assertIn(html_module.escape(entry["result_label"]), index)
+        self.assertIn(entry["produced_by"], index)
+
+    def test_the_index_links_to_the_block_that_holds_each_manifest(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            report = self._rendered(Path(raw))
+
+        index = _index_section(report.html)
+        blocks = _blocks(report.html)
+        anchors = re.findall(r'<a href="#([^"]+)">', index)
+        self.assertEqual(len(anchors), len(RESULT_KINDS))
+        for anchor in anchors:
+            self.assertIn(anchor, blocks)
+
+    def test_the_index_names_the_bases_the_report_does_not_cover(self) -> None:
+        """An absent basis is a question this report does not answer, and saying so matters."""
+
+        with tempfile.TemporaryDirectory() as raw:
+            directory = Path(raw)
+            path = _manifest_path(directory, RESULT_KINDS["project_finance"])
+            report = render_report([path])
+
+        index = _index_section(report.html)
+        self.assertIn("Not represented in this report", index)
+        for basis in RESULT_BASES:
+            if basis == "screening_arithmetic":
+                continue
+            self.assertIn(BASIS_HEADING[basis].lower(), index)
+        self.assertEqual(
+            report.index["bases_absent"],
+            [basis for basis in RESULT_BASES if basis != "screening_arithmetic"],
+        )
+
+    def test_the_machine_readable_index_groups_manifests_by_basis(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            report = self._rendered(Path(raw))
+
+        grouped = report.index["manifests_by_basis"]
+        self.assertEqual(list(grouped), list(RESULT_BASES))
+        listed = [manifest_id for ids in grouped.values() for manifest_id in ids]
+        self.assertEqual(
+            sorted(listed), sorted(f"run-{kind_id}" for kind_id in RESULT_KINDS)
+        )
+        for basis, ids in grouped.items():
+            for manifest_id in ids:
+                self.assertEqual(RESULT_KINDS[manifest_id[4:]].basis, basis)
+
+    def test_the_landing_state_has_no_index_across_manifests(self) -> None:
+        self.assertNotIn('class="report-index"', render_report().html)
+
+
+class ScenarioEnsembleCompositionTests(unittest.TestCase):
+    """v0.8.1: a scenario ensemble laid out side by side, from the manifest and nothing else."""
+
+    def setUp(self) -> None:
+        self.directory = tempfile.TemporaryDirectory()
+        path = _manifest_path(
+            Path(self.directory.name), RESULT_KINDS["scenario_ensemble_range"]
+        )
+        self.report = render_report([path])
+        self.block = _blocks(self.report.html)[_anchor("run-scenario_ensemble_range")]
+
+    def tearDown(self) -> None:
+        self.directory.cleanup()
+
+    def test_every_recorded_per_path_range_row_is_rendered(self) -> None:
+        rendered = _cells(self.block)
+        for record in ENSEMBLE_PATH_RANGES:
+            for column, value in record.items():
+                self.assertIn(
+                    _format_like_manifest(value),
+                    rendered,
+                    f"{column} of path {record['path_id']}",
+                )
+
+    def test_the_per_path_range_cells_walk_back_to_the_manifest(self) -> None:
+        summary = _summary_for(RESULT_KINDS["scenario_ensemble_range"])
+        cells = [
+            figure for figure in self.report.figures if figure.summary_path[0] == "path_ranges"
+        ]
+        self.assertEqual(
+            len(cells), len(ENSEMBLE_PATH_RANGES) * len(ENSEMBLE_PATH_RANGES[0])
+        )
+        for figure in cells:
+            value = _resolve(summary, figure.summary_path)
+            self.assertEqual(figure.value_text, _format_like_manifest(value))
+
+    def test_nothing_is_totalled_or_reordered_across_paths(self) -> None:
+        """No row, total or derived value spans the paths — only the rows the run recorded."""
+
+        rendered = _cells(self.block)
+        for derived in (
+            sum(record["spread_net_market_margin_eur"] for record in ENSEMBLE_PATH_RANGES),
+            sum(
+                record["maximum_net_market_margin_eur"] for record in ENSEMBLE_PATH_RANGES
+            ),
+        ):
+            self.assertNotIn(_format_like_manifest(derived), rendered)
+
+        recorded_order = [
+            figure.value_text
+            for figure in self.report.figures
+            if figure.summary_path[0] == "path_ranges" and figure.key == "path_id"
+        ]
+        self.assertEqual(
+            recorded_order,
+            [_format_like_manifest(record["path_id"]) for record in ENSEMBLE_PATH_RANGES],
+        )
+
+    def test_the_scenarios_are_placed_side_by_side_with_their_provenance(self) -> None:
+        for scenario in ENSEMBLE_SCENARIOS:
+            self.assertIn(scenario["scenario_name"], self.block)
+            self.assertIn(scenario["input_run_id"], self.block)
+            self.assertIn(
+                html_module.escape(json.dumps(scenario["availability"])), self.block
+            )
+        for caption, _ in SCENARIO_PROVENANCE_ROWS:
+            self.assertIn(caption, self.block)
+
+    def test_a_scenario_cell_belongs_to_exactly_one_recorded_scenario(self) -> None:
+        summary = _summary_for(RESULT_KINDS["scenario_ensemble_range"])
+        cells = [
+            figure for figure in self.report.figures if figure.summary_path[0] == "scenarios"
+        ]
+        self.assertTrue(cells)
+        for figure in cells:
+            position = figure.summary_path[1]
+            self.assertIsInstance(position, int)
+            self.assertLess(position, len(ENSEMBLE_SCENARIOS))
+            recorded = _resolve(summary, figure.summary_path)
+            self.assertEqual(figure.value_text, _format_like_manifest(recorded))
+
+    def test_the_equivalent_basis_evidence_is_rendered_explicitly(self) -> None:
+        self.assertIn("The basis every scenario shared", self.block)
+        for group, value in ENSEMBLE_EQUIVALENT_BASIS.items():
+            self.assertIn(group.replace("_", " "), self.block)
+            for name, recorded in value.items():
+                self.assertIn(name.replace("_", " "), self.block)
+                self.assertIn(
+                    html_module.escape(_format_like_manifest(recorded)), self.block
+                )
+
+    def test_a_composition_key_is_rendered_once_and_not_also_as_a_generic_row(self) -> None:
+        """One recorded value appears in exactly one place, laid out rather than dumped."""
+
+        for key in ("scenarios", "equivalent_basis", "path_ranges"):
+            self.assertNotIn(f'<th scope="row">{key.replace("_", " ")}</th>', self.block)
+
+        entry = self.report.index["manifests"][0]
+        self.assertEqual(
+            entry["composition_sections"],
+            ["scenarios_side_by_side", "equivalent_basis", "per_path_ranges"],
+        )
+        keys = entry["rendered_summary_keys"]
+        self.assertEqual(len(keys), len(set(keys)))
+        for key in ("scenarios", "equivalent_basis", "path_ranges"):
+            self.assertIn(key, keys)
+
+    def test_a_manifest_recording_no_per_path_ranges_says_so_rather_than_filling_it_in(
+        self,
+    ) -> None:
+        """The other half of the design tension: what a manifest does not record is not shown."""
+
+        with tempfile.TemporaryDirectory() as raw:
+            directory = Path(raw)
+            path = _manifest_path(directory, RESULT_KINDS["scenario_ensemble_range"])
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            del payload["summary"]["path_ranges"]
+            path.write_text(json.dumps(payload), encoding="utf-8")
+            report = render_report([path])
+
+        block = _blocks(report.html)[_anchor("run-scenario_ensemble_range")]
+        self.assertIn("records no <code>path_ranges</code>", block)
+        self.assertIn("does not open the files a run wrote beside it", block)
+        self.assertEqual(
+            report.index["manifests"][0]["composition_sections"],
+            ["scenarios_side_by_side", "equivalent_basis"],
+        )
+        for figure in report.figures:
+            self.assertNotEqual(figure.summary_path[0], "path_ranges")
+
+    def test_an_empty_recorded_table_is_not_reported_as_an_absent_one(self) -> None:
+        """Recording an empty table and recording no table are different facts about a run."""
+
+        with tempfile.TemporaryDirectory() as raw:
+            directory = Path(raw)
+            path = _manifest_path(directory, RESULT_KINDS["scenario_ensemble_range"])
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            payload["summary"]["path_ranges"] = []
+            path.write_text(json.dumps(payload), encoding="utf-8")
+            report = render_report([path])
+
+        block = _blocks(report.html)[_anchor("run-scenario_ensemble_range")]
+        self.assertIn("records an empty <code>path_ranges</code>", block)
+        self.assertNotIn("records no <code>path_ranges</code>", block)
+        self.assertIn(
+            "per_path_ranges", report.index["manifests"][0]["composition_sections"]
+        )
+
+    def test_ragged_recorded_range_rows_are_refused_rather_than_padded(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            directory = Path(raw)
+            path = _manifest_path(directory, RESULT_KINDS["scenario_ensemble_range"])
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            del payload["summary"]["path_ranges"][1]["spread_net_market_margin_eur"]
+            path.write_text(json.dumps(payload), encoding="utf-8")
+
+            with self.assertRaisesRegex(ReportRenderError, "different columns"):
+                render_report([path])
+
+    def test_the_composition_carries_the_label_and_exclusions_beside_it(self) -> None:
+        self.assertIn("Range per bootstrap path", self.block)
+        for exclusion in STANDING_EXCLUSIONS:
+            self.assertIn(exclusion, self.block)
+        self.assertIn(BASIS_WORDING["synthetic_scenario"], self.block)
+
+
+class RealEnsembleCompositionTests(unittest.TestCase):
+    """The whole doorway, on a summary a real ensemble produced rather than a fixture of one."""
+
+    def test_a_real_ensemble_renders_the_ranges_it_recorded(self) -> None:
+        result = report_scenario_ensemble(_real_scenarios())
+        with tempfile.TemporaryDirectory() as raw:
+            directory = Path(raw)
+            manifest = build_run_manifest(
+                result.summary,
+                kind_id="scenario_ensemble_range",
+                manifest_id="real-ensemble",
+                produced_by="report-scenario-ensemble",
+                created_at_utc="2026-09-01T12:00:00+00:00",
+            )
+            path = directory / "real-ensemble.manifest.json"
+            write_run_manifest(path, manifest)
+            report = render_report([path])
+
+        block = _blocks(report.html)[_anchor("real-ensemble")]
+        rendered = _cells(block)
+        for position, row in result.scenario_ranges.iterrows():
+            for column in PATH_RANGE_SUMMARY_COLUMNS:
+                self.assertIn(_format_like_manifest(row[column]), rendered, column)
+            self.assertLess(position, len(result.scenario_ranges))
+
+        cells = [f for f in report.figures if f.summary_path[0] == "path_ranges"]
+        for figure in cells:
+            recorded = _resolve(result.summary, figure.summary_path)
+            self.assertEqual(figure.value_text, _format_like_manifest(recorded))

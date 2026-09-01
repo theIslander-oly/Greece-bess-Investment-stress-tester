@@ -10,8 +10,8 @@ on that replay core.
 This is not financial advice, an investment-grade forecast, a bankable revenue study or a
 substitute for legal, tax, grid-connection and market-access diligence.
 
-**Current release:** `v0.8.0` — a deterministic report renderer over verified run manifests,
-and only verified run manifests.
+**Current release:** `v0.8.1` — a deterministic report renderer over verified run manifests,
+and only verified run manifests, now composing many of them into one indexed report.
 
 ## What this tool cannot tell you
 
@@ -94,7 +94,9 @@ The current implementation provides:
   grouped by basis, each carrying its recorded label, its basis in reader-facing words and the
   standing exclusions beside it, with the declaration checklist as the landing state when no
   manifest is supplied. It computes nothing, reads no environment and makes no network
-  request.
+  request. Across many manifests it adds an index grouped by basis that carries no figure at
+  all, and it lays a scenario ensemble out side by side: its per-path ranges, its per-scenario
+  provenance and the equivalent-basis evidence it recorded.
 
 The first v0.7 foundation also provides deterministic, seeded seasonal block-bootstrap price
 paths with sampled-block provenance. Each validated path can now be dispatched independently
@@ -678,6 +680,30 @@ What the report guarantees:
   manifest list, and a manifest carries the producing module's summary; a path named in
   `declared_inputs` is displayed, never opened.
 
+### Composing many manifests
+
+Composition is layout. Nothing is computed across manifests, and figures of different bases are
+never merged into one row, total or derived value.
+
+- **An index across every manifest, grouped by basis.** It names each manifest by ID, kind,
+  recorded label, producing command, recorded time and SHA-256 digest, and links to the block
+  that holds its figures. It also names the bases the report does *not* cover, because a reader
+  cannot otherwise tell an absent basis from an absent question.
+- **The index carries no figure at all.** That is the point of it. A summary table spanning the
+  whole report is the one place a figure of one basis would first sit beside a figure of another
+  and then be combined with it, so every number stays inside its own manifest's block, beside
+  its label. A test asserts that every cell of the index is one of the manifest's identity,
+  label or provenance fields.
+- **A scenario ensemble is laid out side by side.** One column per named scenario with the
+  provenance each figure has to carry, the equivalent-basis evidence the ensemble recorded — the
+  battery parameters, terminal-energy basis, source era and path identity every scenario was
+  required to share — and one row per bootstrap path giving the lowest and highest margin any
+  named scenario produced for that path, which scenario attained each end, and the spread. The
+  scenario name joins the two, and nothing is totalled across paths.
+- **What a manifest does not record is not shown.** A manifest recorded before its module
+  carried a key renders an explicit "records no ..." note. A report reads the manifest and
+  nothing else; it never opens the CSV a run wrote beside it.
+
 Run it with no manifests to see the landing state:
 
 ```bash
@@ -1175,9 +1201,14 @@ about availability provenance. The v0.8 research interface and exportable report
 recorded in `docs/v0.8_design.md`. v0.8.0, the report rendering foundation, has landed: a
 deterministic `render-report` CLI that renders verified run manifests — and only verified run
 manifests — into self-contained static reports with a machine-readable index, adding no runtime
-dependency, no server and no computation. The next milestones are v0.8.1, multi-run composition,
-and v0.8.2, a separate dated decision on whether any interactive viewer is added on top of the
-static renderer. AI-generated explanations remain outside v0.8.
+dependency, no server and no computation. v0.8.1, multi-run composition, has landed on top of
+it: an index across many manifests that carries no figure, a scenario ensemble laid out side by
+side with its per-path ranges and per-scenario provenance, and explicit rendering of the
+equivalent-basis evidence. Making the per-path ranges renderable required recording them in the
+ensemble's own run summary rather than reading the CSV beside the run, under the 2026-09-01
+decision that keeps the manifest the sole doorway. The next milestone is v0.8.2, a separate
+dated decision on whether any interactive viewer is added on top of the static renderer.
+AI-generated explanations remain outside v0.8.
 Percentile outputs (P5/P50/P95) and loss probabilities were removed from the roadmap because
 the seasonal bootstrap resamples a non-stationary 2020-2026 history uniformly and therefore
 supports no calibrated probability interpretation; see the 2026-08-27 decision entries.

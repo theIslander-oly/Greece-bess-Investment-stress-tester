@@ -3,6 +3,63 @@
 This file records decisions that materially affect interpretation or reproducibility. Add a
 dated entry when a milestone changes scope, assumptions, data handling or validation.
 
+## 2026-09-01 — Record the ensemble's per-path ranges in its summary, rather than reading its CSV
+
+- **Decision:** Extend the scenario-ensemble run summary with `path_ranges`, a per-path
+  projection of the range table the module already reduces, and promote `scenarios`,
+  `equivalent_basis`, `path_count` and `path_ranges` to guaranteed summary keys of the
+  `scenario_ensemble_range` result kind. The report renderer reads them from the manifest like
+  every other figure. The renderer is **not** given permission to open `report-scenario-ensemble`'s
+  ranges CSV, or any other file a run wrote.
+- **Reason:** v0.8.1 requires a scenario ensemble to be presented side by side with its per-path
+  ranges. Those ranges lived only in the CSV; the summary carried the scenario list, the
+  equivalent basis, the path count and four extreme aggregates. That left exactly two honest
+  routes, because "a report renders verified manifests, and only verified manifests" is the
+  sentence the whole layer rests on and reading the CSV would break it. The first route is to
+  render only the aggregates and say so. The second is to record the ranges where a report can
+  legitimately see them. The first was rejected: a report showing the widest and narrowest path
+  spread but not the ranges themselves sends a reader back to a spreadsheet to see the evidence,
+  which is the exact failure mode the reporting layer exists to remove — and a figure read out of
+  a CSV by hand arrives stripped of the label the manifest carries. The second costs a recorded
+  decision and nothing else. Recording is not computing: the rows are a projection of the same
+  frame the CSV is written from, taken in the same order, with no value rounded, converted or
+  re-reduced, and a test asserts each recorded cell equals the frame's cell. The producing module
+  stays the one source of truth for its own numbers, which is what the contract has always
+  required.
+- **Consequence:** An ensemble manifest is larger, growing with the path count. That is bounded
+  by the `path_count` the ensemble already declares and is the accepted price of the ranges being
+  renderable at all. Per-scenario provenance — transformation, availability, source era, input
+  run — is recorded once under `scenarios` and joined by scenario name rather than repeated on
+  every path row, so the manifest grows with the paths and not with the paths times the fields;
+  the CSV keeps the fully repeated per-row form and is unchanged. Because the guarantee is
+  checked when a manifest is built and not when one is read, an ensemble manifest recorded before
+  this decision still verifies and still renders; the report states plainly that it records no
+  per-path ranges rather than filling them in, and a test pins that. The contract's
+  distributional-term check now reaches nested key names for the kinds that declare it, because a
+  report renders a nested key as a visible column heading and a top-level scan would clear a
+  table whose headings claim a percentile.
+
+## 2026-09-01 — The index across manifests carries no figure
+
+- **Decision:** The multi-manifest index names each manifest by ID, result kind, recorded label,
+  producing command, recorded time and digest, groups the rows by basis, links to the block that
+  holds the figures, and names the bases the report does not cover. It carries no numeric figure
+  of any kind. Composition across manifests is layout only: no value is computed, totalled,
+  ranked or carried from one manifest into a row with another.
+- **Reason:** A multi-manifest report creates exactly one temptation the single-manifest report
+  did not — a summary table spanning the whole document. That table is the first place a
+  perfect-foresight ceiling would sit in a column beside a settled backtest and a synthetic
+  scenario range, and the second step, adding or differencing them, is a short one that produces
+  a number whose basis is none of the five the contract defines. Keeping every figure inside its
+  own manifest's block, beside its label, is what makes that step impossible rather than
+  discouraged. Naming the absent bases follows from the same reasoning in reverse: a reader
+  cannot otherwise tell a basis this report does not cover from a question the project cannot
+  answer.
+- **Consequence:** A reader who wants to compare a ceiling with a scenario range must read two
+  labelled blocks and do it themselves, knowing what each one is. That is the intended cost. The
+  rule is executable: a test asserts every cell of the index is one of the manifest's identity,
+  label or provenance fields, so a figure cannot appear there even by accident.
+
 ## 2026-09-01 — Scope the renderer's distributional-term check to what the renderer says
 
 - **Decision:** In `greek_bess.reporting.render`, apply `FORBIDDEN_REPORT_TERMS` to the headings

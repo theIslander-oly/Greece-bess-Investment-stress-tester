@@ -6,6 +6,61 @@ All notable project changes are documented here.
 
 ### Added
 
+- **v0.8.1 — multi-run composition.** A report now composes many verified manifests, and
+  composition is layout only: nothing is computed across manifests, and figures of different
+  bases are never merged into one row, total or derived value.
+- An index across every manifest the report carries, grouped by basis in the contract's declared
+  order. It names each manifest by ID, result kind, recorded label, producing command, recorded
+  time and SHA-256 digest, links to the block that holds its figures, and names the bases the
+  report does *not* cover, because a reader cannot otherwise tell an absent basis from an absent
+  question.
+- **The index carries no figure at all**, deliberately. A summary table spanning the whole report
+  is the one place a perfect-foresight ceiling would sit in a column beside a settled backtest,
+  and combining them is a short second step producing a number whose basis is none of the five
+  the contract defines. A test asserts every cell of the index is one of the manifest's identity,
+  label or provenance fields.
+- A scenario ensemble is laid out side by side: one column per named scenario with the
+  provenance each figure has to carry, the equivalent-basis evidence the ensemble recorded — the
+  battery parameters, terminal-energy basis, source era and path identity every scenario was
+  required to share — and one row per bootstrap path giving the lowest and highest margin any
+  named scenario produced for that path, which scenario attained each end, and the spread. The
+  scenario name joins the two tables; nothing is totalled or reordered across paths, and a test
+  asserts no total of the recorded spreads appears anywhere in the document.
+- Every composition cell is still a `RenderedFigure` naming the manifest and, now, the exact
+  place in that manifest's summary it was read from (`summary_path`). "Nothing was computed while
+  rendering" stays checkable rather than asserted, now that layout reaches inside a summary.
+- The machine-readable index gains `bases_absent`, `manifests_by_basis`, and per manifest the
+  `composition_sections` rendered and the `rendered_summary_keys` it contributed. The renderer
+  version is 2; the manifest schema version is unchanged at 1.
+- What a manifest does not record is stated, not filled in. An ensemble manifest recorded before
+  its module carried a key renders an explicit "records no ..." note, and the renderer still
+  opens no file a run wrote beside it. Recorded per-path range rows that declare different
+  columns are refused rather than padded, because a blank cell in a range table reads as a value.
+
+### Changed
+
+- **`report_scenario_ensemble` records its per-path ranges in the run summary** (`path_ranges`),
+  and `scenario_ensemble_range` now guarantees `scenarios`, `equivalent_basis`, `path_count` and
+  `path_ranges` alongside `result_label`, `scenario_count` and `scenario_names`. The ranges lived
+  only in the CSV, and a report reads a verified manifest and nothing else — so a range absent
+  from the summary was a range no report could show. Recording is not computing: the rows are a
+  projection of the same frame the CSV is written from, in the same order, with nothing rounded,
+  converted or re-reduced, and a test asserts each recorded cell equals the frame's cell. The
+  CSV is unchanged, and per-scenario provenance is recorded once under `scenarios` rather than
+  repeated per path. See the 2026-09-01 decision entry and the amendment in
+  `docs/v0.8_design.md`.
+- The contract's distributional-term check now reaches nested key names for the kinds that
+  declare it. A report renders a nested key as a visible column heading, and a top-level scan
+  would clear a per-path table whose headings claimed a percentile. The scoping to those kinds
+  is unchanged and still load-bearing.
+- Because the guaranteed-key check runs when a manifest is built rather than when one is read,
+  an ensemble manifest recorded before this milestone still verifies and still renders. The
+  manifest schema version stays at 1: the envelope did not change.
+- Project version raised to 0.8.1 in `pyproject.toml`, `greek_bess.__version__` and the README
+  release line, which is what stamps the `User-Agent` on official retrievals.
+
+### Added
+
 - **v0.8.0 — the report rendering foundation.** `greek_bess.reporting.render` and a
   `render-report` command turn verified run manifests, and only verified run manifests, into one
   self-contained static HTML report plus a machine-readable index. `read_run_manifest` is the

@@ -17,6 +17,14 @@ Two rules follow from that framing and are enforced rather than documented:
   difference in battery parameters, terminal-energy basis, source era or path identity is
   refused by name rather than reconciled.
 
+The summary records the per-path ranges as well as the aggregate extremes, so a downstream
+report can render the range through the run manifest rather than by opening the CSV beside it.
+That is a recording decision, not a second computation: the values recorded are the same frame
+this module already reduced, projected onto the columns that are per path. The per-scenario
+provenance is recorded once, under ``scenarios``, rather than repeated on every path row, and
+the scenario name is the join between the two — the CSV, which is a data artifact rather than a
+presentation one, keeps the fully repeated form.
+
 The line the basis draws is between the asset and what is done to it. Battery parameters, the
 terminal-energy constraint, the source era and the path identities describe the asset and the
 sample, and must match. The price transformation and the availability schedule describe the
@@ -37,6 +45,22 @@ from typing import Any
 import pandas as pd
 
 MARGIN_COLUMN = "net_market_margin_eur"
+
+#: The per-path columns the run summary records, in this order. A report reads a run manifest
+#: and nothing else, so a range this module does not record in its summary is a range no report
+#: can render; recording it here is what keeps the manifest the sole doorway. The projection is
+#: deliberately per-path only: the transformation, availability and source-era provenance of a
+#: scenario is recorded once under ``scenarios`` and joined by ``scenario_name``, because
+#: repeating it on every path row would grow with the path count without adding a fact.
+PATH_RANGE_SUMMARY_COLUMNS = (
+    "path_id",
+    "scenario_count",
+    "minimum_net_market_margin_eur",
+    "minimum_scenario_name",
+    "maximum_net_market_margin_eur",
+    "maximum_scenario_name",
+    "spread_net_market_margin_eur",
+)
 
 NO_TRANSFORMATION = "none (untransformed bootstrap replay)"
 
@@ -487,6 +511,7 @@ def _summary(
         ],
         "equivalent_basis": dict(basis),
         "path_count": int(len(ranges)),
+        "path_ranges": _path_range_records(ranges),
         "reported_figure_count": int(len(margins)),
         "lowest_net_market_margin_eur": float(lowest[MARGIN_COLUMN]),
         "lowest_scenario_name": str(lowest["scenario_name"]),
@@ -499,6 +524,45 @@ def _summary(
         "narrowest_path_spread_eur": float(narrowest["spread_net_market_margin_eur"]),
         "narrowest_spread_path_id": int(narrowest["path_id"]),
     }
+
+
+def _path_range_records(ranges: pd.DataFrame) -> list[dict[str, Any]]:
+    """Record the per-path range table the ensemble already reduced, column for column.
+
+    This is a projection of ``scenario_ranges`` onto its per-path columns, taken from the same
+    frame the CSV is written from, so the two cannot disagree. Nothing is recomputed and no
+    value is rounded, converted or reordered: the rows keep the frame's ``path_id`` order.
+    """
+
+    missing = [name for name in PATH_RANGE_SUMMARY_COLUMNS if name not in ranges.columns]
+    if missing:
+        raise ScenarioEnsembleInputError(
+            f"Per-path ranges are missing columns the summary records: {', '.join(missing)}"
+        )
+    projected = ranges[list(PATH_RANGE_SUMMARY_COLUMNS)]
+    return [
+        {name: _json_scalar(record[name]) for name in PATH_RANGE_SUMMARY_COLUMNS}
+        for record in projected.to_dict("records")
+    ]
+
+
+def _json_scalar(value: Any) -> Any:
+    """Return one recorded cell as the JSON value it is, without changing it.
+
+    A frame carries NumPy scalars, and a summary is written as JSON. Unwrapping the scalar is
+    a representation change, not a transformation: the number is the number the frame held.
+    """
+
+    if hasattr(value, "item") and not isinstance(value, (str, bytes)):
+        value = value.item()
+    if isinstance(value, float) and not math.isfinite(value):
+        raise ScenarioEnsembleInputError(
+            "Refusing to record a non-finite per-path range value; a missing margin is refused "
+            "rather than filled"
+        )
+    if value is None or isinstance(value, (bool, int, float, str)):
+        return value
+    return str(value)
 
 
 def _summary_keys(payload: Any) -> list[str]:
