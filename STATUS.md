@@ -16,7 +16,7 @@ retention executable and satisfying the prerequisite the v0.7 review set for any
 presentation layer
 
 **Standing position, 1 September 2026:** the approved `PROMPT.md` scope is implemented and no
-open item is waiting on an engineering decision. Four items remain: the official-history
+open item is waiting on an engineering decision. Five items remain: the official-history
 artifact from run `32971677163` expires 2 September 2026 at 13:07 UTC and needs a replacement
 retrieval under the current 90-day retention; the ADMIE gate-closure schedule and the encrypted
 custody upload each wait on an operator declaration the repository refuses to supply; and the

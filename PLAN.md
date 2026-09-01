@@ -22,12 +22,13 @@ The approved scope in `PROMPT.md` is implemented. Every modeling milestone from 
 v0.7, plus the v0.7.11 run manifest and report contract, is landed on `main` and validated.
 Nothing in the approved brief is waiting on an engineering decision.
 
-What remains is not code. Four items are open and **every one of them waits on an input only the
-operator can supply, or on a scope extension only the user can approve**. Between 28 and 31
-August the repository added roughly 3,100 lines of source, 3,000 lines of tests and 2,600 lines
-of documentation, and retired none of the four, because each was already blocked before that
-work began. Further audits, policies and refusals around a blocked item do not retire it; they
-enlarge the machinery waiting on the same missing declaration.
+What remains is not code. Five items are open. One is a dated deadline this repository can meet
+on its own; **the other four each wait on an input only the operator can supply, or on a scope
+extension only the user can approve**. Between 28 and 31 August the repository added roughly
+3,100 lines of source, 3,000 lines of tests and 2,600 lines of documentation, and retired none
+of the five, because the four blocked items were already blocked before that work began and the
+deadline was not being tracked. Further audits, policies and refusals around a blocked item do
+not retire it; they enlarge the machinery waiting on the same missing declaration.
 
 The plan below is therefore organised by what each item waits on, not by milestone number.
 

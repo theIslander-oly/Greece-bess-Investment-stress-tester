@@ -6,13 +6,14 @@ dated entry when a milestone changes scope, assumptions, data handling or valida
 ## 2026-09-01 — Plan by what an open item waits on, not by milestone number
 
 - **Decision:** Reorganise `PLAN.md` around the input each open item is missing. The approved
-  `PROMPT.md` scope is recorded as implemented; the four remaining items are recorded as waiting
+  `PROMPT.md` scope is recorded as implemented; the five remaining items are recorded as waiting
   on a replacement retrieval, on an operator declaration, or on a scope decision by the user. No
   further audit, policy or refusal is added around an item that is already blocked on a missing
   declaration.
 - **Reason:** Between 28 and 31 August the repository added roughly 3,100 lines of source, 3,000
-  lines of tests and 2,600 lines of documentation and retired none of the four open items, each
-  of which was already blocked before that work began. The milestone numbering concealed this,
+  lines of tests and 2,600 lines of documentation and retired none of the five open items: four
+  were already blocked before that work began, and the fifth, an artifact expiry, was not being
+  tracked at all. The milestone numbering concealed this,
   because every blocked item still had adjacent buildable machinery. Work that cannot retire the
   item it surrounds is not progress toward acceptance, and the plan should say so.
 - **Consequence:** This entry records the shape of the remaining work. It decides nothing about
