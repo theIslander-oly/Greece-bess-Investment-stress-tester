@@ -21,18 +21,28 @@ So two things must survive, and they live in different places:
 
 ## What is under custody
 
-| Artifact | Run | Size | Published digest | Original expiry |
+| Artifact | Run | Size | Published digest | Expiry |
 |---|---|---:|---|---|
-| `greek-dam-official-history` | `32971677163` | 1,293,875 B | `sha256:127915bc…4b198` | 2026-09-02 13:07Z |
+| `greek-dam-official-history` | `33483975614` | 1,294,916 B | `sha256:de30f4cc…e48009` | 2026-11-30 07:49Z |
+| `greek-dam-official-history` (superseded) | `32971677163` | 1,293,875 B | `sha256:127915bc…4b198` | 2026-09-02 13:07Z |
 | `henex-entsoe-reconciliation` | `33073631530` | 1,648,760 B | `sha256:bee557ea…3b816a` | 2026-09-03 12:50Z |
 
-The first holds the 74,663-interval accepted history. The second holds the interval-level
-ENTSO-E series and cross-source comparison behind the passed reconciliation, and is what
-records the ENTSO-E retrieval metadata that the acceptance track still lists as outstanding.
+Run `32971677163` is the originally accepted retrieval and the one the committed custody record
+fingerprints. It was created under the original seven-day retention and expires on 2 September
+2026, so run `33483975614` was retrieved on 1 September 2026 under the 90-day retention as its
+replacement. The replacement's every content fingerprint verifies against the committed record —
+the price series is identical interval for interval — while its per-file byte digests necessarily
+differ. See `official_history_replacement_2026-09-01.md` and case 4 below.
+
+The two history rows hold the same 74,663-interval accepted history. The reconciliation row
+holds the interval-level ENTSO-E series and cross-source comparison behind the passed
+reconciliation, and is what records the ENTSO-E retrieval metadata that the acceptance track
+still lists as outstanding.
 
 The digests above are the ones GitHub publishes for each artifact archive through the
-Actions API. The history digest is identical to the SHA-256 accepted in `DECISIONS.md` on
-2026-08-26, so a download can be authenticated on arrival rather than trusted.
+Actions API. The superseded history digest is identical to the SHA-256 accepted in
+`DECISIONS.md` on 2026-08-26, so a download can be authenticated on arrival rather than
+trusted; the replacement digest is the one recorded on 2026-09-01.
 
 ## The store
 
@@ -62,7 +72,7 @@ than by any automation in this repository.
 ### 1. Download and authenticate
 
 ```bash
-gh run download 32971677163 --name greek-dam-official-history --dir greek-dam-official-history
+gh run download 33483975614 --name greek-dam-official-history --dir greek-dam-official-history
 gh run download 33073631530 --name henex-entsoe-reconciliation --dir henex-entsoe-reconciliation
 ```
 
@@ -95,7 +105,7 @@ and that the key is not stored with it.
 
 ```bash
 gh release create official-history-2026-08-26 \
-  --title "Accepted official Greek DAM history (run 32971677163)" \
+  --title "Accepted official Greek DAM history (run 33483975614)" \
   --notes "Encrypted custody copy. Fingerprint: docs/custody/greek-dam-official-history.json" \
   greek-dam-official-history.tar.gz.age
 ```
@@ -191,6 +201,20 @@ separating:
    price-series digest differs, but both differ for every historical artifact at once. The
    2026-08-27 ENTSO-E curve-type correction is exactly this class of change. Re-record with
    a decision entry explaining what changed and why the new normalization is correct.
+4. **A faithful re-retrieval of unchanged data.** Per-file digests differ for the price CSVs
+   and the manifests, no file changes size, and **no content fingerprint differs at all** —
+   the price-series digest, interval counts, first and last interval, market-day count,
+   negative/zero/missing counts and quality-flag counts are identical. Nothing is wrong: the
+   data did not move. `retrieved_at_utc` is a canonical column, so every re-retrieval rewrites
+   one field in every row of both CSVs, and the manifests record retrieval timestamps for the
+   same reason. The 1 September 2026 replacement retrieval is the worked case
+   (`official_history_replacement_2026-09-01.md`).
+
+**Which test tells cases 2 and 4 apart.** Cases 1 to 3 are all stated in terms of per-file
+digests, and for a *stored copy* that is the right instrument. For a *re-retrieval* it carries
+no information, because it always differs. Read the content fingerprints instead: if
+`price_series_sha256` matches, the official observations are unchanged whatever the byte digests
+say, and if it differs, that is case 2 no matter how few files moved.
 
 ## Deliberate exclusions
 

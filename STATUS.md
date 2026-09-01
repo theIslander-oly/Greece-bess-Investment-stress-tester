@@ -16,13 +16,17 @@ retention executable and satisfying the prerequisite the v0.7 review set for any
 presentation layer
 
 **Standing position, 1 September 2026:** the approved `PROMPT.md` scope is implemented and no
-open item is waiting on an engineering decision. Five items remain: the official-history
-artifact from run `32971677163` expires 2 September 2026 at 13:07 UTC and needs a replacement
-retrieval under the current 90-day retention; the ADMIE gate-closure schedule and the encrypted
-custody upload each wait on an operator declaration the repository refuses to supply; and the
-ADMIE forecast quarantine and any v0.8 successor scope each wait on a decision by the user.
-Live market endpoints are reachable only from GitHub Actions runners, so every live acceptance
-step is a workflow dispatch rather than a command in a checkout. See `PLAN.md`.
+open item is waiting on an engineering decision. The artifact expiry is retired: run
+`33483975614` produced a replacement official-history artifact on 1 September 2026 under the
+90-day retention, expiring 30 November 2026 at 07:49 UTC, and its price series verifies as
+identical to the accepted baseline. Four items remain: the ADMIE gate-closure schedule and the
+encrypted custody upload each wait on an operator declaration the repository refuses to supply;
+the ADMIE forecast quarantine and any v0.8 successor scope each wait on a decision by the user.
+One question is newly open and belongs to the operator: whether to re-record the committed
+custody record against the replacement run, since the per-file digests it holds describe an
+artifact that expires 2 September 2026. Live market endpoints are reachable only from GitHub
+Actions runners, so every live acceptance step is a workflow dispatch rather than a command in a
+checkout. See `PLAN.md`.
 
 ## Declared negative-price events
 
@@ -210,8 +214,36 @@ step is a workflow dispatch rather than a command in a checkout. See `PLAN.md`.
 - Custody covers retrieved official artifacts only. Derived evidence computed from a custodied
   history, such as the `annual-replay-decomposition` artifact, is guaranteed by reproduction
   from the recorded history, commit and configuration instead.
-- **Outstanding operator action:** the encrypted copies must be uploaded before the source
-  artifacts expire on 2 and 3 September 2026. Custody is not complete until they are.
+- **Outstanding operator action:** the encrypted copies must be uploaded. Custody is not
+  complete until they are. The history copy should now be taken from replacement run
+  `33483975614`, which does not expire until 30 November 2026; the reconciliation artifact from
+  run `33073631530` still expires 3 September 2026.
+
+## Replacement official-history retrieval, 1 September 2026
+
+- The accepted artifact from run `32971677163` was created under the original seven-day
+  retention and expires 2 September 2026 at 13:07:24 UTC. Run `33483975614` re-ran
+  `Fetch official Greek market history` with the same inputs on 1 September 2026, producing a
+  replacement that expires **30 November 2026 at 07:49:14 UTC** under the 90-day retention.
+- Verification run `33484823956` checked the replacement against the committed custody record
+  and reported `difference_count: 4`, `verified: false`. **All four differences are per-file
+  byte digests and no content fingerprint differs at all.** Both `price_series_sha256` values
+  match, so the price series is identical interval for interval, as are the interval counts,
+  first and last interval, market-day counts, negative/zero/missing counts and quality-flag
+  counts. No file changed size and both quality reports are byte-identical.
+- The difference is a **faithful re-retrieval**, a case the custody procedure did not name.
+  `retrieved_at_utc` is a canonical column, so any re-retrieval rewrites one field in every row
+  of both price CSVs; the manifests carry retrieval timestamps for the same reason. For a
+  re-retrieval only the content fingerprints are diagnostic. Recorded as case 4 in
+  `docs/official_artifact_custody.md`.
+- Normalization did not change either: the only data-layer edit since the accepted run is a
+  behaviour-preserving `pd.Timedelta` call in `data/henex.py`.
+- **The committed custody record was not replaced.** Whether to re-record against
+  `33483975614` is an operator decision, with the consequence that after 2 September 2026 no
+  obtainable copy will match the committed per-file digests. Options are recorded in
+  `docs/official_history_replacement_2026-09-01.md`.
+- The same run re-verified `henex-entsoe-reconciliation` from run `33073631530` with
+  `difference_count: 0`.
 
 ## Run manifest and report contract
 

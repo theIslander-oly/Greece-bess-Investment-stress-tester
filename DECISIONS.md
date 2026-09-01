@@ -3,6 +3,33 @@
 This file records decisions that materially affect interpretation or reproducibility. Add a
 dated entry when a milestone changes scope, assumptions, data handling or validation.
 
+## 2026-09-01 — Record the replacement retrieval as a finding, and keep the custody record
+
+- **Decision:** Replace the expiring official-history artifact by re-running
+  `Fetch official Greek market history` with the inputs that produced the accepted baseline
+  (run `33483975614`, expiring 30 November 2026), record the verification result as a finding,
+  and **do not replace `docs/custody/greek-dam-official-history.json`**. Add the faithful
+  re-retrieval to the custody failure taxonomy as case 4, and state that per-file digests are
+  not diagnostic for a re-retrieval.
+- **Reason:** Verification run `33484823956` reported four differences, all of them per-file
+  byte digests, with no content fingerprint differing: both `price_series_sha256` values match,
+  as do interval counts, first and last interval, market-day counts, negative, zero and missing
+  price counts and quality-flag counts, and no file changed size. The price series is unchanged
+  interval for interval. The differences are fully explained by `retrieved_at_utc` being a
+  canonical column and by retrieval timestamps in the manifests, so they would recur on any
+  re-retrieval of identical data. Normalization did not change either: the only data-layer edit
+  since the accepted run is a behaviour-preserving `pd.Timedelta` call. The taxonomy as written
+  described only a corrupted copy, a revised publication and a normalization change, all three
+  tested by per-file digests, so it would have led a reader to classify this as a possible
+  provider revision.
+- **Consequence:** The accepted history is unchanged and no accepted figure is revised. The
+  committed record still fingerprints run `32971677163`, which expires 2 September 2026, so
+  from that date no obtainable copy will match its per-file digests and verification will
+  return exit code 2 on those four lines. Whether to re-record against `33483975614`, keep the
+  record as the original fingerprint, or change what a record compares is an operator decision
+  and is left open; the `Record official artifact custody` workflow default is unchanged until
+  it is made. Evidence in `docs/official_history_replacement_2026-09-01.md`.
+
 ## 2026-09-01 — Plan by what an open item waits on, not by milestone number
 
 - **Decision:** Reorganise `PLAN.md` around the input each open item is missing. The approved

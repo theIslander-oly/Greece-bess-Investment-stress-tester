@@ -22,25 +22,36 @@ The approved scope in `PROMPT.md` is implemented. Every modeling milestone from 
 v0.7, plus the v0.7.11 run manifest and report contract, is landed on `main` and validated.
 Nothing in the approved brief is waiting on an engineering decision.
 
-What remains is not code. Five items are open. One is a dated deadline this repository can meet
-on its own; **the other four each wait on an input only the operator can supply, or on a scope
-extension only the user can approve**. Between 28 and 31 August the repository added roughly
-3,100 lines of source, 3,000 lines of tests and 2,600 lines of documentation, and retired none
-of the five, because the four blocked items were already blocked before that work began and the
-deadline was not being tracked. Further audits, policies and refusals around a blocked item do
-not retire it; they enlarge the machinery waiting on the same missing declaration.
+What remains is not code. The one dated deadline was met on 1 September 2026. **The four items
+still open each wait on an input only the operator can supply, or on a scope extension only the
+user can approve.** Between 28 and 31 August the repository added roughly 3,100 lines of source,
+3,000 lines of tests and 2,600 lines of documentation and retired none of them, because all four
+were already blocked before that work began. Further audits, policies and refusals around a
+blocked item do not retire it; they enlarge the machinery waiting on the same missing
+declaration.
 
 The plan below is therefore organised by what each item waits on, not by milestone number.
 
-### One hard deadline
+### The one hard deadline, met
 
-- **The accepted official-history artifact expires 2 September 2026 at 13:07 UTC.** Run
-  `32971677163` predates the retention increase and kept the original seven-day window; the
-  90-day retention now configured on every official-data workflow does not apply retroactively.
-  This is the only dated deadline in the project and the only open item that needs no operator
-  declaration: re-running `Fetch official history` produces a replacement artifact under 90-day
-  retention. Any digest difference against `docs/custody/greek-dam-official-history.json` is a
-  recorded finding, not a silent replacement.
+- [x] **The accepted official-history artifact expires 2 September 2026 at 13:07 UTC, and its
+  replacement is in place.** Run `32971677163` predated the retention increase and kept the
+  original seven-day window. Run
+  `33483975614` re-ran `Fetch official history` with the same inputs on 1 September 2026 and
+  produced a replacement expiring **30 November 2026 at 07:49 UTC** under the 90-day retention.
+- Verification run `33484823956` reported four differences against
+  `docs/custody/greek-dam-official-history.json`, **all of them per-file byte digests, with no
+  content fingerprint differing**. Both price-series digests match, so the accepted history is
+  unchanged interval for interval. This is a faithful re-retrieval, now recorded as case 4 of
+  the custody failure taxonomy; evidence in
+  `docs/official_history_replacement_2026-09-01.md`.
+- [ ] **Operator decision: whether to re-record the custody record against `33483975614`.** The
+  record was not replaced, as required. Its per-file digests describe an artifact that expires
+  2 September 2026, so after that date every verification of an obtainable copy returns exit
+  code 2 on those four lines. Re-recording, keeping the record as the original fingerprint, or
+  separating provenance columns from data in what a record compares are the three options; the
+  `Record official artifact custody` workflow's `history_run_id` default still points at
+  `32971677163` and follows whichever is chosen.
 
 ### Waiting on an operator declaration
 
@@ -227,14 +238,15 @@ evidence, never from a working checkout. Plan any live acceptance step as a work
   - [ ] File-format acceptance against real load/RES files. Timing acceptance establishes
     publication timing alone; the quarantine is lifted only by format acceptance and a recorded
     decision as well.
-- [~] Store the accepted normalized official history durably and privately outside Git before
-  the workflow artifact expires (run `32971677163` artifact expires 2 September 2026).
+- [~] Store the accepted normalized official history durably and privately outside Git. The
+  source is now replacement run `33483975614`, which does not expire until 30 November 2026.
   - [x] Storage procedure, custody-record format and verification tooling
     (`docs/official_artifact_custody.md`, `record-custody`, `verify-custody`).
   - [x] Artifact retention raised from 7 to 90 days on every official-data workflow.
+  - [x] Replacement retrieval before the original artifact lapsed (run `33483975614`,
+    1 September 2026), verified against the committed record with no price-series difference.
   - [ ] Operator upload of the encrypted copies and the committed custody records. Custody is
-    not complete until this is done; re-run the retrieval workflow if the artifact lapses
-    first, and treat any price-series digest difference as a recorded finding.
+    not complete until this is done.
 - [x] Add a per-calendar-year decomposition of the accepted replay (annual perfect-foresight
   ceiling and forecast capture), since aggregate 2020-2026 margins conceal regime dependence
   such as the 2022 gas-crisis year.

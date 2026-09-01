@@ -6,6 +6,19 @@ All notable project changes are documented here.
 
 ### Added
 
+- Replacement retrieval of the accepted official history before the original artifact's expiry.
+  Run `33483975614` re-ran `Fetch official Greek market history` with the inputs that produced
+  the accepted baseline, yielding an artifact that expires 30 November 2026 under the 90-day
+  retention instead of 2 September 2026 under the original seven-day window.
+- Verification of that replacement against the committed custody record (run `33484823956`):
+  four differences, all per-file byte digests, with **no content fingerprint differing**. Both
+  price-series digests match, so the accepted history is unchanged interval for interval.
+- A fourth case in the custody failure taxonomy, the faithful re-retrieval, and the rule that
+  per-file digests are not diagnostic for one because `retrieved_at_utc` is a canonical column.
+  Only the content fingerprints separate unchanged data from a revised publication.
+- `docs/official_history_replacement_2026-09-01.md` and a dated decision entry recording the
+  finding. The committed custody record was deliberately not replaced; whether to re-record it
+  against the replacement run is left as an operator decision.
 - Live ADMIE filetype acceptance against the 74-entry catalog and delivery days 26-28 August
   2026. The ISP1 day-ahead load/RES pair returned six files per type and the ISP2 pair returned
   three per type; the catalog-valid DAM pair returned none. Leakage-relevant declarations,
