@@ -8,15 +8,18 @@ per-delivery-year replay decomposition accepted against the official history;
 bootstrap source-era policy, spread compression, non-probabilistic scenario-ensemble range
 reporting, declared availability/outage paths and declared negative-price events landed,
 completing the approved v0.7 modeling scope; the completed-v0.7 review passed after reconciling
-one roadmap wording contradiction, and v0.8 remains gated on explicit user design approval;
+one roadmap wording contradiction, and v0.8 was opened on 1 September 2026 by explicit user
+approval, with the scope amended and the design recorded in `docs/v0.8_design.md`;
 ADMIE load and RES forecasts are removed from scope and that quarantine is closed as never
 accepted, with the retrieval client and timing audit retained and documented as unused; a
 versioned run manifest and report contract now carries every recorded result, making label
 retention executable and satisfying the prerequisite the v0.7 review set for any future
 presentation layer
 
-**Standing position, 1 September 2026:** the approved `PROMPT.md` scope is implemented and no
-open item is waiting on an engineering decision. The artifact expiry is retired: run
+**Standing position, 1 September 2026:** the approved `PROMPT.md` scope is implemented, v0.7
+was re-verified on the unchanged v0.7.11 implementation (Ruff, mypy, 301 tests, clean wheel
+build), and v0.8 is open with v0.8.0 as the next engineering milestone. The artifact expiry is
+retired: run
 `33483975614` produced a replacement official-history artifact on 1 September 2026 under the
 90-day retention, expiring 30 November 2026 at 07:49 UTC, and its price series verifies as
 identical to the accepted baseline, and the committed custody record now fingerprints it.
@@ -24,12 +27,34 @@ Encrypted copies of both accepted artifacts were published the same day and the 
 exercised, so the accepted evidence is recoverable. The ADMIE forecast quarantine is closed by
 removing ADMIE load and RES forecasts from scope (decision entry 2026-09-01).
 
-Two items remain. A second custody copy under separate control does not exist, and one release is
-one failure domain. Any v0.8 successor scope still waits on a decision by the user. One further
-operator matter is recorded rather than open: `ENTSOE_SECURITY_TOKEN` is no longer configured, so
-the reconciliation cannot be re-run; its accepted evidence is safe in the custody copy and only
+Two operator items remain. A second custody copy under separate control does not exist, and one
+release is one failure domain. `ENTSOE_SECURITY_TOKEN` is no longer configured, so the
+reconciliation cannot be re-run; its accepted evidence is safe in the custody copy and only
 regeneration is blocked. Live market endpoints are reachable only from GitHub Actions runners, so every
 live acceptance step is a workflow dispatch rather than a command in a checkout. See `PLAN.md`.
+
+## v0.8 opened — research interface and exportable reports
+
+- Opened on 1 September 2026 by explicit user approval, lifting the gate the completed-v0.7
+  review set. `PROMPT.md` carries the amended scope bullet, and `docs/v0.8_design.md` is the
+  design of record (decision entry 2026-09-01).
+- The governing rule: a report renders verified run manifests, and only verified run manifests.
+  The manifest contract's guarantees — closed kind registry, basis discriminator, executable
+  label retention, scoped distributional-term refusal — are inherited by the presentation
+  layer, never restated in it. The renderer computes nothing and reads no environment.
+- The three gated design questions are answered. The landing state with no judgmental input
+  declared is the declaration checklist itself, not a result and not a demo with implied
+  defaults. Every rendered figure carries its `result_label`, basis and the standing
+  exclusions adjacent to the figure, read from its manifest. An export refuses any figure not
+  reachable from a verified manifest, interval-level official price series, distributional
+  vocabulary where the kind forbids it, unlabeled figures, and any value computed across
+  manifests or bases.
+- The core is a deterministic `render-report` CLI producing self-contained static HTML plus a
+  machine-readable index, with no new runtime dependency and no server. Milestones: v0.8.0
+  report rendering foundation, v0.8.1 multi-run composition, v0.8.2 a separate dated decision
+  on any interactive viewer. The package version stays at 0.7.11 until v0.8.0 merges.
+- No dispatch, forecast, stress, degradation, finance or data behaviour changes in the plan
+  itself; exports remain generated research outputs outside Git.
 
 ## Declared negative-price events
 
@@ -569,11 +594,11 @@ decomposition showed spread, not level, driving the ceiling. Scenario-ensemble r
 declared availability/outage paths and declared negative-price events are now complete, closing
 the approved v0.7 modeling scope. The formal completed-v0.7 review found no correctness or
 data-integrity defect and reconciled one roadmap wording contradiction about availability
-provenance. The v0.8 interface and exportable reports remain gated until the user explicitly
-approves their design; the versioned run manifest and report contract that review named as the
-prerequisite landed on 2026-08-31, and a 2026-08-31 reevaluation recorded that v0.8 appears in the
-suggested branch sequence but not in the approved brief, so opening it is a scope change rather
-than the next milestone. ENTSO-E reconciliation passed on 2026-08-27. Custody tooling and the storage
+provenance. The v0.8 interface and exportable reports were gated until the user explicitly
+approved their design; that approval arrived on 1 September 2026, `PROMPT.md` was amended, and
+`docs/v0.8_design.md` was adopted as the design of record, so **the immediate next milestone is
+v0.8.0, the report rendering foundation**. The versioned run manifest and report contract the
+review named as the prerequisite landed on 2026-08-31. ENTSO-E reconciliation passed on 2026-08-27. Custody tooling and the storage
 procedure landed on 2026-08-27; the encrypted copies were published on 2026-09-01 and the key was
 exercised the same day. The ADMIE publication-timing audit, workflow and policy landed on
 2026-08-31 and are retained as unused: ADMIE load and RES forecasts were removed from scope on

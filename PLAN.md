@@ -12,23 +12,27 @@ Suggested future branch sequence:
 2. `data-ingestion` (v0.6.1 official multi-year acquisition hardening)
 3. `stress-testing` (v0.7)
 4. `market-cannibalisation` (if separated from v0.7 after design review)
-5. `streamlit-dashboard` (v0.8)
+5. `research-reports` (v0.8; supersedes the earlier `streamlit-dashboard` label — the
+   2026-09-01 design puts a static manifest renderer first and makes any interactive viewer a
+   separate decision)
 6. `ai-explanations` (only after outputs and guardrails are validated)
 7. `final-audit`
 
 ## Standing position (1 September 2026)
 
-The approved scope in `PROMPT.md` is implemented. Every modeling milestone from v0.1 through
-v0.7, plus the v0.7.11 run manifest and report contract, is landed on `main` and validated.
-Nothing in the approved brief is waiting on an engineering decision.
+Every modeling milestone from v0.1 through v0.7, plus the v0.7.11 run manifest and report
+contract, is landed on `main` and validated: the complete v0.7 scope was re-verified on
+1 September 2026 on the unchanged v0.7.11 implementation (Ruff, mypy, all 301 tests, clean
+wheel build). The dated deadline was met on 1 September 2026 and the custody chain behind it
+closed the same day. The ADMIE forecast quarantine, open since 26 August, was closed by removing
+ADMIE load and RES forecasts from scope rather than by working it to acceptance.
 
-What remains is not code, and there is now much less of it. The dated deadline was met on
-1 September 2026 and the custody chain behind it closed the same day. The ADMIE forecast
-quarantine, open since 26 August, was closed by removing ADMIE load and RES forecasts from scope
-rather than by working it to acceptance.
+**v0.8 is open.** The user approved it on 1 September 2026, `PROMPT.md` was amended the same
+day, and `docs/v0.8_design.md` is the design of record. The next engineering milestone is
+v0.8.0, the report rendering foundation.
 
-**Two items are open. One waits on the operator; one waits on a scope extension only the user can
-approve.** The lesson the closed quarantine records is worth keeping in front of the plan: between
+**Two operator items remain open** (the custody second copy and `ENTSOE_SECURITY_TOKEN`,
+below). The lesson the closed quarantine records is worth keeping in front of the plan: between
 28 and 31 August the repository added roughly 3,100 lines of source, 3,000 of tests and 2,600 of
 documentation around items that were already blocked, and retired none of them. Further audits,
 policies and refusals around a blocked item do not retire it; they enlarge the machinery waiting
@@ -67,12 +71,12 @@ The plan below is therefore organised by what each item waits on, not by milesto
   `Reconcile HEnEx and ENTSO-E prices` refuses at its guard step and the reconciliation cannot be
   re-run. The accepted evidence is safe in the custody copy; only regeneration is blocked.
 
-### Waiting on a scope decision by the user
+### Resolved on 1 September 2026: the v0.8 scope decision
 
-- **v0.8, or any successor scope.** A research interface and exportable reports appear in the
-  suggested branch sequence but not in `PROMPT.md`'s approved scope, so opening v0.8 is a scope
-  change rather than the next milestone. The same holds for any revenue stream beyond DAM
-  arbitrage. No design work should begin before `PROMPT.md` is amended.
+- **v0.8 is approved and open.** The user approved it on 1 September 2026; `PROMPT.md` now
+  carries the amended scope bullet and `docs/v0.8_design.md` records the design (decision entry
+  2026-09-01). Any revenue stream beyond DAM arbitrage still waits on its own scope decision
+  and independent validation — opening v0.8 changes nothing there.
 
 ### Operating constraint on live retrieval
 
@@ -160,19 +164,35 @@ evidence, never from a working checkout. Plan any live acceptance step as a work
     strictly negative replacement price in EUR/MWh. Timing and depth have no defaults and are
     never sampled, inferred, fitted or searched. An empty event list is the identity; overlap,
     partial intervals and windows covering nothing are refused (decision entry 2026-08-31).
-- [ ] v0.8 — Research interface and exportable reports (the corrected v0.7 scope and its formal
-  review are complete, but v0.8 remains gated until the user explicitly approves its design).
+- [ ] v0.8 — Research interface and exportable reports (**opened 2026-09-01 by user approval**;
+  `PROMPT.md` amended the same day; design of record in `docs/v0.8_design.md`).
   - [x] Prerequisite: a versioned run manifest and report contract (v0.7.11), which the
     completed-v0.7 review named as the thing to define before any consumer couples to incidental
     summary keys. `greek_bess.reporting` carries any result summary verbatim under a stable
-    projection and makes label retention executable. It adds no interface, exporter, rendering
-    surface or dependency, and does not open v0.8. Policy in `docs/run_manifest_contract.md`.
-  - [ ] A design answering, at minimum: what the landing state is when no judgmental input has
-    been declared (every one of them has no default by recorded decision, and an interface must
-    render something); how every rendered figure carries its label and the standing exclusions;
-    and what an export refuses to contain. Reconsidered 2026-08-31: v0.8 appears in the suggested
-    branch sequence but not in `PROMPT.md`'s approved scope, so opening it is a scope change
-    rather than the next milestone.
+    projection and makes label retention executable. Policy in `docs/run_manifest_contract.md`.
+  - [x] A design answering the three gated questions. The landing state with no judgmental
+    input declared is the declaration checklist — each default-free input, the dated decision
+    behind it, and the command that records a result once declared — never a demo with implied
+    defaults. Every rendered figure carries its manifest's `result_label`, basis and the
+    standing exclusions adjacent to the figure, read from the manifest and never re-declared.
+    An export refuses any figure not reachable from a verified manifest, interval-level
+    official price series, distributional vocabulary where the kind forbids it, unlabeled
+    figures, and any value computed across manifests or bases (decision entry 2026-09-01).
+  - [ ] v0.8.0 — Report rendering foundation. `render-report` CLI and
+    `greek_bess.reporting.render`: verified-manifest input through `read_run_manifest` only,
+    the landing state, per-figure label blocks, basis grouping, the export refusals,
+    deterministic self-contained HTML plus a machine-readable index naming every manifest's
+    kind, basis, label and digest. No new runtime dependency, no server, no computation.
+    Tests cover every registry kind, the landing state's absence of numeric figures, refusal
+    of a failing manifest, and byte-determinism.
+  - [ ] v0.8.1 — Multi-run composition. An index across many manifests and side-by-side
+    scenario-ensemble presentation with per-path ranges and per-scenario provenance, rendering
+    the equivalent-basis evidence the ensemble records. Composition is layout only; nothing is
+    computed across manifests.
+  - [ ] v0.8.2 — Interactive viewer decision. A separate dated decision on whether a local
+    interactive viewer (e.g. Streamlit) is added on top of the static renderer; it is a new
+    dependency and rendering surface and is not assumed. If declined, v0.8 completes with the
+    static renderer. AI-generated explanations remain outside v0.8 either way.
 
 ## Parallel acceptance track
 
