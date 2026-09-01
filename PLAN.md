@@ -16,6 +16,63 @@ Suggested future branch sequence:
 6. `ai-explanations` (only after outputs and guardrails are validated)
 7. `final-audit`
 
+## Standing position (1 September 2026)
+
+The approved scope in `PROMPT.md` is implemented. Every modeling milestone from v0.1 through
+v0.7, plus the v0.7.11 run manifest and report contract, is landed on `main` and validated.
+Nothing in the approved brief is waiting on an engineering decision.
+
+What remains is not code. Four items are open and **every one of them waits on an input only the
+operator can supply, or on a scope extension only the user can approve**. Between 28 and 31
+August the repository added roughly 3,100 lines of source, 3,000 lines of tests and 2,600 lines
+of documentation, and retired none of the four, because each was already blocked before that
+work began. Further audits, policies and refusals around a blocked item do not retire it; they
+enlarge the machinery waiting on the same missing declaration.
+
+The plan below is therefore organised by what each item waits on, not by milestone number.
+
+### One hard deadline
+
+- **The accepted official-history artifact expires 2 September 2026 at 13:07 UTC.** Run
+  `32971677163` predates the retention increase and kept the original seven-day window; the
+  90-day retention now configured on every official-data workflow does not apply retroactively.
+  This is the only dated deadline in the project and the only open item that needs no operator
+  declaration: re-running `Fetch official history` produces a replacement artifact under 90-day
+  retention. Any digest difference against `docs/custody/greek-dam-official-history.json` is a
+  recorded finding, not a silent replacement.
+
+### Waiting on an operator declaration
+
+- **The ADMIE gate-closure schedule.** `config/admie_gate_closure.json` does not exist; only the
+  format example does. The audit reports whatever closure it is given and refuses to supply the
+  market rule, so it cannot run until the operator cites the day-ahead trading schedule with its
+  rulebook section and effective dates, one regime per rule change across the audited history.
+  Until then the live timing audit cannot run and the forecast quarantine cannot lift on timing.
+- **The custody upload.** The encrypted copies of the accepted official history and of the
+  ENTSO-E reconciliation artifact must be placed in operator-controlled storage. A committed
+  fingerprint is not a durable copy, and no automation in this repository can perform or verify
+  the upload.
+
+### Waiting on a scope decision by the user
+
+- **The ADMIE forecast quarantine.** Two exits exist and the repository cannot choose between
+  them. Either the operator declares the gate closure and the quarantine is worked to a close
+  through a live audited window and file-format acceptance, or ADMIE load and RES forecasts are
+  removed from scope by a recorded decision. The price-history ML benchmark already stands
+  without them. Leaving the quarantine open indefinitely is the one option that keeps producing
+  work without producing acceptance.
+- **v0.8, or any successor scope.** A research interface and exportable reports appear in the
+  suggested branch sequence but not in `PROMPT.md`'s approved scope, so opening v0.8 is a scope
+  change rather than the next milestone. The same holds for any revenue stream beyond DAM
+  arbitrage. No design work should begin before `PROMPT.md` is amended.
+
+### Operating constraint on live retrieval
+
+Live market endpoints are reachable only from GitHub Actions runners. The development
+environment's egress policy refuses `www.admie.gr`, so catalog queries, file retrieval and
+timing audits are performed by dispatching the relevant workflow and reading its uploaded
+evidence, never from a working checkout. Plan any live acceptance step as a workflow run.
+
 ## Completed milestones
 
 - [x] v0.1 — Official-data ingestion foundation.
