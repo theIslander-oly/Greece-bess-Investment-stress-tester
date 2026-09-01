@@ -4,6 +4,19 @@ All notable project changes are documented here.
 
 ## [Unreleased]
 
+### Changed
+
+- **v0.8.2 — interactive viewer decision.** The viewer is deliberately declined and v0.8 closes
+  with the deterministic static renderer. The indexed, self-contained report already satisfies
+  the approved read-only and exportable-report scope; a viewer would add a runtime dependency,
+  a server lifecycle and a second rendering surface without adding evidence.
+- A future interactive proposal must identify a user need the static report cannot meet, define
+  any scope change, and preserve the verified-manifest-only doorway and every rendering refusal
+  under a separately approved milestone. Interactivity is not retained as implicit unfinished
+  v0.8 scope.
+- Project version raised to 0.8.2 in `pyproject.toml`, `greek_bess.__version__` and the README
+  release line. No runtime dependency or rendering behaviour changed.
+
 ### Added
 
 - **v0.8.1 — multi-run composition.** A report now composes many verified manifests, and
@@ -132,8 +145,9 @@ All notable project changes are documented here.
 - The core renderer is a deterministic `render-report` CLI producing self-contained static
   HTML plus a machine-readable index of every rendered manifest's kind, basis, label and
   digest, with no new runtime dependency, no server and no computation. Milestones: v0.8.0
-  report rendering foundation, v0.8.1 multi-run composition, v0.8.2 a separate dated decision
-  on any interactive viewer. The suggested branch sequence's `streamlit-dashboard` label is
+  report rendering foundation, v0.8.1 multi-run composition, and v0.8.2's dated decision to
+  decline an interactive viewer and complete v0.8. The suggested branch sequence's
+  `streamlit-dashboard` label is
   superseded by `research-reports`; AI-generated explanations remain outside v0.8.
 - The complete v0.7 scope was re-verified on 1 September 2026 on the unchanged v0.7.11
   implementation before opening v0.8: Ruff clean, mypy clean over 42 source files, all 301

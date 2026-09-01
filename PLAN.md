@@ -27,12 +27,13 @@ wheel build). The dated deadline was met on 1 September 2026 and the custody cha
 closed the same day. The ADMIE forecast quarantine, open since 26 August, was closed by removing
 ADMIE load and RES forecasts from scope rather than by working it to acceptance.
 
-**v0.8 is open.** The user approved it on 1 September 2026, `PROMPT.md` was amended the same
+**v0.8 is complete.** The user approved it on 1 September 2026, `PROMPT.md` was amended the same
 day, and `docs/v0.8_design.md` is the design of record. v0.8.0, the report rendering foundation,
-and v0.8.1, multi-run composition, both landed on 1 September 2026 and the package is at 0.8.1.
-The only engineering milestone left in v0.8 is v0.8.2, which is a decision rather than an
-implementation: whether an interactive viewer is added on top of the static renderer. It is not
-assumed, and if it is declined v0.8 completes with the static renderer.
+and v0.8.1, multi-run composition, both landed on 1 September 2026.
+v0.8.2 is complete: the dated decision declines an interactive viewer and closes v0.8 with the
+static renderer. A viewer would duplicate a validated rendering surface and add a runtime
+dependency and server lifecycle without adding evidence. Any future interactive proposal must
+state a need the static report cannot meet and proceed as a separately approved milestone.
 
 **Two operator items remain open** (the custody second copy and `ENTSOE_SECURITY_TOKEN`,
 below). The lesson the closed quarantine records is worth keeping in front of the plan: between
@@ -167,7 +168,7 @@ evidence, never from a working checkout. Plan any live acceptance step as a work
     strictly negative replacement price in EUR/MWh. Timing and depth have no defaults and are
     never sampled, inferred, fitted or searched. An empty event list is the identity; overlap,
     partial intervals and windows covering nothing are refused (decision entry 2026-08-31).
-- [ ] v0.8 — Research interface and exportable reports (**opened 2026-09-01 by user approval**;
+- [x] v0.8 — Research interface and exportable reports (**opened and completed 2026-09-01**;
   `PROMPT.md` amended the same day; design of record in `docs/v0.8_design.md`).
   - [x] Prerequisite: a versioned run manifest and report contract (v0.7.11), which the
     completed-v0.7 review named as the thing to define before any consumer couples to incidental
@@ -205,10 +206,12 @@ evidence, never from a working checkout. Plan any live acceptance step as a work
     in the ranges CSV, not in the summary a manifest carries — was resolved by recording them in
     the ensemble's own summary and guaranteeing them in the contract, never by reading the CSV
     (decision entries 2026-09-01; amendment in `docs/v0.8_design.md`).
-  - [ ] v0.8.2 — Interactive viewer decision. A separate dated decision on whether a local
-    interactive viewer (e.g. Streamlit) is added on top of the static renderer; it is a new
-    dependency and rendering surface and is not assumed. If declined, v0.8 completes with the
-    static renderer. AI-generated explanations remain outside v0.8 either way.
+  - [x] v0.8.2 — Interactive viewer decision (completed 2026-09-01;
+    `docs/implementation_report_v0.8.2.md`). Declined: the indexed, self-contained static report
+    satisfies the approved scope, while a local viewer would duplicate the validated rendering
+    rules, add a dependency and server lifecycle, and create no new evidence. A future proposal
+    must identify a need the static report cannot meet and receive its own approval and milestone.
+    AI-generated explanations remain outside v0.8.
 
 ## Parallel acceptance track
 

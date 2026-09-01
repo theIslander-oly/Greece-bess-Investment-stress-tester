@@ -1,6 +1,6 @@
 # Project status
 
-**Version:** 0.8.1
+**Version:** 0.8.2
 **Updated:** 1 September 2026
 **Status:** Official multi-year operational acceptance and HEnEx-to-ENTSO-E cross-source
 reconciliation passed; encrypted custody copies published and the private key exercised;
@@ -16,12 +16,14 @@ versioned run manifest and report contract now carries every recorded result, ma
 retention executable; and v0.8.0, the report rendering foundation, and v0.8.1, multi-run
 composition, have both landed — a deterministic `render-report` command that renders verified run
 manifests, and only verified run manifests, into self-contained static reports, now composing
-many of them into one indexed report that computes nothing across them
+many of them into one indexed report that computes nothing across them; and v0.8.2 has declined
+an interactive viewer and completed v0.8 with that single deterministic presentation surface
 
 **Standing position, 1 September 2026:** the approved `PROMPT.md` scope is implemented, v0.7
 was re-verified on the unchanged v0.7.11 implementation (Ruff, mypy, 301 tests, clean wheel
-build), and v0.8 is open with v0.8.0 and v0.8.1 complete; v0.8.2 is a decision rather than an
-implementation and is not assumed. The
+build), and v0.8 is complete through v0.8.2. The interactive viewer was declined: it would add a
+dependency, a server lifecycle and a second rendering surface without adding evidence. A future
+proposal must identify a need the static report cannot meet and receive separate approval. The
 artifact expiry is retired: run
 `33483975614` produced a replacement official-history artifact on 1 September 2026 under the
 90-day retention, expiring 30 November 2026 at 07:49 UTC, and its price series verifies as
@@ -105,6 +107,21 @@ live acceptance step is a workflow dispatch rather than a command in a checkout.
   kinds that declare it, because a report renders a nested key as a visible column heading.
 - Ruff, mypy over 43 source files, 355 tests and a clean wheel build pass on Python 3.12.
 
+## v0.8.2 complete — interactive viewer declined
+
+- The dated v0.8.2 decision declines Streamlit or another local viewer and completes v0.8 with
+  the indexed, self-contained static renderer (`docs/implementation_report_v0.8.2.md`).
+- The decision is based on surface area rather than schedule: a viewer cannot add evidence under
+  the approved read-only design. Controls that compute, open a manifest-declared file or combine
+  manifests would violate that design; controls that do not merely duplicate the report's index
+  and links while adding a dependency, server lifecycle and second place to enforce every label
+  and refusal.
+- No runtime dependency, command, manifest contract, report format or analytical behaviour
+  changes. Version 0.8.2 records the completed milestone and closes v0.8.
+- Interactivity is not prohibited forever. A future proposal must name a need the static report
+  cannot meet, define any requested scope change, and preserve the verified-manifest-only doorway
+  and export refusals under its own dated decision and milestone.
+
 ## v0.8 opened — research interface and exportable reports
 
 - Opened on 1 September 2026 by explicit user approval, lifting the gate the completed-v0.7
@@ -124,7 +141,7 @@ live acceptance step is a workflow dispatch rather than a command in a checkout.
 - The core is a deterministic `render-report` CLI producing self-contained static HTML plus a
   machine-readable index, with no new runtime dependency and no server. Milestones: v0.8.0
   report rendering foundation and v0.8.1 multi-run composition (both landed 1 September 2026),
-  and v0.8.2, a separate dated decision on any interactive viewer.
+  followed by v0.8.2's dated decision to decline an interactive viewer and complete v0.8.
 - No dispatch, forecast, stress, degradation, finance or data behaviour changes in the plan
   itself; exports remain generated research outputs outside Git.
 
@@ -669,8 +686,8 @@ data-integrity defect and reconciled one roadmap wording contradiction about ava
 provenance. The v0.8 interface and exportable reports were gated until the user explicitly
 approved their design; that approval arrived on 1 September 2026, `PROMPT.md` was amended, and
 `docs/v0.8_design.md` was adopted as the design of record. v0.8.0, the report rendering
-foundation, and v0.8.1, multi-run composition, both landed on 1 September 2026, so **the only
-item left in v0.8 is v0.8.2, a decision on whether an interactive viewer is added at all**. The
+foundation, and v0.8.1, multi-run composition, both landed on 1 September 2026; v0.8.2 then
+declined the interactive viewer and completed v0.8 with the static renderer. The
 versioned run manifest and report contract the review named as the prerequisite landed on
 2026-08-31. ENTSO-E reconciliation passed on 2026-08-27. Custody tooling and the storage
 procedure landed on 2026-08-27; the encrypted copies were published on 2026-09-01 and the key was
