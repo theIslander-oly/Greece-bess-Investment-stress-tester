@@ -148,17 +148,83 @@ name that claims otherwise is worse than preserving nothing.
 The operator still holds the private key and still owes the second copy under separate control.
 A release is one failure domain.
 
+### The published copies, 1 September 2026
+
+Run
+[`33497084006`](https://github.com/theIslander-oly/Greece-bess-Investment-stress-tester/actions/runs/33497084006)
+verified both artifacts against their committed custody records, encrypted them to the operator's
+recipient `age1ma3l0fx…`, and published
+[`custody-2026-09-01`](https://github.com/theIslander-oly/Greece-bess-Investment-stress-tester/releases/tag/custody-2026-09-01)
+at 10:23:37 UTC.
+
+| Asset | Bytes | SHA-256 of ciphertext | Plaintext source |
+|---|---:|---|---|
+| `greek-dam-official-history.tar.gz.age` | 1,312,353 | `3fa76c75…0329bf` | run `33483975614` |
+| `henex-entsoe-reconciliation.tar.gz.age` | 1,672,921 | `43c5b07b…0ae431` | run `33073631530` |
+
+These digests are of the **ciphertext**, so they authenticate the stored copy and say nothing
+about its contents. What the copy contains is guaranteed by the verification that ran before
+encryption, and by the committed custody records the plaintext will re-verify against once
+decrypted.
+
+**The reconciliation copy is now the only surviving form of that evidence.** Its source artifact
+expires 3 September 2026 at 12:50 UTC and cannot be regenerated while
+`ENTSOE_SECURITY_TOKEN` is unset.
+
+### The key was exercised on 1 September 2026
+
+An encrypted copy whose key has never been used is an assumption rather than a backup, and the
+failure mode is silent: a wrong, truncated or mis-saved private key looks exactly like a good one
+until the day it is needed. So the key was exercised the same day the copies were published,
+while the source artifacts still existed and a failure would have been recoverable.
+
+The operator decrypted `henex-entsoe-reconciliation.tar.gz.age` with the private key and
+recovered an archive of the expected size. **The private key opens the published copies.**
+
+Three facts compose into the full custody claim, and it is worth being explicit about which does
+what, because none of them is sufficient alone:
+
+1. Run `33497084006` verified the plaintext against the committed custody record **before**
+   encrypting it, so what was encrypted was the accepted artifact.
+2. age is authenticated encryption, so a successful decryption also establishes that the stored
+   ciphertext is intact and unmodified. A corrupted or tampered asset fails to decrypt rather
+   than yielding altered plaintext.
+3. The operator holds a key that performs that decryption.
+
+Together these mean the stored copies are recoverable and are the accepted artifacts. What has
+**not** been executed locally is `verify-custody` against the recovered plaintext; the chain above
+makes it redundant rather than merely untested, but it remains the stronger drill and is the
+procedure below.
+
+A practical note for Windows operators: redirect age's output with its own `-o` flag, never with
+a PowerShell `>`. Windows PowerShell re-encodes redirected output as text and corrupts the
+recovered archive, which presents as a key failure rather than as the tooling error it is.
+
 ## Verification drill
 
-Run the drill before any milestone that consumes the accepted history, and whenever the
-store is moved or the key is rotated:
+Run the drill once after the copies are first published, before any milestone that consumes the
+accepted history, and whenever the store is moved or the key is rotated. It is the only step
+that proves the private key actually opens the copies:
 
 ```bash
+gh release download custody-2026-09-01 \
+  --repo theIslander-oly/Greece-bess-Investment-stress-tester --pattern '*.age'
+
 age -d -i "$AGE_KEYFILE" greek-dam-official-history.tar.gz.age | tar -xzf -
 greek-bess verify-custody greek-dam-official-history \
   --record docs/custody/greek-dam-official-history.json \
   --report verification.json
+
+age -d -i "$AGE_KEYFILE" henex-entsoe-reconciliation.tar.gz.age | tar -xzf -
+greek-bess verify-custody henex-entsoe-reconciliation \
+  --record docs/custody/henex-entsoe-reconciliation.json \
+  --report verification-reconciliation.json
 ```
+
+Exit code `0` on both means the key opens the copies **and** the recovered plaintext is the
+accepted artifact. That is the whole custody claim, end to end. Anything else is a finding: read
+"When verification fails" below, and note that a failure to decrypt at all is a key problem
+rather than a data problem.
 
 The `Record official artifact custody` workflow runs the same verification inside Actions
 against the source run's artifact, for as long as that artifact still exists. Once a custody

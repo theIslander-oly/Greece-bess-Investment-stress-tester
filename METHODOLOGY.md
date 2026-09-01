@@ -39,9 +39,11 @@ and flagged rather than treated as missing. Overlapping normalized series can be
 by interval, and a reconciliation derives its window from the accepted history so that both
 sources cover identical market days.
 
-ADMIE retrieval preserves publication time independently from delivery coverage. Candidate load,
-RES, availability and interconnector variables are quarantined from forecast features until their
-historical publication time is proven to precede the bid decision for the target market day. That
+ADMIE load and RES forecasts are **out of scope** (decision entry 2026-09-01), so no exogenous
+ADMIE variable enters any forecast, feature set, dispatch plan or reported result. Forecasting
+uses causal price-history features only. The retrieval client below preserves publication time
+independently from delivery coverage and is retained as unused; the quarantine it served is
+closed as never accepted rather than discharged. That
 proof is executable rather than asserted, and is described in section 16.
 
 Official raw files and normalized datasets are not committed. Reproduction depends on the
@@ -349,9 +351,14 @@ including untouched rows, while the summary records the full declaration, applie
 counts, and negative and zero interval counts before and after. Outputs remain synthetic
 deterministic scenarios, not forecasts, probabilities or investment evidence.
 
-## 16. ADMIE pre-auction publication timing
+## 16. ADMIE pre-auction publication timing (retained, unused)
 
-The quarantine above is discharged, if at all, by an audit that reads ADMIE retrieval manifests
+ADMIE load and RES forecasts were removed from scope on 2026-09-01 and the quarantine was closed
+as never accepted, so this section describes tooling the project retains rather than a method it
+applies. No audit was ever run over the confirmed filetypes against a verified gate closure, and a
+passing audit would no longer admit any ADMIE field into forecasting.
+
+The quarantine would have been discharged, if at all, by an audit that reads ADMIE retrieval manifests
 and compares each file's publication time against a declared day-ahead gate closure, per filetype
 and per delivery day. No forecast file is parsed by the audit; the question is availability in
 time, not content.
@@ -375,9 +382,10 @@ operative caution: reading "the published file" for a past delivery day ordinari
 provider's latest revision, which is post-decision information even on a day that passes on
 timing. A feature built from these files must read the decision-time revision by URL.
 
-Acceptance here establishes publication timing only. It accepts no file format, schema or value,
-demonstrates no forecasting skill, and does not lift the quarantine on its own; the audit summary
-carries that exclusion in its own output. The policy is in
+Acceptance here would establish publication timing only. It accepts no file format, schema or
+value and demonstrates no forecasting skill, and the audit summary carries that exclusion in its
+own output. It would also no longer admit any ADMIE field into forecasting: those forecasts are
+out of scope, so the quarantine is closed rather than pending. The policy is in
 `docs/admie_publication_timing_policy.md`.
 
 ## 17. Run manifest and report contract

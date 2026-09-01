@@ -34,20 +34,25 @@
   larger or ambiguous disagreements remain errors.
 - HEnEx incremental daily discovery depends on a website asset-catalog layout rather than a
   documented data API and may need maintenance when the site changes.
-- The live ADMIE catalog and a 26-28 August 2026 retrieval confirm
-  `ISP1DayAheadLoadForecast`, `ISP1DayAheadRESForecast`, `ISP2DayAheadLoadForecast` and
-  `ISP2DayAheadRESForecast` as the retrievable day-ahead forecast filetypes. This establishes
-  names and non-empty discovery only: it does not establish publication before auction closure,
-  accept either format or permit any field to enter forecasting.
-- ADMIE publication timing is auditable per delivery day against a declared gate closure, but no
-  timing audit has yet been run over the confirmed filetypes, the governing closure remains
-  unresolved and no file format has been accepted, so no exogenous ADMIE field may enter
-  forecasting.
-- The publication-timing audit checks a declared gate closure; it cannot check that declaration
-  against the market rules, and the repository does not declare it on the operator's behalf. Its
-  ordinary evidence is the provider's own publication timestamp, read after the fact, which a
-  restated or backdated timestamp would defeat. Only a retrieval performed before the closure
-  witnesses availability independently, and such witnesses accumulate one delivery day at a time.
+- **ADMIE load and RES forecasts are out of scope** (decision entry 2026-09-01). No exogenous
+  ADMIE variable may enter any forecast, feature set, dispatch plan or reported result.
+  Forecasting uses causal price-history features only. No ADMIE data was ever parsed, so this
+  removes a candidate input and changes no accepted figure.
+- What the ADMIE work did establish, and no more: the live catalog and a 26-28 August 2026
+  retrieval confirm `ISP1DayAheadLoadForecast`, `ISP1DayAheadRESForecast`,
+  `ISP2DayAheadLoadForecast` and `ISP2DayAheadRESForecast` as retrievable day-ahead forecast
+  filetypes. That is names and non-empty discovery. Publication before auction closure was never
+  established, no file format was ever accepted, and no timing audit was ever run over the
+  confirmed filetypes against a verified closure.
+- The retrieval client and the publication-timing audit are retained and unused. They are the
+  executable form of the refusal rather than a capability in service: `audit-admie-publication-timing`
+  still checks only a *declared* gate closure, cannot check that declaration against the market
+  rules, and the repository still refuses to declare it on the operator's behalf. Its ordinary
+  evidence would be the provider's own publication timestamp read after the fact, which a restated
+  or backdated timestamp would defeat; only a retrieval performed before the closure witnesses
+  availability independently, and such witnesses accumulate one delivery day at a time. Reversing
+  the exclusion needs that declaration, a contemporaneous audited window, format acceptance and a
+  new dated decision.
 - The ENTSO-E series is reconciled against HEnEx for 1 November 2020 through 25 August 2026, with
   one 29 October 2023 interval differing by EUR 0.01/MWh. ENTSO-E A44 `A03` documents state a
   price once and imply its repeats; those implied intervals are materialized and flagged, not

@@ -3,14 +3,14 @@
 **Version:** 0.7.11
 **Updated:** 1 September 2026
 **Status:** Official multi-year operational acceptance and HEnEx-to-ENTSO-E cross-source
-reconciliation passed; artifact custody tooling in place awaiting the operator upload;
+reconciliation passed; encrypted custody copies published and the private key exercised;
 per-delivery-year replay decomposition accepted against the official history;
 bootstrap source-era policy, spread compression, non-probabilistic scenario-ensemble range
 reporting, declared availability/outage paths and declared negative-price events landed,
 completing the approved v0.7 modeling scope; the completed-v0.7 review passed after reconciling
 one roadmap wording contradiction, and v0.8 remains gated on explicit user design approval;
-the ADMIE forecast quarantine now has an executable publication-timing audit and a workflow,
-awaiting the operator's declared gate closure, a live audited window and format acceptance; a
+ADMIE load and RES forecasts are removed from scope and that quarantine is closed as never
+accepted, with the retrieval client and timing audit retained and documented as unused; a
 versioned run manifest and report contract now carries every recorded result, making label
 retention executable and satisfying the prerequisite the v0.7 review set for any future
 presentation layer
@@ -19,13 +19,16 @@ presentation layer
 open item is waiting on an engineering decision. The artifact expiry is retired: run
 `33483975614` produced a replacement official-history artifact on 1 September 2026 under the
 90-day retention, expiring 30 November 2026 at 07:49 UTC, and its price series verifies as
-identical to the accepted baseline. Four items remain: the ADMIE gate-closure schedule and the
-encrypted custody upload each wait on an operator declaration the repository refuses to supply;
-the ADMIE forecast quarantine and any v0.8 successor scope each wait on a decision by the user.
-The committed custody record now fingerprints the replacement run. One newly recorded blocker
-belongs to the operator: `ENTSOE_SECURITY_TOKEN` is no longer configured as a repository secret,
-so the reconciliation retrieval cannot run and that artifact has no replacement before it expires
-3 September 2026. Live market endpoints are reachable only from GitHub Actions runners, so every
+identical to the accepted baseline, and the committed custody record now fingerprints it.
+Encrypted copies of both accepted artifacts were published the same day and the private key was
+exercised, so the accepted evidence is recoverable. The ADMIE forecast quarantine is closed by
+removing ADMIE load and RES forecasts from scope (decision entry 2026-09-01).
+
+Two items remain. A second custody copy under separate control does not exist, and one release is
+one failure domain. Any v0.8 successor scope still waits on a decision by the user. One further
+operator matter is recorded rather than open: `ENTSOE_SECURITY_TOKEN` is no longer configured, so
+the reconciliation cannot be re-run; its accepted evidence is safe in the custody copy and only
+regeneration is blocked. Live market endpoints are reachable only from GitHub Actions runners, so every
 live acceptance step is a workflow dispatch rather than a command in a checkout. See `PLAN.md`.
 
 ## Declared negative-price events
@@ -214,10 +217,20 @@ live acceptance step is a workflow dispatch rather than a command in a checkout.
 - Custody covers retrieved official artifacts only. Derived evidence computed from a custodied
   history, such as the `annual-replay-decomposition` artifact, is guaranteed by reproduction
   from the recorded history, commit and configuration instead.
-- **Outstanding operator action:** the encrypted copies must be uploaded. Custody is not
-  complete until they are. The history copy should now be taken from replacement run
-  `33483975614`, which does not expire until 30 November 2026; the reconciliation artifact from
-  run `33073631530` still expires 3 September 2026.
+- **The encrypted copies now exist.** Run `33497084006` verified both artifacts against their
+  committed records, encrypted them to the operator's recipient and published release
+  `custody-2026-09-01` on 1 September 2026: `greek-dam-official-history.tar.gz.age`
+  (1,312,353 B, ciphertext SHA-256 `3fa76c75…0329bf`) and
+  `henex-entsoe-reconciliation.tar.gz.age` (1,672,921 B, `43c5b07b…0ae431`). The reconciliation
+  copy is the only surviving form of that evidence once its source artifact expires
+  3 September 2026.
+- **The key was exercised the same day**, while the source artifacts still existed and a failure
+  would have been recoverable. The operator decrypted the reconciliation copy and recovered an
+  archive of the expected size, so the private key opens the published copies. With the
+  pre-encryption verification and age's authenticated encryption, that composes into the full
+  claim: the stored copies are recoverable and are the accepted artifacts.
+- **One gap remains, and it is not bookkeeping:** the second copy under separate control does not
+  exist. One release is one failure domain. Until it does, custody is not recorded as complete.
 - The `Publish encrypted custody copies` workflow now performs the download, verification,
   encryption and release upload inside Actions, so the operator's remaining part is generating
   one age key pair and supplying the public recipient. An age recipient can encrypt and cannot
@@ -294,7 +307,13 @@ live acceptance step is a workflow dispatch rather than a command in a checkout.
 - This adds no interface, exporter, rendering surface or dependency and **does not open v0.8**.
   Policy in `docs/run_manifest_contract.md`.
 
-## ADMIE pre-auction publication timing
+## ADMIE pre-auction publication timing (retained, unused)
+
+> **ADMIE load and RES forecasts are out of scope** (decision entry 2026-09-01). Everything below
+> is retained and runnable but is not in service: it is the executable form of the refusal, kept
+> so that a future declaration can be tested without rebuilding it. No timing audit was ever run
+> over the confirmed filetypes against a verified gate closure, and no ADMIE field ever entered
+> forecasting. This section describes what the tooling does, not a capability the project uses.
 
 - `audit-admie-publication-timing` and `greek_bess.data.admie_timing` turn the
   `requires_pre_auction_timing_validation` quarantine label into a pass or a fail. The audit reads
@@ -509,7 +528,9 @@ live acceptance step is a workflow dispatch rather than a command in a checkout.
 
 ## Validation still required
 
-- Accept ADMIE load/RES formats and prove pre-auction publication timing.
+Nothing in the approved `PROMPT.md` scope is awaiting validation. ADMIE load/RES format and
+pre-auction timing acceptance were the last open items here and are no longer asked: those
+forecasts are out of scope (decision entry 2026-09-01).
 
 The HEnEx acceptance evidence, raw-file hashes and exact results are recorded in
 `docs/official_data_acceptance_2026-08-25.md`. Official raw workbooks are deliberately
@@ -553,7 +574,8 @@ approves their design; the versioned run manifest and report contract that revie
 prerequisite landed on 2026-08-31, and a 2026-08-31 reevaluation recorded that v0.8 appears in the
 suggested branch sequence but not in the approved brief, so opening it is a scope change rather
 than the next milestone. ENTSO-E reconciliation passed on 2026-08-27. Custody tooling and the storage
-procedure landed on 2026-08-27 and await the operator upload. The ADMIE publication-timing audit,
-workflow and policy landed on 2026-08-31; that acceptance now waits on the operator's declared
-gate closure, a live audited window and separate file-format acceptance rather than on tooling. The per-year decomposition surface and workflow landed on 2026-08-27 and its official run
+procedure landed on 2026-08-27; the encrypted copies were published on 2026-09-01 and the key was
+exercised the same day. The ADMIE publication-timing audit, workflow and policy landed on
+2026-08-31 and are retained as unused: ADMIE load and RES forecasts were removed from scope on
+2026-09-01, so that acceptance is not pending but withdrawn. The per-year decomposition surface and workflow landed on 2026-08-27 and its official run
 was accepted on 2026-08-28, so that track is complete.

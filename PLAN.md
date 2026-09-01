@@ -22,13 +22,17 @@ The approved scope in `PROMPT.md` is implemented. Every modeling milestone from 
 v0.7, plus the v0.7.11 run manifest and report contract, is landed on `main` and validated.
 Nothing in the approved brief is waiting on an engineering decision.
 
-What remains is not code. The one dated deadline was met on 1 September 2026. **The four items
-still open each wait on an input only the operator can supply, or on a scope extension only the
-user can approve.** Between 28 and 31 August the repository added roughly 3,100 lines of source,
-3,000 lines of tests and 2,600 lines of documentation and retired none of them, because all four
-were already blocked before that work began. Further audits, policies and refusals around a
-blocked item do not retire it; they enlarge the machinery waiting on the same missing
-declaration.
+What remains is not code, and there is now much less of it. The dated deadline was met on
+1 September 2026 and the custody chain behind it closed the same day. The ADMIE forecast
+quarantine, open since 26 August, was closed by removing ADMIE load and RES forecasts from scope
+rather than by working it to acceptance.
+
+**Two items are open. One waits on the operator; one waits on a scope extension only the user can
+approve.** The lesson the closed quarantine records is worth keeping in front of the plan: between
+28 and 31 August the repository added roughly 3,100 lines of source, 3,000 of tests and 2,600 of
+documentation around items that were already blocked, and retired none of them. Further audits,
+policies and refusals around a blocked item do not retire it; they enlarge the machinery waiting
+on the same missing declaration.
 
 The plan below is therefore organised by what each item waits on, not by milestone number.
 
@@ -55,24 +59,16 @@ The plan below is therefore organised by what each item waits on, not by milesto
 
 ### Waiting on an operator declaration
 
-- **The ADMIE gate-closure schedule.** `config/admie_gate_closure.json` does not exist; only the
-  format example does. The audit reports whatever closure it is given and refuses to supply the
-  market rule, so it cannot run until the operator cites the day-ahead trading schedule with its
-  rulebook section and effective dates, one regime per rule change across the audited history.
-  Until then the live timing audit cannot run and the forecast quarantine cannot lift on timing.
-- **The custody upload.** The encrypted copies of the accepted official history and of the
-  ENTSO-E reconciliation artifact must be placed in operator-controlled storage. A committed
-  fingerprint is not a durable copy, and no automation in this repository can perform or verify
-  the upload.
+- **The second custody copy.** Both encrypted copies were published as release
+  `custody-2026-09-01` on 1 September 2026 and the private key was exercised the same day, so the
+  accepted artifacts are recoverable. What remains is a copy under separate control: one release
+  is one failure domain, and nothing in this repository can perform or verify that placement.
+- **`ENTSOE_SECURITY_TOKEN`.** The secret is no longer configured, so
+  `Reconcile HEnEx and ENTSO-E prices` refuses at its guard step and the reconciliation cannot be
+  re-run. The accepted evidence is safe in the custody copy; only regeneration is blocked.
 
 ### Waiting on a scope decision by the user
 
-- **The ADMIE forecast quarantine.** Two exits exist and the repository cannot choose between
-  them. Either the operator declares the gate closure and the quarantine is worked to a close
-  through a live audited window and file-format acceptance, or ADMIE load and RES forecasts are
-  removed from scope by a recorded decision. The price-history ML benchmark already stands
-  without them. Leaving the quarantine open indefinitely is the one option that keeps producing
-  work without producing acceptance.
 - **v0.8, or any successor scope.** A research interface and exportable reports appear in the
   suggested branch sequence but not in `PROMPT.md`'s approved scope, so opening v0.8 is a scope
   change rather than the next milestone. The same holds for any revenue stream beyond DAM
@@ -217,31 +213,23 @@ evidence, never from a working checkout. Plan any live acceptance step as a work
   - Perfect-foresight dispatch accepted over all 74,663 official intervals.
   - All four causal naïve baselines and both ML benchmarks accepted with leakage,
     settlement, coverage and determinism evidence.
-- [~] Accept ADMIE load/RES file formats and prove pre-auction publication timing.
-  - [x] Executable publication-timing audit. `audit-admie-publication-timing` compares each
-    retrieved file's publication time against a declared dated gate-closure schedule with no
-    default, per filetype and delivery day, without parsing any file. Evidence witnessed by a
-    pre-closure retrieval is separated from publisher-asserted timestamps and never promoted to
-    it; a publication exactly at the closure counts as late; each accepted day names the
-    decision-time revision and counts the revisions that superseded it. Policy in
-    `docs/admie_publication_timing_policy.md`.
-  - [x] `Audit ADMIE publication timing` workflow, which retrieves every revision covering a
-    declared window and uploads the manifest, per-day verdicts, per-observation evidence and
-    summary.
-  - [ ] Operator declaration of the gate-closure schedule. The repository ships the format in
-    `config/admie_gate_closure.example.json` and refuses to supply the market rule: the audit
-    reports whatever closure it is given and cannot check a declaration against the rulebook.
-  - [x] Confirm the leakage-relevant names against the live catalog and a non-empty retrieval.
-    On 2026-08-31 the catalog identified the ISP1 and ISP2 day-ahead load/RES pairs; retrieval
-    over 26-28 August 2026 discovered 12 ISP1 files (six per type) and six ISP2 files (three per
-    type). The catalog-valid DAM pair returned none and is no longer declared leakage-relevant.
-    Evidence in `docs/admie_filetype_acceptance_2026-08-31.md`.
-  - [ ] A live publication-timing audit over the confirmed ISP1/ISP2 filetypes. Non-empty
-    discovery settles names and window only; no publication timestamp has yet been compared with
-    a verified gate closure.
-  - [ ] File-format acceptance against real load/RES files. Timing acceptance establishes
-    publication timing alone; the quarantine is lifted only by format acceptance and a recorded
-    decision as well.
+- [x] **ADMIE load/RES forecasts removed from scope** (decision entry 2026-09-01). The
+  2026-08-26 quarantine is closed as never accepted rather than discharged: no ADMIE field ever
+  entered forecasting and none may. File-format acceptance and pre-auction timing acceptance are
+  therefore not pending items; they are questions the project no longer asks.
+  - [x] What was established and retains its evidentiary value: the live catalog and a
+    26-28 August 2026 retrieval confirmed the ISP1 and ISP2 day-ahead load/RES pairs as
+    retrievable, which is names and non-empty discovery only
+    (`docs/admie_filetype_acceptance_2026-08-31.md`).
+  - [x] What was never established: publication before auction closure, any file format, and any
+    timing audit over the confirmed filetypes against a verified closure.
+  - [x] Retained and documented as unused: `list-admie-filetypes`, `fetch-admie-files`,
+    `audit-admie-publication-timing`, the gate-closure format, their tests and the
+    `Audit ADMIE publication timing` workflow. They are the executable form of the refusal, kept
+    so a future declaration can be tested without rebuilding them, and are not to be pruned as
+    dead code. Policy in `docs/admie_publication_timing_policy.md`.
+  - Reopening requires the operator declaration the quarantine always needed, a contemporaneous
+    audited window, format acceptance and a new dated decision.
 - [~] Store the accepted normalized official history durably and privately outside Git. The
   source is now replacement run `33483975614`, which does not expire until 30 November 2026.
   - [x] Storage procedure, custody-record format and verification tooling
@@ -253,9 +241,13 @@ evidence, never from a working checkout. Plan any live acceptance step as a work
     committed record, refuses to encrypt one that differs, encrypts to an operator-supplied age
     recipient and attaches the ciphertext to a private release. The recipient is a public key, so
     no automation here can decrypt an accepted artifact.
-  - [ ] Operator supplies the age recipient and dispatches it. Custody is not complete until the
-    encrypted copies exist, and the second copy under separate control remains outside this
-    repository's knowledge.
+  - [x] Encrypted copies published. Run `33497084006` verified both artifacts, encrypted them to
+    the operator's recipient and published release `custody-2026-09-01` on 1 September 2026.
+  - [x] **Decryption drill, run 1 September 2026.** The operator decrypted the reconciliation
+    copy and recovered an archive of the expected size, while the source artifacts still existed
+    and a failure would have been recoverable. The private key opens the published copies.
+  - [ ] Second copy under separate control. One release is one failure domain, and this is
+    outside the repository's knowledge either way.
 - [x] Add a per-calendar-year decomposition of the accepted replay (annual perfect-foresight
   ceiling and forecast capture), since aggregate 2020-2026 margins conceal regime dependence
   such as the 2022 gas-crisis year.

@@ -83,9 +83,8 @@ The current implementation provides:
   partial-year labelling, per-method capture and a like-for-like common-day comparison;
 - a deterministic spread compression about a declared daily reference level, with a declared
   basis, exact per-day range scaling and preserved zero and negative prices;
-- an executable pre-auction publication-timing audit for the quarantined ADMIE forecast files,
-  against a declared dated gate-closure schedule with no default, separating contemporaneously
-  witnessed evidence from publisher-asserted timestamps and naming the decision-time revision;
+- an executable pre-auction publication-timing audit, retained but **unused**: ADMIE load and RES
+  forecasts are out of scope, and the audit stands as the executable form of that refusal;
 - a versioned run manifest and report contract that carries any result summary verbatim under a
   stable projection — declared result kind, the basis it reports on, its required non-empty
   result label and the project's standing exclusions — refusing an unlabelled result and a
@@ -417,12 +416,17 @@ Market Files API. Every retrieval writes a manifest with source URL, coverage, r
 SHA-256 and publication metadata where the provider exposes it. Raw and normalized official
 data remain ignored by Git.
 
-ADMIE's load and RES forecasts stay quarantined from forecasting. `audit-admie-publication-timing`
-makes that quarantine checkable: it proves, per delivery day, whether a file was published before
-a declared day-ahead gate closure, and separates evidence witnessed by a pre-closure retrieval
-from timestamps the publisher asserts afterwards. Timing acceptance is not format acceptance and
-does not lift the quarantine; see
-[`docs/admie_publication_timing_policy.md`](docs/admie_publication_timing_policy.md).
+**ADMIE's load and RES forecasts are out of scope** (decision entry 2026-09-01). The 2026-08-26
+quarantine is closed as never accepted rather than discharged: no ADMIE field ever entered
+forecasting, and none may. Forecasting uses causal price-history features only.
+
+The retrieval client and `audit-admie-publication-timing` are retained and documented as unused.
+They are the executable form of the refusal, kept so a future declaration could be tested without
+rebuilding them, and are not dead code to be pruned. The audit checks only a *declared* gate
+closure and the repository still refuses to supply the market rule; see
+[`docs/admie_publication_timing_policy.md`](docs/admie_publication_timing_policy.md). Reopening
+the question needs that declaration, a contemporaneous audited window, format acceptance and a new
+dated decision.
 
 Accepted official artifacts are held outside Git as encrypted assets on a release in the
 private repository, and each is fingerprinted by a price-free custody record committed under
@@ -542,6 +546,10 @@ credentials. It never commits the data, and ordinary code pushes do not trigger 
 
 ### Retrieve ADMIE/IPTO source files
 
+> ADMIE load and RES forecasts are **out of scope** (decision entry 2026-09-01). These commands are
+> retained and runnable so a future declaration can be tested, but nothing they retrieve may enter
+> a forecast, feature set, dispatch plan or reported result.
+
 First snapshot the provider's live filetype catalog:
 
 ```bash
@@ -569,9 +577,12 @@ are validated; retrieval does not make a variable leakage-safe.
 
 ### Audit ADMIE pre-auction publication timing
 
-The quarantine label is checkable rather than asserted. The audit compares each retrieved file's
-publication time against a **declared** day-ahead gate closure, per delivery day, without parsing
-any file:
+> Retained but unused — see the scope note above. This audit was never run over the confirmed
+> filetypes against a verified gate closure, and its passing would no longer admit any ADMIE
+> field into forecasting.
+
+The audit compares each retrieved file's publication time against a **declared** day-ahead gate
+closure, per delivery day, without parsing any file:
 
 ```bash
 greek-bess audit-admie-publication-timing \
@@ -596,9 +607,10 @@ For accepted days the audit names the **decision-time revision** — the latest 
 before closure, the only revision a backtest may read — and counts the revisions that superseded
 it afterwards. The command exits `2` on any unaccepted day.
 
-Passing establishes publication timing and nothing else. It accepts no file format, proves no
-forecasting skill, and does not lift the quarantine on its own; the summary says so in its own
-output. See `docs/admie_publication_timing_policy.md`.
+Passing establishes publication timing and nothing else. It accepts no file format and proves no
+forecasting skill, and the summary says so in its own output. It would not now admit any ADMIE
+field into forecasting either: those forecasts are out of scope, so the quarantine it was built to
+discharge is closed rather than pending. See `docs/admie_publication_timing_policy.md`.
 
 ## Record a result under the report contract
 
@@ -1109,11 +1121,11 @@ their jurisdiction-specific assumptions are independently validated. HEnEx workb
 official-history acceptance have passed, and both the perfect-foresight optimizer and the
 forecast-dispatch backtests have now been accepted over that full history. Private-token ENTSO-E
 retrieval and the cross-source reconciliation passed on 27 August 2026: 74,662 of 74,663 official
-intervals match exactly and neither source omits an interval the other publishes. Publication-time
-acceptance for ADMIE exogenous variables now has an executable audit and a workflow that produces
-its evidence; the remaining parallel acceptance work is the operator's declared gate-closure
-schedule, a live audited window, and the separate file-format acceptance that would together
-justify lifting the forecast-feature quarantine.
+intervals match exactly and neither source omits an interval the other publishes. ADMIE exogenous
+variables are no longer part of this track at all: those forecasts were removed from scope on
+1 September 2026, so the gate-closure declaration, the live audited window and the file-format
+acceptance are questions the project no longer asks. The audit and retrieval client remain in the
+repository, documented as unused.
 
 ## Development
 
