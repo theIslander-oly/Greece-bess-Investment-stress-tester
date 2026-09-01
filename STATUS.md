@@ -1,7 +1,7 @@
 # Project status
 
 **Version:** 0.7.11
-**Updated:** 31 August 2026
+**Updated:** 1 September 2026
 **Status:** Official multi-year operational acceptance and HEnEx-to-ENTSO-E cross-source
 reconciliation passed; artifact custody tooling in place awaiting the operator upload;
 per-delivery-year replay decomposition accepted against the official history;
@@ -14,6 +14,15 @@ awaiting the operator's declared gate closure, a live audited window and format 
 versioned run manifest and report contract now carries every recorded result, making label
 retention executable and satisfying the prerequisite the v0.7 review set for any future
 presentation layer
+
+**Standing position, 1 September 2026:** the approved `PROMPT.md` scope is implemented and no
+open item is waiting on an engineering decision. Five items remain: the official-history
+artifact from run `32971677163` expires 2 September 2026 at 13:07 UTC and needs a replacement
+retrieval under the current 90-day retention; the ADMIE gate-closure schedule and the encrypted
+custody upload each wait on an operator declaration the repository refuses to supply; and the
+ADMIE forecast quarantine and any v0.8 successor scope each wait on a decision by the user.
+Live market endpoints are reachable only from GitHub Actions runners, so every live acceptance
+step is a workflow dispatch rather than a command in a checkout. See `PLAN.md`.
 
 ## Declared negative-price events
 
