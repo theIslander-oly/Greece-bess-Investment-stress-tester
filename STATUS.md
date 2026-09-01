@@ -1,6 +1,6 @@
 # Project status
 
-**Version:** 0.7.11
+**Version:** 0.8.0
 **Updated:** 1 September 2026
 **Status:** Official multi-year operational acceptance and HEnEx-to-ENTSO-E cross-source
 reconciliation passed; encrypted custody copies published and the private key exercised;
@@ -13,13 +13,14 @@ approval, with the scope amended and the design recorded in `docs/v0.8_design.md
 ADMIE load and RES forecasts are removed from scope and that quarantine is closed as never
 accepted, with the retrieval client and timing audit retained and documented as unused; a
 versioned run manifest and report contract now carries every recorded result, making label
-retention executable and satisfying the prerequisite the v0.7 review set for any future
-presentation layer
+retention executable; and v0.8.0, the report rendering foundation, has landed — a deterministic
+`render-report` command that renders verified run manifests, and only verified run manifests,
+into self-contained static reports
 
 **Standing position, 1 September 2026:** the approved `PROMPT.md` scope is implemented, v0.7
 was re-verified on the unchanged v0.7.11 implementation (Ruff, mypy, 301 tests, clean wheel
-build), and v0.8 is open with v0.8.0 as the next engineering milestone. The artifact expiry is
-retired: run
+build), and v0.8 is open with v0.8.0 complete and v0.8.1 the next engineering milestone. The
+artifact expiry is retired: run
 `33483975614` produced a replacement official-history artifact on 1 September 2026 under the
 90-day retention, expiring 30 November 2026 at 07:49 UTC, and its price series verifies as
 identical to the accepted baseline, and the committed custody record now fingerprints it.
@@ -32,6 +33,39 @@ release is one failure domain. `ENTSOE_SECURITY_TOKEN` is no longer configured, 
 reconciliation cannot be re-run; its accepted evidence is safe in the custody copy and only
 regeneration is blocked. Live market endpoints are reachable only from GitHub Actions runners, so every
 live acceptance step is a workflow dispatch rather than a command in a checkout. See `PLAN.md`.
+
+## v0.8.0 landed — report rendering foundation
+
+- `greek_bess.reporting.render` and the `render-report` command render verified run manifests,
+  and only verified run manifests, into one self-contained static HTML report plus a
+  machine-readable index (`docs/implementation_report_v0.8.0.md`).
+- `read_run_manifest` is the sole doorway, so the schema-version check, the closed kind
+  registry, the basis cross-check, the guaranteed-key check and the scoped distributional-term
+  refusal are inherited by the presentation layer rather than restated in it. The renderer
+  computes nothing, reads no environment variable and makes no network request. No runtime
+  dependency was added and nothing listens on a port.
+- The landing state is the declaration checklist. Rendered with no manifests, the report shows
+  no figure and no example number: a regression test strips the decision dates and asserts not
+  one digit remains. It lists each judgmental input with no default — bootstrap source era,
+  spread-compression factor and reference basis, availability baseline, negative-price event
+  list, ensemble scenario set — with the dated decision behind it and the command that records
+  a result once it is declared.
+- Every figure renders inside a block carrying its manifest's `result_label`, its basis in
+  reader-facing words and the three standing exclusions, adjacent to the figure. A regression
+  test renders a manifest for every kind in the registry and asserts all three appear inside
+  that kind's own block. Figures are grouped by basis in the order the contract declares them.
+- The refusals are executable: a manifest that fails verification refuses the whole report and
+  the CLI writes no file; two inputs declaring one manifest ID are refused; renderer vocabulary
+  reading as a distributional claim is refused where the kind forbids it; a non-`.html` output
+  is refused. A path a manifest names in `declared_inputs` is displayed, never opened, so
+  interval-level official prices cannot enter an export.
+- Reports are deterministic: manifests are ordered by basis, then kind, then manifest ID, never
+  by input order, and the only timestamp the renderer adds is `rendered_at_utc` in the index.
+  Recorded values render exactly as recorded, with no display rounding or unit conversion.
+- Every rendered value is recorded as a `RenderedFigure` naming the manifest and summary key it
+  came from, so "nothing was computed while rendering" is checked rather than asserted.
+- Reports and indexes are generated research outputs and stay outside Git. Ruff, mypy over 43
+  source files, 326 tests and a clean wheel build pass.
 
 ## v0.8 opened — research interface and exportable reports
 
@@ -51,8 +85,8 @@ live acceptance step is a workflow dispatch rather than a command in a checkout.
   manifests or bases.
 - The core is a deterministic `render-report` CLI producing self-contained static HTML plus a
   machine-readable index, with no new runtime dependency and no server. Milestones: v0.8.0
-  report rendering foundation, v0.8.1 multi-run composition, v0.8.2 a separate dated decision
-  on any interactive viewer. The package version stays at 0.7.11 until v0.8.0 merges.
+  report rendering foundation (landed 1 September 2026), v0.8.1 multi-run composition, v0.8.2 a
+  separate dated decision on any interactive viewer.
 - No dispatch, forecast, stress, degradation, finance or data behaviour changes in the plan
   itself; exports remain generated research outputs outside Git.
 

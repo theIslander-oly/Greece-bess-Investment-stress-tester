@@ -3,6 +3,54 @@
 This file records decisions that materially affect interpretation or reproducibility. Add a
 dated entry when a milestone changes scope, assumptions, data handling or validation.
 
+## 2026-09-01 — Scope the renderer's distributional-term check to what the renderer says
+
+- **Decision:** In `greek_bess.reporting.render`, apply `FORBIDDEN_REPORT_TERMS` to the headings
+  and captions the renderer itself emits for a block whose kind declares
+  `forbids_distributional_terms`, and exempt text carried verbatim from the manifest — the
+  `result_label`, the standing exclusions and the recorded values.
+- **Reason:** The design requires the three standing exclusions beside every figure, and two of
+  them read "not a probability-calibrated estimate" and "not expected or forecast investment
+  revenue". Both contain terms on the list. A blanket scan of rendered text would therefore
+  refuse to render a scenario-ensemble figure precisely because it carries the disclaimer that
+  makes the figure safe to read, which is the opposite of what the check is for. The manifest's
+  own summary keys need no second check: the contract cleared them for that kind when the
+  manifest was built. So the renderer checks what the renderer adds, and inherits the rest.
+- **Consequence:** The exemption is pinned by two tests rather than left as a comment — one
+  asserts a renderer caption reading "Expected value" refuses the render, and one asserts the
+  standing exclusions survive intact beside an ensemble block after first asserting that those
+  exclusions do contain exactly `expected` and `probability`. A future reader who meets the
+  exemption meets its reason with it.
+
+## 2026-09-01 — Identify a rendered manifest by digest, never by its path
+
+- **Decision:** The report index names each rendered manifest by its `manifest_id` and the
+  SHA-256 digest of the exact bytes read, and records no filesystem path. Two inputs declaring
+  one `manifest_id` are refused rather than rendered as two entries.
+- **Reason:** An export is the artifact most likely to travel beyond a reader who knows this
+  project's limits, and a local path names the operator's machine rather than the evidence. The
+  digest is what makes a report auditable back to the exact manifests behind it; the path is
+  what leaks. Refusing a repeated ID follows the same reasoning from the other side: an ID names
+  one recorded run, so a report listing it twice would present one run as two.
+- **Consequence:** A report is reproducible from the digests it records, and the index is
+  comparable across machines. Rendering the same run twice is an error to fix at the call site,
+  not a duplicate to deduplicate silently.
+
+## 2026-09-01 — Render recorded values exactly as recorded
+
+- **Decision:** The renderer formats a recorded value as the JSON it was recorded as. No display
+  rounding, unit conversion, thousands grouping or currency formatting is applied, and manifests
+  are ordered by basis, then kind, then manifest ID rather than by input order.
+- **Reason:** Each of those conveniences is a transformation, and the one thing this layer
+  promises is that it transforms nothing. A rounded figure in an export is a different figure
+  from the one the validated module recorded, and a reader has no way to tell which they are
+  holding. Declared ordering, likewise, is what makes identical inputs produce byte-identical
+  documents regardless of the order a caller happened to pass them.
+- **Consequence:** Reports are less typographically polished than a formatting layer would make
+  them, and deliberately so. Determinism is testable: a test renders every kind in the registry
+  in both directions and compares the documents. The only timestamp the renderer adds is
+  `rendered_at_utc`, and it lives in the index so the document itself stays comparable.
+
 ## 2026-09-01 — Open v0.8 by user approval: render verified manifests, and only verified manifests
 
 - **Decision:** Open v0.8, the research interface and exportable reports, on the user's explicit
