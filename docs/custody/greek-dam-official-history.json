@@ -1,27 +1,27 @@
 {
   "record_version": 1,
   "artifact_name": "greek-dam-official-history",
-  "source_run_id": "32971677163",
+  "source_run_id": "33483975614",
   "source_workflow": "Fetch official Greek market history",
-  "published_artifact_digest_sha256": "127915bc6e143a6bf2a4cb0a559b798e231062097bdaf9bf467a051260c4b198",
-  "recorded_at_utc": "2026-08-27T13:20:05.529617+00:00",
+  "published_artifact_digest_sha256": "de30f4cc5938751dc00b8f08c2dbdbf24e2b23910ce6e59a6ccb3ff1dce48009",
+  "recorded_at_utc": "2026-09-01T09:00:48.823971+00:00",
   "file_count": 6,
   "total_size_bytes": 18767930,
   "files": [
     {
       "relative_path": "archive_manifest.json",
       "size_bytes": 1485614,
-      "sha256": "92d866f05212260d44ecdad008c21b80e7dafb56e1e7b1b6b3c8f7cfe6d361fd"
+      "sha256": "fdbe48c28885877ea82a45c278eb2215509c85c521921256f46324ac88a39a89"
     },
     {
       "relative_path": "daily_manifest.json",
       "size_bytes": 170764,
-      "sha256": "ffa96b0525569210b5f8972e1e29728167ef7c0a6abd6ad5e94f6e6d10078579"
+      "sha256": "de970e60e462b4eb47557dc8fc9c2c1bc3c5e1795e516e62f1b3e302aa79ab41"
     },
     {
       "relative_path": "henex_archived_prices.csv",
       "size_bytes": 11895903,
-      "sha256": "9ac9fbe4b469d5f4176606555191ad023b5e8ab332871eade831c4bd83e1097d"
+      "sha256": "2dc854a03f246b1efb3682f05afa12fa086cfab6d523581d27678d7bc4aa1616"
     },
     {
       "relative_path": "henex_archived_prices.quality.json",
@@ -31,7 +31,7 @@
     {
       "relative_path": "henex_daily_prices.csv",
       "size_bytes": 5214494,
-      "sha256": "1ebea3980b5b6d2986c8e71ce419b8bdcd14d6d8805ccd0cf99d2d0b5fba65c1"
+      "sha256": "142d39508ea05b022db90e9310377921a099f2985c0560a63f8a20b8b190a293"
     },
     {
       "relative_path": "henex_daily_prices.quality.json",

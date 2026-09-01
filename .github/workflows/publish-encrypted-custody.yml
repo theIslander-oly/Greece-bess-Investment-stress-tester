@@ -1,0 +1,180 @@
+name: Publish encrypted custody copies
+
+# Encrypts accepted official artifacts to an operator-supplied age recipient and attaches
+# the ciphertext to a private release, so an accepted artifact survives the expiry of the
+# workflow artifact that holds it.
+#
+# The operator keeps the private key. An age recipient is a public key: it can encrypt and
+# it cannot decrypt, so automating this step does not give any automation in this repository
+# the ability to read an accepted artifact (decision entry 2026-09-01). The recipient is a
+# dispatch input rather than a secret for the same reason, and so that the run record shows
+# which key a copy was encrypted to.
+#
+# Every artifact is verified against its committed custody record before it is encrypted. A
+# difference stops the job: encrypting an artifact that does not match its record would
+# durably preserve the wrong bytes under a name that claims otherwise.
+#
+# No official price is printed. The release notes carry names and digests only.
+
+on:
+  workflow_dispatch:
+    inputs:
+      age_recipient:
+        description: age public key to encrypt to (age1...). Never the private key.
+        required: true
+        type: string
+      release_tag:
+        description: Tag for the release holding the encrypted copies
+        required: true
+        default: "custody-2026-09-01"
+        type: string
+      history_run_id:
+        description: Run ID holding the greek-dam-official-history artifact
+        required: true
+        default: "33483975614"
+        type: string
+      reconciliation_run_id:
+        description: Run ID holding the henex-entsoe-reconciliation artifact; empty skips it
+        required: false
+        default: "33073631530"
+        type: string
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      AGE_RECIPIENT: ${{ inputs.age_recipient }}
+      RELEASE_TAG: ${{ inputs.release_tag }}
+      HISTORY_RUN_ID: ${{ inputs.history_run_id }}
+      RECONCILIATION_RUN_ID: ${{ inputs.reconciliation_run_id }}
+
+    steps:
+      - name: Refuse anything that is not an age recipient
+        shell: bash
+        run: |
+          if [[ "$AGE_RECIPIENT" == AGE-SECRET-KEY-* ]]; then
+            echo "That is an age PRIVATE key. Dispatch the public recipient (age1...) instead."
+            echo "Treat the pasted value as compromised and generate a new key pair."
+            exit 1
+          fi
+          if [[ ! "$AGE_RECIPIENT" =~ ^age1[0-9a-z]{58}$ ]]; then
+            echo "The recipient does not look like an age public key (age1 followed by 58 characters)."
+            exit 1
+          fi
+          echo "Recipient accepted: ${AGE_RECIPIENT:0:12}…"
+
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install the project
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install .
+
+      - name: Install age
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y age
+
+      - name: Download the accepted official history artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: greek-dam-official-history
+          run-id: ${{ env.HISTORY_RUN_ID }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: artifacts/greek-dam-official-history
+
+      - name: Download the reconciliation artifact
+        if: ${{ env.RECONCILIATION_RUN_ID != '' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: henex-entsoe-reconciliation
+          run-id: ${{ env.RECONCILIATION_RUN_ID }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: artifacts/henex-entsoe-reconciliation
+
+      - name: Verify every artifact against its committed custody record
+        shell: bash
+        run: |
+          mkdir -p custody
+          .github/scripts/custody_step.sh \
+            greek-dam-official-history "$HISTORY_RUN_ID" \
+            "Fetch official Greek market history" "" auto
+          if [[ -n "$RECONCILIATION_RUN_ID" ]]; then
+            .github/scripts/custody_step.sh \
+              henex-entsoe-reconciliation "$RECONCILIATION_RUN_ID" \
+              "Reconcile HEnEx and ENTSO-E prices" "" auto
+          fi
+          if [[ -f custody/verification_failed ]]; then
+            echo "An artifact does not match its committed custody record; refusing to publish it."
+            echo "Encrypting it would durably preserve the wrong bytes under a name that claims"
+            echo "otherwise. Investigate the difference before republishing."
+            exit 1
+          fi
+
+      - name: Encrypt each verified artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p encrypted
+          for directory in artifacts/*/; do
+            name="$(basename "$directory")"
+            tar -czf "${name}.tar.gz" -C artifacts "$name"
+            age -r "$AGE_RECIPIENT" -o "encrypted/${name}.tar.gz.age" "${name}.tar.gz"
+            shred -u "${name}.tar.gz" 2>/dev/null || rm -f "${name}.tar.gz"
+          done
+          if compgen -G "*.tar.gz" > /dev/null; then
+            echo "Plaintext archives survived encryption; refusing to continue."
+            exit 1
+          fi
+          for asset in encrypted/*.age; do
+            [[ -s "$asset" ]] || { echo "$asset is empty"; exit 1; }
+          done
+          ls -l encrypted/
+
+      - name: Attach the ciphertext to a private release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --clobber encrypted/*.age
+          else
+            gh release create "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
+              --title "Encrypted custody copies of accepted official artifacts" \
+              --notes "Ciphertext only. Fingerprints are committed under docs/custody/. The private key is held by the operator and is not in this repository." \
+              encrypted/*.age
+          fi
+
+      - name: Record what was published
+        shell: bash
+        run: |
+          {
+            echo "## Encrypted custody copies published"
+            echo
+            echo "- Release tag: \`$RELEASE_TAG\`"
+            echo "- Recipient: \`${AGE_RECIPIENT:0:12}…\`"
+            echo "- History run: \`$HISTORY_RUN_ID\`"
+            echo "- Reconciliation run: \`${RECONCILIATION_RUN_ID:-skipped}\`"
+            echo
+            echo "| Asset | Bytes | SHA-256 of ciphertext |"
+            echo "| --- | ---: | --- |"
+            for asset in encrypted/*.age; do
+              printf '| %s | %s | %s |\n' \
+                "$(basename "$asset")" \
+                "$(stat -c%s "$asset")" \
+                "$(sha256sum "$asset" | cut -d' ' -f1)"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
