@@ -32,6 +32,16 @@ on:
         required: false
         default: "bee557eaf4f2fa449fe9284bf2d80225e51350c622321cf921f3cbab033b816a"
         type: string
+      record_mode:
+        description: >-
+          auto verifies against a committed record; record always generates one, for a
+          re-record against a replacement artifact. Neither writes to docs/custody/.
+        required: false
+        default: "auto"
+        type: choice
+        options:
+          - auto
+          - record
   push:
     paths:
       - .github/workflows/record-artifact-custody.yml
@@ -55,6 +65,7 @@ jobs:
       RECONCILIATION_DIGEST: >-
         ${{ inputs.reconciliation_digest
         || 'bee557eaf4f2fa449fe9284bf2d80225e51350c622321cf921f3cbab033b816a' }}
+      RECORD_MODE: ${{ inputs.record_mode || 'auto' }}
 
     steps:
       - name: Check out repository
@@ -95,7 +106,8 @@ jobs:
             greek-dam-official-history \
             "$HISTORY_RUN_ID" \
             "Fetch official Greek market history" \
-            "$HISTORY_DIGEST"
+            "$HISTORY_DIGEST" \
+            "$RECORD_MODE"
 
       - name: Record or verify the reconciliation custody
         if: ${{ env.RECONCILIATION_RUN_ID != '' }}
@@ -105,7 +117,8 @@ jobs:
             henex-entsoe-reconciliation \
             "$RECONCILIATION_RUN_ID" \
             "Reconcile HEnEx and ENTSO-E prices" \
-            "$RECONCILIATION_DIGEST"
+            "$RECONCILIATION_DIGEST" \
+            "$RECORD_MODE"
 
       - name: Upload the custody records
         if: always()
