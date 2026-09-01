@@ -221,11 +221,13 @@ live acceptance step is a workflow dispatch rather than a command in a checkout.
   `henex-entsoe-reconciliation.tar.gz.age` (1,672,921 B, `43c5b07b…0ae431`). The reconciliation
   copy is the only surviving form of that evidence once its source artifact expires
   3 September 2026.
-- **Custody is still not recorded as complete**, for two reasons that are not bookkeeping.
-  Nothing has decrypted the copies, so the private key is an assumption rather than a
-  demonstrated capability; the drill in `docs/official_artifact_custody.md` should be run before
-  3 September, while a key failure is still recoverable from the source artifacts. And the second
-  copy under separate control does not exist: one release is one failure domain.
+- **The key was exercised the same day**, while the source artifacts still existed and a failure
+  would have been recoverable. The operator decrypted the reconciliation copy and recovered an
+  archive of the expected size, so the private key opens the published copies. With the
+  pre-encryption verification and age's authenticated encryption, that composes into the full
+  claim: the stored copies are recoverable and are the accepted artifacts.
+- **One gap remains, and it is not bookkeeping:** the second copy under separate control does not
+  exist. One release is one failure domain. Until it does, custody is not recorded as complete.
 - The `Publish encrypted custody copies` workflow now performs the download, verification,
   encryption and release upload inside Actions, so the operator's remaining part is generating
   one age key pair and supplying the public recipient. An age recipient can encrypt and cannot

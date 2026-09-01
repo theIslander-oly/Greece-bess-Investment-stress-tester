@@ -255,10 +255,9 @@ evidence, never from a working checkout. Plan any live acceptance step as a work
     no automation here can decrypt an accepted artifact.
   - [x] Encrypted copies published. Run `33497084006` verified both artifacts, encrypted them to
     the operator's recipient and published release `custody-2026-09-01` on 1 September 2026.
-  - [ ] **Decryption drill, before 3 September 2026.** Nothing has opened the copies, so the
-    private key is an assumption rather than a demonstrated capability, and the failure mode is
-    silent. Running it while the source artifacts still exist is what makes a key failure
-    recoverable; after the reconciliation artifact expires it would not be.
+  - [x] **Decryption drill, run 1 September 2026.** The operator decrypted the reconciliation
+    copy and recovered an archive of the expected size, while the source artifacts still existed
+    and a failure would have been recoverable. The private key opens the published copies.
   - [ ] Second copy under separate control. One release is one failure domain, and this is
     outside the repository's knowledge either way.
 - [x] Add a per-calendar-year decomposition of the accepted replay (annual perfect-foresight

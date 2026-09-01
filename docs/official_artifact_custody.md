@@ -171,15 +171,34 @@ decrypted.
 expires 3 September 2026 at 12:50 UTC and cannot be regenerated while
 `ENTSOE_SECURITY_TOKEN` is unset.
 
-### The one thing this does not yet prove
+### The key was exercised on 1 September 2026
 
-Nothing has decrypted these assets. An encrypted copy whose key has never been exercised is an
-assumption, not a backup, and the failure mode is silent: a wrong, truncated or mis-saved private
-key looks exactly like a good one until the day it is needed.
+An encrypted copy whose key has never been used is an assumption rather than a backup, and the
+failure mode is silent: a wrong, truncated or mis-saved private key looks exactly like a good one
+until the day it is needed. So the key was exercised the same day the copies were published,
+while the source artifacts still existed and a failure would have been recoverable.
 
-**Run the drill below before 3 September 2026**, while the source artifacts still exist and a
-failure is therefore recoverable. After that date, a key that turns out not to work means the
-reconciliation evidence is gone.
+The operator decrypted `henex-entsoe-reconciliation.tar.gz.age` with the private key and
+recovered an archive of the expected size. **The private key opens the published copies.**
+
+Three facts compose into the full custody claim, and it is worth being explicit about which does
+what, because none of them is sufficient alone:
+
+1. Run `33497084006` verified the plaintext against the committed custody record **before**
+   encrypting it, so what was encrypted was the accepted artifact.
+2. age is authenticated encryption, so a successful decryption also establishes that the stored
+   ciphertext is intact and unmodified. A corrupted or tampered asset fails to decrypt rather
+   than yielding altered plaintext.
+3. The operator holds a key that performs that decryption.
+
+Together these mean the stored copies are recoverable and are the accepted artifacts. What has
+**not** been executed locally is `verify-custody` against the recovered plaintext; the chain above
+makes it redundant rather than merely untested, but it remains the stronger drill and is the
+procedure below.
+
+A practical note for Windows operators: redirect age's output with its own `-o` flag, never with
+a PowerShell `>`. Windows PowerShell re-encodes redirected output as text and corrupts the
+recovered archive, which presents as a key failure rather than as the tooling error it is.
 
 ## Verification drill
 

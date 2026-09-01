@@ -11,9 +11,14 @@ All notable project changes are documented here.
   surviving form of that evidence once its source artifact expires 3 September 2026. Ciphertext
   digests are recorded in `docs/official_artifact_custody.md`.
 - A decryption drill covering both artifacts, recorded as the step that proves the private key
-  opens the copies and that the recovered plaintext is the accepted artifact. Custody is not
-  recorded as complete until it has been run, because an encrypted copy whose key has never been
-  exercised is an assumption rather than a backup and fails silently.
+  opens the copies and that the recovered plaintext is the accepted artifact, because an
+  encrypted copy whose key has never been exercised is an assumption rather than a backup and
+  fails silently. **Run on 1 September 2026**, while the source artifacts still existed and a key
+  failure would have been recoverable; the private key opens the published copies. The document
+  now states which of the pre-encryption verification, age's authenticated encryption and the
+  successful decryption establishes which part of the custody claim.
+- A Windows note that age's output must be redirected with its own `-o` flag rather than a
+  PowerShell `>`, which re-encodes binary as text and presents a tooling error as a key failure.
 - Replacement retrieval of the accepted official history before the original artifact's expiry.
   Run `33483975614` re-ran `Fetch official Greek market history` with the inputs that produced
   the accepted baseline, yielding an artifact that expires 30 November 2026 under the 90-day
