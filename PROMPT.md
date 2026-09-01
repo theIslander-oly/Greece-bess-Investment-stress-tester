@@ -24,6 +24,10 @@ adverse scenarios?
 - Transparent physical constraints, forecast timing, degradation state and unlevered cash
   flows.
 - Reproducible stress scenarios with all assumptions exposed.
+- A read-only research interface and exportable reports that render verified run manifests,
+  and only verified run manifests: no computation, no defaults for judgmental inputs, every
+  figure carrying its label, basis and the standing exclusions (amended 1 September 2026 by
+  user approval; design in `docs/v0.8_design.md`).
 
 ## Required interpretation
 

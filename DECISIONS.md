@@ -3,6 +3,36 @@
 This file records decisions that materially affect interpretation or reproducibility. Add a
 dated entry when a milestone changes scope, assumptions, data handling or validation.
 
+## 2026-09-01 — Open v0.8 by user approval: render verified manifests, and only verified manifests
+
+- **Decision:** Open v0.8, the research interface and exportable reports, on the user's explicit
+  instruction of 1 September 2026, which is the approval the 2026-08-31 gate required. Amend the
+  approved scope in `PROMPT.md` accordingly, adopt `docs/v0.8_design.md` as the design of record,
+  and answer the three questions the gate posed: the landing state with no judgmental input
+  declared is the declaration checklist itself, never a result or a demo with implied defaults;
+  every rendered figure carries its manifest's `result_label`, its basis in reader-facing words
+  and the standing exclusions adjacent to the figure, read from the manifest and never
+  re-declared; and an export refuses to contain any figure not reachable from a verified
+  manifest, any interval-level official price series, distributional vocabulary where the kind
+  forbids it, any unlabeled figure, and any value computed across manifests or across bases.
+- **Reason:** The completed-v0.7 review found the domain APIs interface-ready once a versioned
+  run manifest and report contract existed, and that contract landed as v0.7.11. The manifest is
+  therefore the sole doorway into a report: everything the contract enforces — the closed kind
+  registry, the basis discriminator, executable label retention, the scoped distributional-term
+  refusal — is inherited by the presentation layer rather than restated by it, which is what
+  keeps a rendering surface from becoming a second place where interpretation rules must be
+  maintained. The core renderer is a deterministic CLI producing self-contained static files
+  with no new runtime dependency, because exportable evidence is what the 2026-08-27
+  repositioning as a replay and research benchmark actually needs; the `streamlit-dashboard`
+  label in the suggested branch sequence predates that repositioning.
+- **Consequence:** v0.8 proceeds as three milestones — v0.8.0 report rendering foundation,
+  v0.8.1 multi-run composition, v0.8.2 a separate dated decision on any interactive viewer —
+  each one reviewable PR through the unchanged four gates. The package version stays at 0.7.11
+  until v0.8.0 merges. A report computes nothing: composition across manifests is layout only,
+  and figures of different bases are never merged into one row, total or derived value. Exports
+  remain generated research outputs and stay outside Git. AI-generated explanations remain
+  outside v0.8 entirely. Changing the design of record requires a further dated decision entry.
+
 ## 2026-09-01 — Automate custody encryption and upload to an operator-held recipient
 
 - **Decision:** Add a `Publish encrypted custody copies` workflow that encrypts accepted official

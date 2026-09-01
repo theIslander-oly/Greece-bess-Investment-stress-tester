@@ -4,6 +4,33 @@ All notable project changes are documented here.
 
 ## [Unreleased]
 
+### Added
+
+- **v0.8 opened by explicit user approval on 1 September 2026**, lifting the gate the
+  completed-v0.7 review set. `PROMPT.md` gains the amended scope bullet: a read-only research
+  interface and exportable reports that render verified run manifests, and only verified run
+  manifests. `docs/v0.8_design.md` is the design of record and a dated decision entry records
+  the opening. No implementation lands with the plan; the package version stays at 0.7.11 until
+  v0.8.0 merges.
+- The design answers the three questions the gate required. The landing state with no
+  judgmental input declared is the declaration checklist itself — each default-free input, the
+  dated decision behind it, and the command that records a result once declared — never a
+  result or a demo with implied defaults. Every rendered figure carries its manifest's
+  `result_label`, its basis in reader-facing words and the standing exclusions adjacent to the
+  figure, read from the manifest and never re-declared. An export refuses any figure not
+  reachable from a verified manifest, interval-level official price series, distributional
+  vocabulary where the kind forbids it, unlabeled figures, and any value computed across
+  manifests or across bases.
+- The core renderer is a deterministic `render-report` CLI producing self-contained static
+  HTML plus a machine-readable index of every rendered manifest's kind, basis, label and
+  digest, with no new runtime dependency, no server and no computation. Milestones: v0.8.0
+  report rendering foundation, v0.8.1 multi-run composition, v0.8.2 a separate dated decision
+  on any interactive viewer. The suggested branch sequence's `streamlit-dashboard` label is
+  superseded by `research-reports`; AI-generated explanations remain outside v0.8.
+- The complete v0.7 scope was re-verified on 1 September 2026 on the unchanged v0.7.11
+  implementation before opening v0.8: Ruff clean, mypy clean over 42 source files, all 301
+  tests passing and a clean wheel build.
+
 ### Removed
 
 - **ADMIE load and RES forecasts are out of scope** (decision entry 2026-09-01). The 2026-08-26

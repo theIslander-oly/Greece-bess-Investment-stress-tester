@@ -1110,9 +1110,11 @@ The approved v0.7 deterministic scenario scope is complete: source-era selection
 level sensitivity, spread compression, declared availability/outage paths, non-probabilistic
 scenario ranges and declared negative-price events have landed. The formal completed-v0.7 review
 found no correctness or data-integrity defect and reconciled one roadmap wording contradiction
-about availability provenance. The v0.8 research interface and exportable reports remain gated
-until their design receives explicit user approval; no v0.8 surface is implemented or prepared
-here.
+about availability provenance. The v0.8 research interface and exportable reports were opened on
+1 September 2026 by explicit user approval: the approved scope was amended, the design is
+recorded in `docs/v0.8_design.md`, and the next engineering milestone is v0.8.0, a deterministic
+`render-report` CLI that renders verified run manifests — and only verified run manifests — into
+self-contained static reports. No v0.8 surface is implemented yet.
 Percentile outputs (P5/P50/P95) and loss probabilities were removed from the roadmap because
 the seasonal bootstrap resamples a non-stationary 2020-2026 history uniformly and therefore
 supports no calibrated probability interpretation; see the 2026-08-27 decision entries.
