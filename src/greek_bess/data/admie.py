@@ -1,4 +1,11 @@
-"""ADMIE/IPTO Operation & Market Files API client and provenance capture."""
+"""ADMIE/IPTO Operation & Market Files API client and provenance capture.
+
+**Retained but unused.** ADMIE load and RES forecasts are out of scope (decision entry
+2026-09-01), so nothing this client retrieves may enter a forecast, feature set, dispatch plan
+or reported result. The module is kept, tested and runnable so that a future operator
+declaration of the day-ahead gate closure could be tested without rebuilding it. It is the
+executable form of a refusal rather than dead code, and should not be pruned on sight.
+"""
 
 from __future__ import annotations
 

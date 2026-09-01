@@ -1,7 +1,13 @@
 """Pre-auction publication-timing acceptance for quarantined ADMIE forecast files.
 
-The 2026-08-26 decision keeps ADMIE load and RES forecasts retrieved and timestamped but
-unparsed until their publication sequence is proven to precede the target-day bid decision.
+**Retained but unused.** ADMIE load and RES forecasts were removed from scope on 2026-09-01 and
+the 2026-08-26 quarantine was closed as never accepted: no ADMIE field ever entered forecasting,
+and a passing audit would no longer admit one. This module is kept, tested and runnable so that a
+future operator declaration could be tested without rebuilding it. The description below is of
+what the audit does, not of a capability the project currently uses.
+
+The 2026-08-26 decision kept ADMIE load and RES forecasts retrieved and timestamped but
+unparsed until their publication sequence was proven to precede the target-day bid decision.
 Retrieval manifests carry that quarantine as the ``requires_pre_auction_timing_validation``
 label. This module turns the label into an executable audit: it reads retrieval manifests the
 ADMIE client already writes, compares each file's publication time against a **declared**

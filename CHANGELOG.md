@@ -4,6 +4,26 @@ All notable project changes are documented here.
 
 ## [Unreleased]
 
+### Removed
+
+- **ADMIE load and RES forecasts are out of scope** (decision entry 2026-09-01). The 2026-08-26
+  quarantine is closed as **never accepted** rather than discharged: no ADMIE field ever entered
+  forecasting and none may. This removes a candidate input and changes no accepted figure, because
+  no ADMIE data was ever parsed; every recorded ceiling, backtest, capture ratio and scenario is
+  unaffected, and forecasting continues on causal price-history features only.
+- The quarantine had two exits and had been open since 26 August. One required an operator
+  declaration of the gate closure that the repository is built to refuse to supply, then a
+  contemporaneous audited window, then format acceptance, then a further decision. `PROMPT.md`
+  mentions ADMIE nowhere, so this narrows the project back to its approved brief rather than
+  amending it.
+- Nothing carrying evidence is deleted. `list-admie-filetypes`, `fetch-admie-files`,
+  `audit-admie-publication-timing`, the gate-closure format, their tests and the
+  `Audit ADMIE publication timing` workflow are **retained and documented as unused** — the
+  executable form of the refusal, kept so a future declaration could be tested without rebuilding
+  them, and marked as such in their own module docstrings so a reader meets the status with the
+  code. The 2026-08-31 filetype acceptance keeps its evidentiary value as a record of what was
+  established, which was names and non-empty discovery only.
+
 ### Added
 
 - Encrypted custody copies published as release `custody-2026-09-01` (run `33497084006`), after
@@ -48,12 +68,6 @@ All notable project changes are documented here.
   exclusion that the procedure does not automate the upload, and reduces the operator's part to
   generating one key pair. An artifact that does not verify is never encrypted.
 
-### Known blocker
-
-- `ENTSOE_SECURITY_TOKEN` is no longer configured as a repository secret, so
-  `Reconcile HEnEx and ENTSO-E prices` cannot run (run `33489364087` was refused at its guard
-  step). The `henex-entsoe-reconciliation` artifact from run `33073631530` therefore has no
-  replacement before it expires 3 September 2026.
 - Live ADMIE filetype acceptance against the 74-entry catalog and delivery days 26-28 August
   2026. The ISP1 day-ahead load/RES pair returned six files per type and the ISP2 pair returned
   three per type; the catalog-valid DAM pair returned none. Leakage-relevant declarations,
@@ -160,6 +174,13 @@ All notable project changes are documented here.
   window count, derated intervals and hours, minimum fraction and each window with its applied
   interval count — so a margin traces back to the outage assumption rather than to an anonymous
   array of fractions.
+
+### Known blocker
+
+- `ENTSOE_SECURITY_TOKEN` is no longer configured as a repository secret, so
+  `Reconcile HEnEx and ENTSO-E prices` cannot run (run `33489364087` was refused at its guard
+  step). The `henex-entsoe-reconciliation` artifact from run `33073631530` therefore has no
+  replacement before it expires 3 September 2026.
 
 ### Changed
 

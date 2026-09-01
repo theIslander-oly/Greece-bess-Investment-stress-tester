@@ -26,6 +26,38 @@ dated entry when a milestone changes scope, assumptions, data handling or valida
   complete on the repository record: nothing here reads live release state, and the second copy
   is outside this repository's knowledge.
 
+## 2026-09-01 — Remove ADMIE load and RES forecasts from scope
+
+- **Decision:** ADMIE load and RES forecasts are **out of scope**. The 2026-08-26 quarantine is
+  closed as **never accepted**: no ADMIE field entered forecasting, none ever will under the
+  current brief, and the quarantine label is retired rather than discharged. The retrieval client,
+  the publication-timing audit, the gate-closure format, their tests and their workflow are all
+  **kept and documented as unused**, pending a future declaration that would reopen the question.
+  Nothing carrying evidence is deleted.
+- **Reason:** The quarantine had two recorded exits and had been open since 26 August. One exit
+  required an operator declaration of the day-ahead gate closure, with rulebook section and
+  effective dates, that the repository is deliberately built to refuse to supply; then a
+  contemporaneous audited window, since witnessed evidence accumulates one delivery day at a time;
+  then file-format acceptance; then a further recorded decision. The other exit was this entry.
+  Between 28 and 31 August the repository added roughly 3,100 lines of source, 3,000 of tests and
+  2,600 of documentation around the quarantine and retired none of it, because every one of those
+  additions sat behind the same missing declaration. That is the pattern `PLAN.md` already names:
+  work that cannot retire the item it surrounds is not progress toward acceptance.
+  `PROMPT.md` mentions ADMIE nowhere — the approved data scope is HEnEx and ENTSO-E prices — so
+  ADMIE forecasts were an extension the project took on itself, and removing them narrows the
+  project back to its brief rather than amending it. The price-history ML benchmark already stands
+  without them.
+- **Consequence:** No exogenous ADMIE variable may enter any forecast, feature set, dispatch plan
+  or reported result. This removes a *candidate input* and changes no accepted figure: no ADMIE
+  data was ever parsed, so every recorded ceiling, backtest, capture ratio and scenario is
+  unaffected. Forecasting continues to use causal price-history features only.
+  The retained code is not dead weight to be pruned on sight — it is the executable form of a
+  refusal, and `list-admie-filetypes`, `fetch-admie-files` and `audit-admie-publication-timing`
+  remain runnable so a future declaration can be tested without rebuilding them. Reversing this
+  entry requires the same operator declaration the quarantine always needed, plus a new dated
+  decision. The 2026-08-31 filetype acceptance and the timing-audit policy keep their evidentiary
+  value as records of what was established, which was names and non-empty discovery only.
+
 ## 2026-09-01 — Re-record the history custody record against the replacement artifact
 
 - **Decision:** Replace `docs/custody/greek-dam-official-history.json` so that it fingerprints run
