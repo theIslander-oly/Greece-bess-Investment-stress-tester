@@ -51,6 +51,7 @@ import html
 import json
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any
 
@@ -67,7 +68,7 @@ from .contract import (
     read_run_manifest,
 )
 
-REPORT_RENDER_VERSION = 2
+REPORT_RENDER_VERSION = 3
 
 REPORT_TITLE = "Greek DAM battery stress tester — recorded run report"
 
@@ -528,11 +529,146 @@ def _render_manifest(
         f"<p class=\"kind-description\">{html.escape(kind.description)}</p>"
         f"{headline_block}"
         f"{_render_label_block(source)}"
+        f"{_render_charts(source)}"
         f"{_render_composition(source, figures)}"
         f"{detail_block}"
         f"{_render_declared_inputs(manifest)}"
         f"{_render_provenance(source)}"
         "</article>"
+    )
+
+
+def _render_charts(source: _Source) -> str:
+    """Render deterministic views of values already recorded by one manifest.
+
+    Chart coordinates are presentation geometry, not reported quantities: every visible value
+    is the manifest's exact text, and the SVG neither adds a statistic nor combines manifests.
+    The closed dispatch below also prevents a manifest from selecting a file or another data
+    source merely by naming it.
+    """
+
+    if source.manifest.result_kind != "scenario_ensemble_range":
+        return ""
+    key = "path_ranges"
+    if key not in source.manifest.summary:
+        return _chart_absent(key)
+    recorded = source.manifest.summary[key]
+    if not isinstance(recorded, Sequence) or isinstance(recorded, (str, bytes)):
+        return _chart_absent(key)
+    if not recorded:
+        return _chart_absent(key, empty=True)
+    if any(not isinstance(row, Mapping) for row in recorded):
+        return _chart_absent(key)
+
+    metrics = (
+        ("minimum_net_market_margin_eur", "Minimum", "minimum"),
+        ("maximum_net_market_margin_eur", "Maximum", "maximum"),
+        ("spread_net_market_margin_eur", "Spread", "spread"),
+    )
+    values: list[Decimal] = []
+    for row in recorded:
+        for key_name, _, _ in metrics:
+            if key_name not in row:
+                continue
+            numeric = _chart_number(row[key_name])
+            if numeric is not None:
+                values.append(numeric)
+    if not values:
+        return _chart_absent(key)
+
+    width = Decimal(720)
+    left = Decimal(150)
+    plot_width = Decimal(540)
+    row_height = Decimal(82)
+    top = Decimal(40)
+    height = top + row_height * len(recorded) + Decimal(36)
+    low = min(Decimal(0), *values)
+    high = max(Decimal(0), *values)
+    span = high - low
+    if span == 0:
+        span = Decimal(1)
+
+    def x(value: Decimal) -> Decimal:
+        return left + (value - low) * plot_width / span
+
+    zero_x = x(Decimal(0))
+    identifier = source.digest[:12]
+    title_id = f"path-range-chart-title-{identifier}"
+    description_id = f"path-range-chart-description-{identifier}"
+    elements = [
+        '<svg class="manifest-chart" role="img" '
+        f'aria-labelledby="{title_id} {description_id}" '
+        f'viewBox="0 0 {_svg_number(width)} {_svg_number(height)}">',
+        f'<title id="{title_id}">Recorded range values by bootstrap path</title>',
+        f'<desc id="{description_id}">Minimum, maximum and spread values exactly '
+        'as recorded in this manifest. Text, opacity, outline, dash and shape distinguish '
+        'the series.</desc>',
+        f'<line class="chart-zero" x1="{_svg_number(zero_x)}" y1="24" '
+        f'x2="{_svg_number(zero_x)}" y2="{_svg_number(height - 24)}"/>',
+    ]
+    for position, row in enumerate(recorded):
+        path_text = _format_value(row.get("path_id")) if "path_id" in row else "not recorded"
+        base_y = top + row_height * position
+        elements.append(
+            f'<text class="chart-path" x="8" y="{_svg_number(base_y + 18)}">'
+            f'Path {html.escape(path_text)}</text>'
+        )
+        for metric_position, (key_name, caption, css_class) in enumerate(metrics):
+            if key_name not in row:
+                continue
+            numeric = _chart_number(row[key_name])
+            if numeric is None:
+                continue
+            value_x = x(numeric)
+            bar_x = min(zero_x, value_x)
+            bar_width = abs(value_x - zero_x)
+            y = base_y + Decimal(4 + metric_position * 22)
+            value_text = _format_value(row[key_name])
+            shape = ' rx="7"' if css_class == "maximum" else ""
+            elements.extend(
+                (
+                    f'<rect class="chart-bar chart-{css_class}"{shape} '
+                    f'x="{_svg_number(bar_x)}" '
+                    f'y="{_svg_number(y)}" width="{_svg_number(bar_width)}" height="14"/>',
+                    f'<text class="chart-value" x="{_svg_number(left)}" '
+                    f'y="{_svg_number(y + 12)}">{html.escape(caption)}: '
+                    f'{html.escape(value_text)}</text>',
+                )
+            )
+    elements.append("</svg>")
+    return (
+        '<section class="chart-section"><h4>Recorded path ranges — chart</h4>'
+        '<p class="chart-note">This chart plots only values recorded in this manifest; '
+        'position and bar length are rendering geometry, not newly reported quantities.</p>'
+        + "".join(elements)
+        + "</section>"
+    )
+
+
+def _chart_number(value: Any) -> Decimal | None:
+    """Return a finite recorded JSON number for SVG placement, excluding booleans."""
+
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    try:
+        numeric = Decimal(str(value))
+    except InvalidOperation:
+        return None
+    return numeric if numeric.is_finite() else None
+
+
+def _svg_number(value: Decimal) -> str:
+    """Canonical fixed-point SVG number formatting for byte determinism."""
+
+    return format(value.quantize(Decimal("0.001")), "f").rstrip("0").rstrip(".") or "0"
+
+
+def _chart_absent(key: str, *, empty: bool = False) -> str:
+    state = "an empty" if empty else "no usable"
+    return (
+        '<section class="chart-section"><h4>Recorded path ranges — chart</h4>'
+        f'<p class="chart-unavailable">This manifest records {state} '
+        f'<code>{html.escape(key)}</code> value, so no chart is shown.</p></section>'
     )
 
 
@@ -1165,6 +1301,16 @@ code, pre, .figure-value { font-family: ui-monospace, monospace; }
 .index-table td.digest { font-size: 0.75rem; }
 .index-table td.index-label { font-style: italic; }
 .bases-absent { font-size: 0.9rem; opacity: 0.85; }
+.manifest-chart { border: 1px solid currentColor; display: block; height: auto; margin: 0.5rem 0;
+  max-width: 100%; width: 100%; }
+.chart-zero { stroke: currentColor; stroke-width: 1; }
+.chart-bar { fill: currentColor; stroke: currentColor; stroke-width: 1; }
+.chart-minimum { fill-opacity: 0.3; }
+.chart-spread { fill: none; stroke-dasharray: 4 2; stroke-width: 2; }
+.chart-path, .chart-value { fill: currentColor; font-family: ui-monospace, monospace;
+  font-size: 11px; }
+.chart-value { paint-order: stroke; stroke: Canvas; stroke-width: 3px; }
+.chart-note, .chart-unavailable { font-size: 0.9rem; opacity: 0.85; }
 footer { border-top: 1px solid currentColor; font-size: 0.85rem; margin-top: 3rem;
   padding-top: 0.75rem; }
 """

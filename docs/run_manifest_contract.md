@@ -156,3 +156,18 @@ still reads and still renders.
 It does not open v0.8. No interface, dashboard, exporter or rendering surface is added, and no
 dependency is introduced. The contract is the prerequisite the v0.7 review named; whether a
 research interface is built on it remains a separate decision requiring explicit approval.
+
+## Renderer contract amendment, 2 September 2026 (renderer version 3)
+
+The manifest envelope and `REPORT_CONTRACT_VERSION` remain unchanged at 1. Renderer version 3
+adds deterministic inline SVG for the per-path values a `scenario_ensemble_range` manifest has
+already recorded under `path_ranges`. The chart is a second rendering of those values, not a new
+manifest field and not a new result: it reports no derived quantity and its visible value labels
+retain the recorded text without rounding or conversion.
+
+The chart dispatcher is closed by result kind and summary key. It receives only the verified
+manifest already being rendered; it cannot accept another source, open a manifest-declared path,
+read environment or network state, or combine manifests or bases. Missing, empty and structurally
+unusable chart fields are stated as unavailable. The chart remains inside the same labelled
+figure block as the existing tables and therefore carries that manifest's `result_label`, basis
+wording and standing exclusions. The HTML remains self-contained and script-free.
