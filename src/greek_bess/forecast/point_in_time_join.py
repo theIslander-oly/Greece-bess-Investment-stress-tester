@@ -147,31 +147,43 @@ def join_point_in_time_features(
                 ),
                 axis=1,
             )
-            usable = early[early["_effective_grade"].isin(admitted)].copy()
-            if usable.empty:
-                reasons.append({"variable": variable, "area": area, "cause": "grade_not_admitted"})
-                continue
-            usable["_revision_sort"] = usable["source_revision"].fillna("")
-            usable = usable.sort_values(
+            early["_revision_sort"] = early["source_revision"].fillna("")
+            selected_intervals = early.sort_values(
                 ["delivery_start_utc", "published_at_utc", "_revision_sort", "source_document_id"],
                 kind="stable",
             ).drop_duplicates("delivery_start_utc", keep="last")
-            later_count = int((overlaps_day["published_at_utc"] >= cutoff).sum())
             missing = False
+            inadmissible = False
             for price_index in price_indices:
                 start = price_frame.at[price_index, "delivery_start_utc"]
-                covering = usable[
-                    (usable["delivery_start_utc"] <= start) & (usable["delivery_end_utc"] > start)
+                covering = selected_intervals[
+                    (selected_intervals["delivery_start_utc"] <= start)
+                    & (selected_intervals["delivery_end_utc"] > start)
                 ]
                 if len(covering) != 1:
                     missing = True
                     break
                 selected = covering.iloc[0]
+                if selected["_effective_grade"] not in admitted:
+                    inadmissible = True
+                    break
                 relation = _resolution_relation(selected, price_frame.loc[price_index])
+                later_count = int(
+                    (
+                        (overlaps_day["delivery_start_utc"] == selected["delivery_start_utc"])
+                        & (overlaps_day["published_at_utc"] >= cutoff)
+                    ).sum()
+                )
                 pending.append((price_index, pair, selected, relation, later_count))
-            if missing:
+            if missing or inadmissible:
                 pending = [item for item in pending if item[1] != pair]
-                reasons.append({"variable": variable, "area": area, "cause": "incomplete_day"})
+                reasons.append(
+                    {
+                        "variable": variable,
+                        "area": area,
+                        "cause": "grade_not_admitted" if inadmissible else "incomplete_day",
+                    }
+                )
 
         if reasons:
             status = "excluded"
@@ -224,9 +236,16 @@ def join_point_in_time_features(
         "lead_minutes_min": None if leads.empty else float(leads.min()),
         "lead_minutes_median": None if leads.empty else float(leads.median()),
         "superseded_after_cutoff_count": int(
-            audit.drop_duplicates(["market_day", "variable", "area"])[
-                "superseded_after_cutoff"
-            ].sum()
+            audit.drop_duplicates(
+                [
+                    "market_day",
+                    "variable",
+                    "area",
+                    "source_document_id",
+                    "source_revision",
+                    "raw_sha256",
+                ]
+            )["superseded_after_cutoff"].sum()
         )
         if not audit.empty
         else 0,

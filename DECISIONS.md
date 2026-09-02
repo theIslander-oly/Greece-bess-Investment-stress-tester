@@ -1,5 +1,18 @@
 # Decision log
 
+## 2026-09-02 — Apply grade admission after revision selection
+
+- **Decision:** The v0.9.2 review makes the strict pre-cutoff as-of selection first and judges
+  the selected revision's effective evidence grade second. An older admissible revision may not
+  replace a newer inadmissible revision. The per-value supersession count is scoped to the
+  selected native feature interval, while the summary counts each broadcast native value once.
+- **Reason:** Filtering revisions by grade before selection can cherry-pick stale information and
+  violates the stated latest-revision contract. A day-wide count repeated on every audit row also
+  misstates the provenance of an individual value.
+- **Consequence:** A latest pre-cutoff revision with a non-admitted grade excludes the whole day
+  by `grade_not_admitted`; no accepted analytical result changes because v0.9.2 has only synthetic
+  validation and the operator declarations remain absent.
+
 ## 2026-09-02 — Make point-in-time feature joins revision-aware and whole-day atomic
 
 - **Decision:** Select one value per delivery interval from the latest revision published strictly before the declared effective cutoff; count and exclude later revisions; map only by half-open UTC containment; and exclude a whole delivery day when any declared variable-area pair is incomplete. Every emitted value has an audit row naming its source document, revision and raw-byte digest.

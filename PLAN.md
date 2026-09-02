@@ -365,7 +365,9 @@ plan it as one whenever the host is refused.
     interval, selected as the latest revision published strictly before the cutoff, with later
     revisions counted and excluded, every value traceable to a source document, revision and byte
     digest, and a day either complete or excluded by named cause. Nothing is forward-filled,
-    interpolated or imputed.
+    interpolated or imputed. Its completed review corrected the implementation to select the
+    latest revision before judging its evidence grade and to scope each audit row's supersession
+    count to its native interval (`docs/history/implementation_report_v0.9.2_review.md`).
   - [ ] v0.9.3 — The forecast ablation: the two existing models on price-history features
     (control) against the same two models, the same fixed hyperparameters, the same refit
     cadence and the same splits with the accepted features appended (challenger). One feature

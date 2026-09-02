@@ -108,8 +108,33 @@ class PointInTimeJoinTests(unittest.TestCase):
         self.assertTrue(
             (result.audit_table["published_at_utc"] < result.audit_table["cutoff_utc"]).all()
         )
-        self.assertTrue((result.audit_table["superseded_after_cutoff"] == 24).all())
+        self.assertTrue((result.audit_table["superseded_after_cutoff"] == 1).all())
         self.assertEqual(result.summary["superseded_after_cutoff_count"], 24)
+
+    def test_latest_revision_cannot_be_bypassed_by_admitting_an_older_grade(self) -> None:
+        features = _features()
+        later = features.iloc[[0]].copy()
+        later["value"] = 999.0
+        later["published_at_utc"] = pd.Timestamp("2026-08-25T08:00:00Z")
+        later["source_document_id"] = "later-assumed-revision"
+        later["source_revision"] = "2"
+        later["raw_sha256"] = "f" * 64
+        later["availability_evidence_grade"] = ASSUMED
+
+        result = join_point_in_time_features(
+            _prices(),
+            ensure_point_in_time(pd.concat([features, later], ignore_index=True)),
+            schedule=_schedule(),
+            decision_lead_minutes=30,
+            admitted_grades=(PROVIDER_DECLARED,),
+        )
+
+        self.assertEqual(result.summary["excluded_day_count"], 1)
+        self.assertTrue(result.feature_frame["temperature_2m"].isna().all())
+        self.assertEqual(
+            result.summary["delivery_days"][0]["reasons"][0]["cause"],
+            "grade_not_admitted",
+        )
 
     def test_missing_interval_excludes_whole_day_without_partial_values(self) -> None:
         result = join_point_in_time_features(
