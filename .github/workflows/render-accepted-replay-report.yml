@@ -12,8 +12,10 @@ name: Render a report from the accepted replay
 # contract, and renders the manifests.
 #
 # Nothing is computed here. Every figure in the report is a value one of those summaries already
-# recorded, and the renderer refuses any manifest it cannot verify. The report and its index are
-# generated research outputs: they are uploaded as a private artifact and never committed.
+# recorded, and the renderer refuses any manifest it cannot verify. The complete evidence bundle
+# remains a private artifact. A narrowly scoped public copy of only the aggregate HTML report and
+# its machine-readable index is deployed to GitHub Pages after every refusal gate has passed; no
+# interval-level official price, schedule, manifest or custody record enters the Pages artifact.
 
 on:
   workflow_dispatch:
@@ -31,12 +33,11 @@ on:
         default: ""
         type: string
 
-permissions:
-  contents: read
-  actions: read
-
 jobs:
   render:
+    permissions:
+      contents: read
+      actions: read
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
@@ -241,7 +242,9 @@ jobs:
               "",
               "Every figure in the report is a value one of these manifests recorded. Nothing was",
               "computed while rendering, and no figure of one basis was combined with a figure of",
-              "another. The report is a generated research output and is not committed.",
+              "another. The complete report bundle remains a private generated artifact; only",
+              "the aggregate report and index are eligible for the separately gated Pages",
+              "deployment.",
               "",
           ]
           print("\n".join(lines))
@@ -259,3 +262,57 @@ jobs:
             report/source_custody_verification.json
           if-no-files-found: error
           retention-days: 90
+
+  publish:
+    needs: render
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}accepted-replay/
+
+    steps:
+      - name: Download the custody-gated report bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: accepted-replay-report
+          path: report
+
+      - name: Stage only aggregate report outputs for public disclosure
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s report/accepted_replay_report.html
+          test -s report/accepted_replay_report.index.json
+
+          mkdir -p site/accepted-replay
+          cp report/accepted_replay_report.html site/accepted-replay/index.html
+          cp report/accepted_replay_report.index.json \
+            site/accepted-replay/accepted_replay_report.index.json
+
+          # Refuse accidental expansion of the narrowly approved public surface. Manifests and
+          # the source custody verification remain in the private Actions artifact.
+          expected=$'site/accepted-replay/accepted_replay_report.index.json\nsite/accepted-replay/index.html'
+          actual=$(find site -type f -print | sort)
+          if [[ "$actual" != "$expected" ]]; then
+            echo "Unexpected file in the GitHub Pages publication surface."
+            printf 'Expected:\n%s\nActual:\n%s\n' "$expected" "$actual"
+            exit 1
+          fi
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload the GitHub Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - name: Deploy the aggregate report to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
