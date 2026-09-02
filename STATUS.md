@@ -20,7 +20,13 @@ many of them into one indexed report that computes nothing across them; v0.8.2 h
 an interactive viewer and completed v0.8 with that single deterministic presentation surface;
 the completed-v0.8 review has passed after correcting four reporting-layer defects in
 v0.8.3, none of which changes an analytical result; and a workflow now renders an accepted
-decomposition run into one indexed report, awaiting its first dispatch
+decomposition run into one indexed report, awaiting its first dispatch; and an external review of
+v0.8.3 has been answered on the engineering items it raised — a relaxation-first dispatch solve
+that is exact by construction, property-based tests over the market calendar that found and fixed
+a canonical timestamp-resolution defect, closed-form dispatch checks, a subcommand registry
+replacing the CLI's 30-branch chain, a README quickstart, coverage measurement and a 3.12/3.13 CI
+matrix, with no analytical result changed
+(`docs/history/implementation_report_v0.8.3_review_response.md`)
 
 **Standing position, 2 September 2026:** the approved `PROMPT.md` scope is implemented, v0.7
 was re-verified on the unchanged v0.7.11 implementation (Ruff, mypy, 301 tests, clean wheel
@@ -45,7 +51,7 @@ live acceptance step is a workflow dispatch rather than a command in a checkout.
 
 - `greek_bess.reporting.render` and the `render-report` command render verified run manifests,
   and only verified run manifests, into one self-contained static HTML report plus a
-  machine-readable index (`docs/implementation_report_v0.8.0.md`).
+  machine-readable index (`docs/history/implementation_report_v0.8.0.md`).
 - `read_run_manifest` is the sole doorway, so the schema-version check, the closed kind
   registry, the basis cross-check, the guaranteed-key check and the scoped distributional-term
   refusal are inherited by the presentation layer rather than restated in it. The renderer
@@ -77,7 +83,7 @@ live acceptance step is a workflow dispatch rather than a command in a checkout.
 
 - A report now composes many verified manifests, and composition is layout only: nothing is
   computed across manifests, and figures of different bases are never merged into one row, total
-  or derived value (`docs/implementation_report_v0.8.1.md`).
+  or derived value (`docs/history/implementation_report_v0.8.1.md`).
 - **An index across every manifest, grouped by basis**, naming each manifest by ID, result kind,
   recorded label, producing command, recorded time and SHA-256 digest, linking to the block that
   holds its figures, and naming the bases the report does *not* cover — a reader cannot otherwise
@@ -113,7 +119,7 @@ live acceptance step is a workflow dispatch rather than a command in a checkout.
 ## v0.8.2 complete — interactive viewer declined
 
 - The dated v0.8.2 decision declines Streamlit or another local viewer and completes v0.8 with
-  the indexed, self-contained static renderer (`docs/implementation_report_v0.8.2.md`).
+  the indexed, self-contained static renderer (`docs/history/implementation_report_v0.8.2.md`).
 - The decision is based on surface area rather than schedule: a viewer cannot add evidence under
   the approved read-only design. Controls that compute, open a manifest-declared file or combine
   manifests would violate that design; controls that do not merely duplicate the report's index
@@ -142,7 +148,7 @@ live acceptance step is a workflow dispatch rather than a command in a checkout.
 
 - The formal review of the completed v0.8 scope covered the manifest contract, the renderer, the
   reporting CLI surfaces, the design of record and the project records
-  (`docs/implementation_report_v0.8.2_review.md`).
+  (`docs/history/implementation_report_v0.8.2_review.md`).
 - Confirmed: the renderer computes nothing, opens no file a manifest names, reads no environment
   or network variable, merges no figure across manifests or bases, re-declares no label, and
   refuses an unverifiable manifest rather than rendering the rest as the whole.

@@ -15,14 +15,22 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
+    strategy:
+      fail-fast: false
+      # `requires-python` is >=3.12, so both supported interpreters run the suite.
+      # A DST or resolution behaviour that changes between them is a defect here,
+      # not a detail of whichever version happened to be installed.
+      matrix:
+        python-version: ["3.12", "3.13"]
+
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.12
+      - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: ${{ matrix.python-version }}
           cache: pip
 
       - name: Install package and development tools
@@ -36,8 +44,10 @@ jobs:
       - name: Run mypy
         run: mypy
 
-      - name: Run pytest
-        run: pytest -v
+      - name: Run pytest under coverage
+        run: |
+          coverage run -m pytest -v
+          coverage report
 
       - name: Build wheel
         run: python -m build --wheel

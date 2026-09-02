@@ -4,8 +4,49 @@ All notable project changes are documented here.
 
 ## [Unreleased]
 
+### Changed
+
+- **The dispatch program is solved relaxation-first.** The binary operating mode is the only
+  integer variable and earns its place in one situation: a negative price with no headroom to
+  charge into. The continuous relaxation is solved first, and returned unchanged when it never
+  charges and discharges in the same interval, which makes it mixed-integer feasible and, because
+  the relaxation bounds the integer optimum from above, optimal. The integer program is solved
+  whenever the relaxation violates the exclusivity it dropped. The reported answer is the
+  mixed-integer optimum on either path; no result changes. A year of quarter-hourly prices solves
+  9.1x faster over the full horizon with no negative prices, and 1.6-1.7x faster under the daily
+  composed convention. `solve_strategy` in the battery configuration selects the strategy and
+  defaults to the shortcut; the summary records which path produced the figure.
+- **Canonical timestamps are normalized to one resolution.** `ensure_canonical` was normalizing
+  everything about a timestamp except its resolution, so a generated history carried microseconds
+  and the same history read back from CSV carried nanoseconds, and the two compared unequal
+  despite describing identical instants. All five timestamp columns are now nanoseconds. No
+  figure or interval changes.
+- **Each subcommand has its own module and a registry entry.** `cli.py` declared thirty
+  subcommands in one 460-line function and handled them in one 30-branch chain with nothing
+  connecting the two. A `Command` record now pairs each name with its help, its argument
+  configuration and its handler, so the parser and the dispatch table are built from one list.
+  All thirty subcommands' help output and argument sets are byte-identical; only the order the
+  top-level help lists them in changed, now grouped by workflow stage. `greek_bess.cli.AdmieClient`
+  is now `greek_bess.cli.admie.AdmieClient` for callers that patch it.
+- **The README opens with a quickstart** and the per-release implementation reports and release
+  notes moved to `docs/history/`, indexed there, with every link updated.
+
 ### Added
 
+- **Property-based tests over the market calendar.** Delivery days across 2015-2035 at both
+  resolutions are generated rather than enumerated, asserting that a market day is contiguous in
+  UTC, spans exactly one local midnight-to-midnight, has one of only three legal lengths and
+  agrees with the real elapsed duration; that canonicalization is idempotent and independent of
+  row order; and that a complete generated day passes the quality gate. The round-trip property
+  is what found the timestamp-resolution defect above.
+- **Closed-form dispatch tests** checking the optimizer against arithmetic rather than against
+  itself: asymmetric one-way efficiencies, fees and degradation cost, and self-discharge
+  compounding once per interval at both resolutions.
+- **Registry coherence tests** asserting every declared subcommand is reachable from the parser,
+  no two claim the same name, and every command module still contributes.
+- **Coverage measurement and a 3.12/3.13 CI matrix.** Coverage is reported without a threshold:
+  a percentage measures which lines ran, not whether what they computed was correct, and this
+  repository does not treat it as an acceptance gate.
 - **`Render a report from the accepted replay` workflow.** The v0.8 reporting layer was validated
   against synthetic manifests and real module summaries, but no report had ever been rendered from
   the accepted official history: `render-report` appeared nowhere outside the design documents,
@@ -313,7 +354,7 @@ All notable project changes are documented here.
 - Where a summary declares the standing claims itself, the contract cross-checks rather than
   ignores them: `is_probabilistic`, `is_forecast` or `is_investment_evidence` set to anything but
   false is refused as a scope change requiring a recorded decision.
-- `docs/run_manifest_contract.md`, `docs/implementation_report_v0.7.11.md`, and a dated decision.
+- `docs/run_manifest_contract.md`, `docs/history/implementation_report_v0.7.11.md`, and a dated decision.
 
 - `audit-admie-publication-timing` and `greek_bess.data.admie_timing`, turning the
   `requires_pre_auction_timing_validation` quarantine label into an executable acceptance step.
@@ -346,7 +387,7 @@ All notable project changes are documented here.
 - The summary states its own limits in its own output: `establishes_only_publication_timing`,
   `does_not_establish` and `quarantine_lifted`. Timing acceptance is not format acceptance and
   does not lift the forecast-feature quarantine on its own.
-- `docs/implementation_report_v0.7.10.md`, and a dated decision recording the audit contract.
+- `docs/history/implementation_report_v0.7.10.md`, and a dated decision recording the audit contract.
 
 - `apply-negative-price-events` and `greek_bess.stress.apply_negative_price_events`, completing
   the approved v0.7 modeling scope. Each event declares an identifier, inclusive UTC start,
@@ -358,7 +399,7 @@ All notable project changes are documented here.
 - One-to-one provenance covers every path interval, including untouched rows. The summary records
   the policy, method, full configuration, applied interval counts and negative/zero counts before
   and after. Existing signed prices outside named windows are unchanged and no price is clipped.
-- `docs/implementation_report_v0.7.9.md`, and a dated decision defining the event unit and the
+- `docs/history/implementation_report_v0.7.9.md`, and a dated decision defining the event unit and the
   refusal to sample occurrence.
 
 - `greek_bess.stress.build_availability_profile` and `dispatch-bootstrap-paths
@@ -443,7 +484,7 @@ All notable project changes are documented here.
   resolution and day span, input run identity and bootstrap seed for each scenario and path, and
   `scenario_ranges` repeats scenario name, transformation and run identity for the scenarios at
   both ends of each path's range.
-- `docs/implementation_report_v0.7.7.md`, and dated `DECISIONS.md` entries covering the
+- `docs/history/implementation_report_v0.7.7.md`, and dated `DECISIONS.md` entries covering the
   non-probabilistic framing and the equivalent-basis refusal rule.
 
 ### Fixed

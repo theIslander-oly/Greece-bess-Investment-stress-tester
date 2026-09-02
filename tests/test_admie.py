@@ -118,7 +118,7 @@ class EmptyDiscoveryTests(unittest.TestCase):
         errors = io.StringIO()
         with tempfile.TemporaryDirectory() as directory:
             with (
-                mock.patch("greek_bess.cli.AdmieClient", return_value=client),
+                mock.patch("greek_bess.cli.admie.AdmieClient", return_value=client),
                 redirect_stdout(io.StringIO()),
                 redirect_stderr(errors),
             ):
@@ -156,7 +156,7 @@ class EmptyDiscoveryTests(unittest.TestCase):
         errors = io.StringIO()
         with tempfile.TemporaryDirectory() as directory:
             with (
-                mock.patch("greek_bess.cli.AdmieClient", return_value=client),
+                mock.patch("greek_bess.cli.admie.AdmieClient", return_value=client),
                 redirect_stdout(io.StringIO()),
                 redirect_stderr(errors),
             ):

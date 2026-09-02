@@ -199,7 +199,7 @@ evidence, never from a working checkout. Plan any live acceptance step as a work
     official price series, distributional vocabulary where the kind forbids it, unlabeled
     figures, and any value computed across manifests or bases (decision entry 2026-09-01).
   - [x] v0.8.0 — Report rendering foundation (completed 2026-09-01;
-    `docs/implementation_report_v0.8.0.md`). `render-report` CLI and
+    `docs/history/implementation_report_v0.8.0.md`). `render-report` CLI and
     `greek_bess.reporting.render`: verified-manifest input through `read_run_manifest` only,
     the landing state, per-figure label blocks, basis grouping, the export refusals,
     deterministic self-contained HTML plus a machine-readable index naming every manifest's
@@ -211,7 +211,7 @@ evidence, never from a working checkout. Plan any live acceptance step as a work
     exclusions the design requires beside every figure themselves contain two of the terms
     (decision entries 2026-09-01).
   - [x] v0.8.1 — Multi-run composition (completed 2026-09-01;
-    `docs/implementation_report_v0.8.1.md`). An index across many manifests, grouped by basis,
+    `docs/history/implementation_report_v0.8.1.md`). An index across many manifests, grouped by basis,
     naming each manifest's ID, kind, label, producing command, recorded time and digest, linking
     to its block and naming the bases the report does not cover — and carrying no figure at all,
     which is the point of it. A scenario ensemble is laid out side by side: one column per named
@@ -223,13 +223,13 @@ evidence, never from a working checkout. Plan any live acceptance step as a work
     the ensemble's own summary and guaranteeing them in the contract, never by reading the CSV
     (decision entries 2026-09-01; amendment in `docs/v0.8_design.md`).
   - [x] v0.8.2 — Interactive viewer decision (completed 2026-09-01;
-    `docs/implementation_report_v0.8.2.md`). Declined: the indexed, self-contained static report
+    `docs/history/implementation_report_v0.8.2.md`). Declined: the indexed, self-contained static report
     satisfies the approved scope, while a local viewer would duplicate the validated rendering
     rules, add a dependency and server lifecycle, and create no new evidence. A future proposal
     must identify a need the static report cannot meet and receive its own approval and milestone.
     AI-generated explanations remain outside v0.8.
   - [x] v0.8.3 — Completed-v0.8 review corrections (completed 2026-09-02;
-    `docs/implementation_report_v0.8.2_review.md`). The review covered the manifest contract,
+    `docs/history/implementation_report_v0.8.2_review.md`). The review covered the manifest contract,
     the renderer, the reporting CLI surfaces, the design of record and the project records. It
     confirmed that the renderer computes nothing, opens no file a manifest names, reads no
     environment or network, merges no figure across bases and re-declares no label — and found

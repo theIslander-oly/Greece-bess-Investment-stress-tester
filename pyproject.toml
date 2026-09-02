@@ -24,6 +24,8 @@ greek-bess = "greek_bess.cli:main"
 [project.optional-dependencies]
 dev = [
   "build>=1.2,<2",
+  "coverage>=7.6,<8",
+  "hypothesis>=6.100,<7",
   "mypy>=1.15,<2",
   "pytest>=8.3,<9",
   "ruff>=0.12,<1",
@@ -56,6 +58,24 @@ extend-exclude = ["build", "dist"]
 
 [tool.ruff.lint]
 select = ["B", "E", "F", "I", "UP"]
+
+[tool.coverage.run]
+branch = true
+source = ["greek_bess"]
+
+[tool.coverage.report]
+# No threshold is enforced. A coverage percentage is a measurement of which lines
+# ran, not evidence that what they computed was correct, and this repository does
+# not treat it as an acceptance gate the way it treats provenance and quality
+# checks. It is reported so that an untested module is visible, and read by a
+# person.
+show_missing = true
+skip_covered = true
+exclude_also = [
+  "if TYPE_CHECKING:",
+  "raise NotImplementedError",
+  "if __name__ == .__main__.:",
+]
 
 [tool.mypy]
 python_version = "3.12"

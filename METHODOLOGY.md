@@ -67,6 +67,54 @@ Grid import for charging and grid export for discharge are settled at the interv
 Negative prices are preserved. Because all future prices are known, this result is labelled a
 gross-margin upper bound.
 
+### How the exclusivity constraint is solved
+
+The binary operating mode is the only integer variable in the program, and it is load-bearing
+for exactly one situation: a negative price with no headroom to charge into. There, being paid
+to import is reachable only by exporting at the same time to make room, and since the round
+trip returns less energy than it takes, the pair nets a profit that the optimizer will take
+unless something forbids it.
+
+Every other interval never wants to do both, so the program is solved relaxation-first by
+default (`"solve_strategy": "relaxation_first"`). The continuous relaxation drops the binary,
+which enlarges the feasible set and therefore returns an upper bound on the mixed-integer
+optimum. If that relaxed solution happens to charge or discharge but never both in one
+interval, a mode value satisfying every dropped constraint exists for every interval, so the
+relaxed solution is itself mixed-integer feasible — and a feasible point attaining an upper
+bound on the optimum is an optimum. It is returned unchanged. Only when the relaxation actually
+violates the exclusivity it dropped is the mixed-integer program solved.
+
+**The reported answer is the mixed-integer optimum on either path.** This is an exactness
+guarantee, not a tolerance: the shortcut is taken only in the case where it is provably the
+same answer. Setting `"solve_strategy": "mixed_integer"` skips the relaxation and always solves
+the integer program, which is useful for verifying that claim rather than for using the tool.
+
+The summary records which path was taken (`solve_path`), how many intervals of the relaxation
+were simultaneous (`relaxation_simultaneous_interval_count`), and, for daily composed solves,
+how many market days needed the integer program (`mixed_integer_solve_count`).
+
+On one year of quarter-hourly synthetic prices (35,136 intervals, 50 MWh / 25 MW), measured on
+the CI image:
+
+| Prices | Solve | `mixed_integer` | `relaxation_first` | Change |
+| --- | --- | --- | --- | --- |
+| No negative | Full horizon | 39.0 s | 4.3 s | 9.1× faster |
+| No negative | Daily composed | 21.2 s | 12.3 s | 1.7× faster |
+| 5% negative | Full horizon | 60.6 s | 63.7 s | 5% slower |
+| 5% negative | Daily composed | 21.7 s | 13.8 s | 1.6× faster |
+
+Margins agreed to within one floating-point unit in the last place in all four cases — a
+relative difference of 2e-16, nine orders of magnitude inside the solver's own
+`mip_relative_gap` of 1e-7, and arising from summation order over equally-valued optima rather
+than from any difference in the optimum found.
+
+The single adverse case is the one where the relaxation is rejected and its cost is wasted: one
+full-horizon solve over a whole year containing negative prices, where 34 simultaneous
+intervals out of 35,136 were enough to force the integer program. The daily composed
+convention, which is what the forecast backtests are measured against, does not have this
+problem: with 5% negative prices only 26 of 366 market days needed the integer program, and the
+other 340 took the relaxation.
+
 ## 4. Forecast evaluation
 
 Naive daily, weekly and rolling-seasonal baselines and the ML benchmarks are causal. For a
@@ -427,4 +475,4 @@ this build understands. Policy in `docs/run_manifest_contract.md`.
 Code changes must pass Ruff, mypy, pytest and a clean wheel build. Tests use deterministic
 synthetic inputs or small purpose-built fixtures. Official-data acceptance is recorded as
 aggregate evidence and hashes without committing the source files. Detailed milestone methods
-and test evidence are retained in `docs/implementation_report_v*.md`.
+and test evidence are retained in `docs/history/implementation_report_v*.md`.

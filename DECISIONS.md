@@ -3,6 +3,47 @@
 This file records decisions that materially affect interpretation or reproducibility. Add a
 dated entry when a milestone changes scope, assumptions, data handling or validation.
 
+## 2026-09-02 — Solve the dispatch relaxation first where that is provably the same answer
+
+- **Decision:** `optimize_perfect_foresight` solves the continuous relaxation of the dispatch
+  program before the mixed-integer program, and returns the relaxed solution unchanged when it
+  charges or discharges but never both in one interval. Otherwise it solves the mixed-integer
+  program as before. The battery configuration accepts `solve_strategy`, defaulting to
+  `"relaxation_first"`; `"mixed_integer"` forces the integer program.
+- **Reason:** The binary operating mode is the only integer variable and it is load-bearing in
+  one situation: a negative price with no headroom to charge into, where being paid to import is
+  reachable only by exporting at the same time to make room, and the round trip's own losses turn
+  the pair into a profit. Dropping the binary enlarges the feasible set, so the relaxed optimum
+  bounds the mixed-integer optimum from above; and because both bounds already cap charge and
+  discharge at their limits, a relaxed solution that never does both admits a mode value in every
+  interval and is therefore mixed-integer feasible. A feasible point attaining an upper bound on
+  the optimum is an optimum. This is why the shortcut is exact rather than close: it is taken
+  only where it is provably the same answer, and the mixed-integer program is solved wherever it
+  is not.
+- **Consequence:** No result changes. On a year of quarter-hourly prices the full-horizon solve
+  is 9.1x faster with no negative prices and the daily composed convention 1.6-1.7x faster, with
+  margins agreeing to one floating-point unit in the last place, nine orders of magnitude inside
+  the solver's own `mip_relative_gap`. A full-horizon solve over a year containing negative
+  prices pays a 5% penalty for a relaxation it then rejects; the daily convention the forecast
+  backtests use does not, needing the integer program on 26 of 366 days. The summary gains
+  `solve_path`, `relaxation_simultaneous_interval_count` and, for daily solves,
+  `mixed_integer_solve_count`, so which path produced a figure is recorded with it.
+
+## 2026-09-02 — Normalize canonical timestamp resolution
+
+- **Decision:** `ensure_canonical` converts all five timestamp columns to nanosecond resolution.
+- **Reason:** A property-based test of the canonical CSV round trip found that a history from
+  `generate_synthetic_prices` carried microseconds, because that is what `Timestamp.now` returns,
+  while the same history written and read back carried nanoseconds, because that is what
+  `to_datetime` parses into. The two described identical instants and compared unequal, so a
+  function documented to normalize was normalizing everything about a timestamp except its
+  resolution. Nanoseconds are the target because widening to them from any coarser unit is exact,
+  where narrowing would silently truncate.
+- **Consequence:** No recorded figure changes and no interval moves; only the dtype of the
+  timestamp columns is affected. A history and its round-tripped copy now compare equal, which is
+  what lets a reconciliation or a regression test compare two frames directly instead of
+  comparing them column by column with dtype checks disabled.
+
 ## 2026-09-02 — Check recorded content on read, and guaranteed keys only on record
 
 - **Decision:** `read_run_manifest` applies every check that is a property of a manifest's
@@ -427,7 +468,7 @@ dated entry when a milestone changes scope, assumptions, data handling or valida
   supports and audits it.
 - **Consequence:** No dispatch, forecast, stress, degradation, finance or data behavior changes.
   A metadata regression keeps the roadmap aligned with the tested ensemble contract. The formal
-  review is recorded in `docs/implementation_report_v0.7_review.md`; no v0.8 branch, dependency,
+  review is recorded in `docs/history/implementation_report_v0.7_review.md`; no v0.8 branch, dependency,
   stub or implementation is authorized by this decision.
 
 ## 2026-08-31 — Define negative-price events as declared interval replacements

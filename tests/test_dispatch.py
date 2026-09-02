@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import unittest
+from dataclasses import replace
 from datetime import date
 
 import numpy as np
@@ -243,3 +244,198 @@ class DailyComposedDispatchTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SolveStrategyTests(unittest.TestCase):
+    """The relaxation shortcut must be a speedup only, never a different answer."""
+
+    def test_relaxation_is_accepted_when_no_interval_wants_to_do_both(self) -> None:
+        result = optimize_perfect_foresight(
+            price_frame([10.0, 10.0, 100.0, 100.0]), config()
+        )
+
+        self.assertEqual(result.summary["solve_strategy"], "relaxation_first")
+        self.assertEqual(result.summary["solve_path"], "relaxation_accepted")
+        self.assertEqual(result.summary["relaxation_simultaneous_interval_count"], 0)
+        self.assertFalse(result.summary["mixed_integer_solve_required"])
+
+    def test_negative_prices_send_the_relaxation_back_to_the_mixed_integer_solve(
+        self,
+    ) -> None:
+        # A full battery at -100 EUR/MWh is the case the binary exists for. Being
+        # paid to charge is only reachable by discharging at the same time to make
+        # room, and because the round trip returns less than it takes, the pair
+        # nets a profit: 1.0 MWh bought at -100 against 0.81 MWh sold at -100.
+        # Without the binary the relaxation takes it; with it, the answer is idle.
+        prices = price_frame([-100.0])
+        strict = config(
+            initial_soc_fraction=1.0,
+            terminal_soc_fraction=1.0,
+            charge_efficiency=0.9,
+            discharge_efficiency=0.9,
+        )
+        result = optimize_perfect_foresight(prices, strict)
+
+        self.assertEqual(result.summary["solve_path"], "mixed_integer")
+        self.assertGreater(result.summary["relaxation_simultaneous_interval_count"], 0)
+        self.assertTrue(result.summary["mixed_integer_solve_required"])
+        simultaneous = (result.schedule["charge_mw"] > 1e-8) & (
+            result.schedule["discharge_mw"] > 1e-8
+        )
+        self.assertFalse(simultaneous.any())
+        self.assertAlmostEqual(result.summary["net_market_margin_eur"], 0.0)
+
+    def test_both_strategies_agree_across_a_month_of_signed_prices(self) -> None:
+        prices = generate_synthetic_prices(
+            date(2025, 6, 1),
+            date(2025, 7, 1),
+            resolution_minutes=60,
+            negative_price_share=0.05,
+        )
+        battery = BatteryDispatchConfig(
+            charge_power_mw=25.0, discharge_power_mw=25.0, energy_capacity_mwh=50.0
+        )
+
+        exact = optimize_perfect_foresight(
+            prices, replace(battery, solve_strategy="mixed_integer")
+        )
+        shortcut = optimize_perfect_foresight(
+            prices, replace(battery, solve_strategy="relaxation_first")
+        )
+
+        # A relative tolerance, not an absolute one: where the two solves land on
+        # different optima of equal value, the margins agree to floating-point
+        # summation order, far inside the solver's own mip_relative_gap.
+        self.assertAlmostEqual(
+            shortcut.summary["net_market_margin_eur"]
+            / exact.summary["net_market_margin_eur"],
+            1.0,
+            places=12,
+        )
+        for result in (exact, shortcut):
+            simultaneous = (result.schedule["charge_mw"] > 1e-8) & (
+                result.schedule["discharge_mw"] > 1e-8
+            )
+            self.assertFalse(simultaneous.any())
+
+    def test_daily_solve_reports_how_many_days_needed_the_mixed_integer_program(
+        self,
+    ) -> None:
+        prices = generate_synthetic_prices(
+            date(2025, 6, 1),
+            date(2025, 6, 8),
+            resolution_minutes=60,
+            negative_price_share=0.0,
+        )
+        battery = BatteryDispatchConfig(
+            charge_power_mw=25.0, discharge_power_mw=25.0, energy_capacity_mwh=50.0
+        )
+        result = optimize_daily_perfect_foresight(prices, battery)
+
+        self.assertEqual(result.summary["solve_strategy"], "relaxation_first")
+        self.assertEqual(result.summary["mixed_integer_solve_count"], 0)
+        self.assertEqual(
+            result.summary["solve_path_counts"], {"relaxation_accepted": 7}
+        )
+
+    def test_an_unknown_solve_strategy_is_rejected(self) -> None:
+        with self.assertRaises(DispatchInputError):
+            config(solve_strategy="whatever_is_fastest")
+
+
+class ClosedFormDispatchTests(unittest.TestCase):
+    """Check the optimizer against arithmetic rather than against itself.
+
+    Each case is small enough that the optimal schedule can be derived by hand
+    and the margin written down as a number. That is what distinguishes these
+    from the rest of the suite: a sign error or a misplaced efficiency that a
+    self-consistent test would accept has to disagree with the arithmetic here.
+    """
+
+    def test_asymmetric_one_way_efficiencies_against_hand_arithmetic(self) -> None:
+        # 1 MW / 2 MWh, empty to empty, charge 0.8 and discharge 0.5 one-way.
+        # Charging both cheap hours at the power cap buys 2.0 MWh at the grid and
+        # stores 2.0 * 0.8 = 1.6 MWh, which is inside the 2 MWh usable capacity.
+        # Discharging that stock delivers 1.6 * 0.5 = 0.8 MWh to the grid, well
+        # inside the 2 MWh the power cap allows over the two expensive hours.
+        # Margin is 100 * 0.8 - 10 * 2.0 = 60.0. Charging less is strictly worse:
+        # margin is 30 EUR per grid MWh charged, so the power cap binds.
+        result = optimize_perfect_foresight(
+            price_frame([10.0, 10.0, 100.0, 100.0]),
+            config(energy_capacity_mwh=2.0, charge_efficiency=0.8, discharge_efficiency=0.5),
+        )
+
+        self.assertAlmostEqual(result.summary["grid_charge_mwh"], 2.0, places=9)
+        self.assertAlmostEqual(result.summary["grid_discharge_mwh"], 0.8, places=9)
+        self.assertAlmostEqual(result.summary["net_market_margin_eur"], 60.0, places=9)
+
+    def test_fees_and_degradation_cost_against_hand_arithmetic(self) -> None:
+        # 1 MW / 1 MWh, empty to empty, charge 0.5 and discharge 1.0 one-way,
+        # 1 EUR/MWh to buy, 2 to sell, 3 of degradation per MWh discharged.
+        # Charging 1.0 MWh at the grid stores 0.5 MWh and delivers 0.5 MWh back.
+        # 50 * 0.5 - 0 * 1.0 - 1 * 1.0 - 2 * 0.5 - 3 * 0.5 = 21.5.
+        result = optimize_perfect_foresight(
+            price_frame([0.0, 50.0]),
+            config(
+                charge_efficiency=0.5,
+                discharge_efficiency=1.0,
+                buy_fee_eur_per_mwh=1.0,
+                sell_fee_eur_per_mwh=2.0,
+                degradation_cost_eur_per_mwh_discharged=3.0,
+            ),
+        )
+
+        self.assertAlmostEqual(result.summary["grid_charge_mwh"], 1.0, places=9)
+        self.assertAlmostEqual(result.summary["grid_discharge_mwh"], 0.5, places=9)
+        self.assertAlmostEqual(result.summary["buy_fees_eur"], 1.0, places=9)
+        self.assertAlmostEqual(result.summary["sell_fees_eur"], 1.0, places=9)
+        self.assertAlmostEqual(result.summary["degradation_cost_eur"], 1.5, places=9)
+        self.assertAlmostEqual(result.summary["net_market_margin_eur"], 21.5, places=9)
+
+    def test_self_discharge_compounds_once_per_interval(self) -> None:
+        # A full 1 MWh battery holding through two worthless hours before the only
+        # hour worth selling into. Charging is shut off at the grid limit, which is
+        # what isolates self-discharge: left open, buying at a zero price to top up
+        # against the decay is free, and the optimum tops up rather than holds.
+        # With it shut, retention applies once per interval and the stock is
+        # 0.9 ** 3 = 0.729 MWh when the terminal constraint forces it all out:
+        # 100 * 0.729 = 72.9. A retention term applied per hour of elapsed time
+        # rather than per interval, or off by one interval, lands somewhere else.
+        result = optimize_perfect_foresight(
+            price_frame([0.0, 0.0, 100.0]),
+            config(
+                initial_soc_fraction=1.0,
+                terminal_soc_fraction=0.0,
+                self_discharge_per_hour=0.1,
+                grid_import_limit_mw=0.0,
+            ),
+        )
+
+        self.assertAlmostEqual(result.summary["grid_discharge_mwh"], 0.729, places=9)
+        self.assertAlmostEqual(result.summary["net_market_margin_eur"], 72.9, places=9)
+
+    def test_quarter_hour_self_discharge_uses_the_interval_duration(self) -> None:
+        # The same stock over four quarter-hours instead of one hour. Retention is
+        # 0.9 ** 0.25 per interval, which compounds back to exactly 0.9 over the
+        # hour, so the duration exponent has to be doing the work. Discharge power
+        # is raised to 4 MW so that the whole stock still fits through one
+        # quarter-hour: at 1 MW only 0.25 MWh clears per interval, and the terminal
+        # constraint would force worthless dumping into the zero-priced intervals
+        # rather than leaving the decay alone to be measured.
+        result = optimize_perfect_foresight(
+            price_frame([0.0, 0.0, 0.0, 0.0, 100.0], resolution_minutes=15),
+            config(
+                discharge_power_mw=4.0,
+                initial_soc_fraction=1.0,
+                terminal_soc_fraction=0.0,
+                self_discharge_per_hour=0.1,
+                grid_import_limit_mw=0.0,
+            ),
+        )
+
+        # Four quarter-hours of decay, then the selling interval's own quarter.
+        expected = 0.9 * (0.9**0.25)
+        self.assertAlmostEqual(result.summary["grid_discharge_mwh"], expected, places=9)
+        self.assertAlmostEqual(
+            result.summary["net_market_margin_eur"], 100.0 * expected, places=9
+        )
