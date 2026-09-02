@@ -389,10 +389,14 @@ under identical hyperparameters, refit cadence, splits, battery and realized pri
 value must be provably available before a declared decision cutoff — declared by the operator with
 no default, strict, with a publication at the cutoff counting as late — with its availability
 evidence graded, every revision stored, the decision-time revision selected, and weaker evidence
-quarantined. So far only the design and the two declaration formats
-(`config/decision_cutoff.example.json`, `config/fundamentals_geography.example.json`, both refused
-as declarations while their placeholder references remain) have landed: no source code, no
-dependency, no workflow, no data source and no chosen source. A negative result would be recorded
+quarantined. The source-selection spike ran the same day
+(`docs/fundamentals_source_assessment_2026-09-02.md`) and the source is NOAA GFS 0.25° forecast
+vintages, taken from the 00 UTC cycle of the day before delivery; the usable record starts at
+delivery day 27 February 2021, so 118 of the accepted history's 2,131 delivery days carry no
+feature and are excluded rather than filled. So far only the design, that assessment and the two
+declaration formats (`config/decision_cutoff.example.json`,
+`config/fundamentals_geography.example.json`, both refused as declarations while their placeholder
+references remain) have landed: no source code, no dependency, no workflow and no retrieved data. A negative result would be recorded
 under the same labels, and a thin accepted coverage makes the run exploratory rather than general.
 ADMIE load and RES forecasts stay out of scope by any route, including through another publisher.
 Percentile outputs (P5/P50/P95) and loss probabilities were removed from the roadmap because

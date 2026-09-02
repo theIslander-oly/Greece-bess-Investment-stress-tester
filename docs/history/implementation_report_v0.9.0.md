@@ -111,12 +111,11 @@ today's behaviour through the new path.
 
 ## What is not established
 
-- **No data source is chosen.** Every external fact in the design's source assessment is labelled
-  as an inference. The v0.9.0 spike must convert each into a verified fact or a recorded unknown —
-  archive coverage across the accepted history, byte-range retrieval, a decoder that installs and
-  runs on both CI Python versions, and the licence text — and a further dated decision must then
-  name the source. The recommended primary source and its fallback are recommendations until then.
-  Live endpoints are reachable only from Actions runners, so the spike is a workflow dispatch.
+- **~~No data source is chosen.~~ Resolved later the same day.** The spike ran and the source is
+  NOAA GFS 0.25° forecast vintages; see the addendum below and
+  `docs/fundamentals_source_assessment_2026-09-02.md`. The assumption recorded here that live
+  endpoints are reachable only from Actions runners was wrong for this archive, and the plan is
+  corrected.
 - **No declaration exists.** The decision cutoff, the decision lead and the sampling geography are
   operator declarations with no defaults. Both committed examples carry placeholder references and
   are refused as declarations while those placeholders remain.
@@ -138,3 +137,72 @@ is unchanged.
 
 Ruff, mypy, the full test suite and a wheel build were run against the change. The suite gains six
 tests and no existing test was modified.
+
+---
+
+# Addendum — the source-selection spike, 2 September 2026
+
+The spike that the phase above left open ran the same day. Its evidence is
+`docs/fundamentals_source_assessment_2026-09-02.md` and its decision is the DECISIONS.md entry
+*Choose NOAA GFS forecast vintages as the v0.9 fundamentals source*. This addendum records what
+changed in the phase, not the evidence itself.
+
+## What the spike was, and where it ran
+
+Three checks the design made the source choice conditional on, plus the licence: archive coverage
+across 2021-2026, byte-range subsetting through the `.idx` sidecars, and a pip-installable ecCodes
+binding leaving the repository's four gates green on 3.12 and 3.13. All four passed, so G0 is not
+triggered and the EEX EU ETS fallback is not selected.
+
+It ran from a working checkout, not from an Actions runner. The plan's operating constraint —
+live endpoints are reachable only from runners — is true of `www.admie.gr` and false of this
+archive, so the constraint is now recorded per host rather than universally. The same egress
+policy did refuse `www.eex.com`, `eur-lex.europa.eu`, `data.ecmwf.int`,
+`archive-api.open-meteo.com` and `registry.opendata.aws`, and the candidates behind those hosts
+are recorded as unknowns rather than quietly verified.
+
+The probe scripts were throwaway and are not merged, as the design said they would be. Section 9
+of the assessment records each probe as a command anyone can re-run, which is the reproducibility
+the repository actually needs; a merged spike module would be product code this phase does not
+have.
+
+## What it changed in the design
+
+Four things move from recommendation to settled fact, and Section 3 of the design carries an
+amendment note pointing at the assessment: the source is chosen; the decision-time cycle is fixed
+at 00 UTC of D-1, which the design had left open; the usable hourly record begins at delivery day
+27 February 2021 rather than at the archive start, so 118 of the accepted history's 2,131 delivery
+days carry no feature; and two ingestion facts — both key layouts before April 2021, and a
+per-forecast-step availability check because upload order is not monotone in step — become
+requirements rather than details.
+
+Nothing in the contract moves. The cutoff, the decision lead and the sampling geography remain
+undeclared, and the 12:00 `Europe/Brussels` instant the assessment uses to size publication
+margins is illustrative arithmetic against which nothing is accepted. The evidence grades are
+unchanged, and the spike supplied the concrete case that justifies quarantining `assumed`: a run
+on 14 June 2021 published 1 h 39 m after that illustrative cutoff, which a nominal-latency
+assumption of about four hours would have admitted and been wrong about.
+
+## What it did not change
+
+No source code, no dependency, no workflow, no data source and no analytical behaviour. The
+decoder was installed into a throwaway virtual environment to run the four gates against it;
+`pyproject.toml` is unchanged and `eccodes` is first declared in v0.9.1. Nothing retrieved during
+the spike is committed — no GRIB2 message, no listing, no index — consistent with the repository
+contract that provider content stays out of Git. No figure became evidence: an assessment is not
+an acceptance document, and the design's Section 7 acceptance still precedes any benchmark
+document.
+
+## What v0.9.1 inherits
+
+It may start. It declares `eccodes` alone — not `cfgrib` or `xarray`, which the low-level
+single-message read does not need — and its first CI run closes the one residual the spike could
+not: the four gates passed on CPython 3.12.3 and 3.13.12 in the development environment, not on
+the `actions/setup-python` images. A failure there returns the source choice to the G0 branch,
+and the fallback would then need the spike it has not had.
+
+## Validation
+
+Ruff, mypy, the full suite and a wheel build were run on 3.12 and 3.13 with the decoder installed
+alongside the project, and again on the committed tree, which is documentation-only. 403 tests
+pass on both interpreters and no test was added or modified by this addendum.

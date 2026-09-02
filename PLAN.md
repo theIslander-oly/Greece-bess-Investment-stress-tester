@@ -103,15 +103,22 @@ The plan below is therefore organised by what each item waits on, not by milesto
   points with declared weights and a stated basis for the choice; there is no default geography.
   `config/fundamentals_geography.example.json` shows the format under the same refusal.
 
-### Waiting on the v0.9 source-selection spike
+### Resolved on 2 September 2026: the v0.9 source-selection spike
 
-- **`docs/fundamentals_source_assessment_<date>.md` does not exist.** The v0.9 design records a
-  recommended primary source and a fallback, and every external fact behind that recommendation is
-  labelled as an inference. The spike must verify archive coverage across the accepted history,
-  byte-range retrieval, a decoder that installs and runs on the 3.12 and 3.13 CI images, and the
-  licence text, and a dated decision must then name the chosen source. Until that document exists,
-  v0.9.1 does not start and the recommendation is not a decision. Live endpoints are reachable
-  only from Actions runners, so the spike is a workflow dispatch, not a local run.
+- **The spike is run and the source is chosen.**
+  `docs/fundamentals_source_assessment_2026-09-02.md` resolves every inference behind the
+  recommendation and the dated decision names **NOAA GFS 0.25° forecast vintages**, 00 UTC cycle
+  of D-1, delivery days from 27 February 2021 onward. All three checks passed — archive coverage,
+  `.idx` byte-range retrieval at a 157x reduction, and an ecCodes binding installing with no
+  system package and leaving the four gates green on 3.12 and 3.13 — so G0 is not triggered and
+  the EEX fallback is not selected and stays unassessed. The archive turned out to be reachable
+  from a working checkout, so the spike was a local run rather than a workflow dispatch; the
+  plan's assumption to the contrary is corrected below.
+- **One residual stays open and closes itself.** The decoder was proven on CPython 3.12.3 and
+  3.13.12 in the development environment, not on the `actions/setup-python` images. The first CI
+  run of v0.9.1, which is where `eccodes` is first declared in `pyproject.toml`, closes it. A
+  failure there returns the source choice to the G0 branch, and the fallback would then need the
+  spike it has not had.
 
 ### Resolved on 1 September 2026: the v0.8 scope decision
 
@@ -122,10 +129,14 @@ The plan below is therefore organised by what each item waits on, not by milesto
 
 ### Operating constraint on live retrieval
 
-Live market endpoints are reachable only from GitHub Actions runners. The development
-environment's egress policy refuses `www.admie.gr`, so catalog queries, file retrieval and
-timing audits are performed by dispatching the relevant workflow and reading its uploaded
-evidence, never from a working checkout. Plan any live acceptance step as a workflow run.
+The development environment's egress policy refuses `www.admie.gr`, so ADMIE catalog queries,
+file retrieval and timing audits are performed by dispatching the relevant workflow and reading
+its uploaded evidence, never from a working checkout. That constraint is per host and not
+universal: the v0.9 spike of 2 September 2026 reached `noaa-gfs-bdp-pds.s3.amazonaws.com`,
+`pypi.org` and `raw.githubusercontent.com` from a checkout, while the same policy refused
+`www.eex.com`, `eur-lex.europa.eu`, `data.ecmwf.int`, `archive-api.open-meteo.com` and
+`registry.opendata.aws`. Check the host before assuming a live step must be a workflow run, and
+plan it as one whenever the host is refused.
 
 ## Completed milestones
 
@@ -292,13 +303,17 @@ evidence, never from a working checkout. Plan any live acceptance step as a work
     forecasts originate from ADMIE, so obtaining them through another publisher would be the same
     reversal by another route. They are isolated as Track B, need their own dated decision, the
     restored token and forward-witnessed acceptance, and no part of v0.9 depends on them.
-  - Recommended primary source, pending the v0.9.0 spike: archived NOAA GFS forecast vintages
-    (public domain, no secret, objects identified by issue cycle). Fallback if the spike fails
-    archive coverage, byte-range retrieval or a working GRIB2 decoder on the CI matrix: EEX EU ETS
-    primary-auction results. The choice is made at v0.9.0 and not carried as pending.
-  - [~] v0.9.0 — Design and source selection (design, examples and records landed 2026-09-02;
-    `docs/history/implementation_report_v0.9.0.md`). Documentation and configuration only: no
-    source code, no dependency, no workflow, no data source and no analytical change.
+  - **Source chosen 2 September 2026: NOAA GFS 0.25° forecast vintages**, 00 UTC cycle of D-1,
+    surface downward shortwave radiation, 10 m wind components and 2 m temperature, delivery days
+    from 27 February 2021 onward — before that date the product is 3-hourly, so 118 of the
+    accepted history's 2,131 delivery days carry no feature and are excluded by named cause. The
+    spike passed all three checks, so the EEX EU ETS fallback is not selected and stays
+    unassessed; it may not be adopted later without its own spike
+    (`docs/fundamentals_source_assessment_2026-09-02.md`).
+  - [x] v0.9.0 — Design and source selection (design, examples and records landed 2026-09-02;
+    spike run and source chosen the same day; `docs/history/implementation_report_v0.9.0.md`).
+    Documentation and configuration only: no source code, no dependency, no workflow, no data
+    source and no analytical change.
     - [x] `docs/v0.9_design.md` as the design of record, with the source assessment, the
       cutoff contract, the feature schema, the join algorithm and its invariants, the
       acceptance milestone, the benchmark and evaluation design, the adversarial test plan, the
@@ -307,14 +322,17 @@ evidence, never from a working checkout. Plan any live acceptance step as a work
       both carrying placeholder references, with a test that keeps them parseable by the reader
       that will read the real declaration and refused as declarations while the placeholder text
       remains.
-    - [ ] **Waiting on the source-selection spike.**
-      `docs/fundamentals_source_assessment_<date>.md` must convert every inference in section 3
-      of the design into a verified fact or a recorded unknown — archive coverage across
-      2021-2026, byte-range retrieval through the `.idx` sidecars, a pip-installable ecCodes
-      binding passing all four gates on 3.12 and 3.13, and the licence text — and a dated
-      decision must then name the chosen source. Until that document exists, no phase below may
-      start and the recommended source above is a recommendation, not a decision.
-  - [ ] v0.9.1 — One-source ingestion and availability audit: `data/decision_cutoff.py` (the
+    - [x] `docs/fundamentals_source_assessment_2026-09-02.md`, the source-selection spike:
+      archive coverage across 2021-2026, `.idx` byte-range retrieval, a pip-installable ecCodes
+      binding leaving all four gates green on 3.12 and 3.13, and the licence text captured
+      verbatim, with every remaining inference recorded as an unknown and a named closing step.
+      The dated decision of the same day names the source, and Section 3 of the design carries an
+      amendment note pointing at it.
+  - [ ] v0.9.1 — One-source ingestion and availability audit against the chosen source. It
+    declares `eccodes` alone as the new dependency — not `cfgrib` or `xarray`, which the
+    low-level single-message read does not need — and its first CI run closes the spike's one
+    residual by proving the decoder on the `actions/setup-python` images. Modules:
+    `data/decision_cutoff.py` (the
     gate-closure schedule moved to a neutral module and re-exported, because a live feature must
     not import from a module documented as retained and unused), `data/point_in_time.py`,
     the source client, `data/availability_audit.py`, `fetch-fundamentals` and

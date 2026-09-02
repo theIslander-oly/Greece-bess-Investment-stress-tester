@@ -28,12 +28,15 @@ replacing the CLI's 30-branch chain, a README quickstart, coverage measurement a
 matrix, with no analytical result changed
 (`docs/history/implementation_report_v0.8.3_review_response.md`); and v0.9 has been opened as a
 point-in-time fundamentals forecast benchmark, with its design recorded, its two declaration
-formats committed as refused examples, no source chosen and no code written
-(`docs/v0.9_design.md`)
+formats committed as refused examples and its source-selection spike run and recorded — NOAA GFS
+0.25° forecast vintages chosen from the 00 UTC cycle of D-1 for delivery days from 27 February
+2021, with 118 accepted delivery days carrying no feature and the EEX fallback not selected — and
+still no code written (`docs/v0.9_design.md`,
+`docs/fundamentals_source_assessment_2026-09-02.md`)
 
 ## v0.9 opened — point-in-time fundamentals forecast benchmark
 
-**Design recorded, nothing built, no source chosen.** v0.9 was opened on 2 September 2026 and
+**Design recorded, source chosen, nothing built.** v0.9 was opened on 2 September 2026 and
 `docs/v0.9_design.md` is its design of record (decision entry 2026-09-02). It addresses the one
 open analytic question the forecasting layer carries: every accepted forecast figure comes from
 price history alone, because validated weather, demand, fuel, renewable and interconnector
@@ -70,14 +73,62 @@ What the design commits to, and what it refuses:
   change after seeing test results, and an exploratory label whenever accepted coverage is thinner
   than one full meteorological season of quarter-hour common test days.
 
-**Two things are open and block the next phase.** The source-selection spike has not been run, so
-every external fact in the design's source assessment is labelled as an inference and the
-recommended primary source and its fallback are recommendations, not a decision; and the decision
-cutoff, decision lead and sampling geography are operator declarations the repository will not
-supply. The ADMIE removal of 2026-09-01 is not reopened: ENTSO-E's Greek load and renewable
+**The source is now chosen and one thing still blocks the next phase.** The source-selection
+spike ran the same day against the live public archive
+(`docs/fundamentals_source_assessment_2026-09-02.md`) and the dated decision names **NOAA GFS
+0.25° forecast vintages**, 00 UTC cycle of D-1, delivery days from 27 February 2021 onward. All
+three checks passed, so G0 is not triggered and the EEX fallback is not selected and stays
+unassessed. What remains open is the operator side: the decision cutoff, decision lead and
+sampling geography are declarations the repository will not supply, and no v0.9 surface runs
+without them. The ADMIE removal of 2026-09-01 is not reopened: ENTSO-E's Greek load and renewable
 forecasts originate from ADMIE, are isolated as a separate track requiring its own dated decision,
 and nothing in v0.9 depends on them
 (`docs/history/implementation_report_v0.9.0.md`).
+
+## v0.9 source chosen — NOAA GFS forecast vintages
+
+The v0.9.0 spike is run and recorded (`docs/fundamentals_source_assessment_2026-09-02.md`,
+decision entry 2026-09-02). It converts every external fact the design labelled an inference into
+a verified fact or a recorded unknown with a named closing step.
+
+**What passed.** The AWS Open Data archive serves anonymous byte-range reads through `.idx`
+sidecars at a 157x reduction — 3.27 MiB rather than 514 MiB per forecast step, 85 MiB per delivery
+day, 167 GiB across the usable history, against 25.6 TiB without subsetting. All four proposed
+variables are present in every step inspected. A pip-installable ecCodes binding installs with no
+system package or compiler and leaves Ruff, mypy, 403 tests and the wheel build green on 3.12 and
+3.13, with the existing numpy, pandas, scipy and scikit-learn resolution undisturbed. The provider
+licence text is captured verbatim; it requires attribution, forbids implying NOAA endorsement, and
+forbids presenting derived values as unaltered NOAA data, all three of which the manifest and
+provenance contract already satisfies. No credential is involved.
+
+**What the spike corrected.** The usable hourly record begins at delivery day 27 February 2021,
+not at the archive start: before 26 February 2021 the 0.25° product is 3-hourly, so **118 of the
+accepted history's 2,131 delivery days carry no feature** and are excluded by named cause rather
+than filled by a coarser broadcast. The decision-time cycle is fixed at 00 UTC of D-1, because the
+06 UTC cycle's step-48 object was observed appearing after a midday cutoff, while the 00 UTC cycle
+cleared the same illustrative cutoff on all 365 days of 2025 with a normal lag of 3 h 41 m to
+4 h 10 m. Two ingestion facts became requirements: both archive key layouts must be tried for days
+before April 2021, and availability must be checked per forecast step, because upload order is not
+monotone in step.
+
+**What is recorded rather than resolved.** Every object from 1 January to 25 February 2021 carries
+a `Last-Modified` from March or April 2024 — G7, and safe in one direction only: an instant
+written at upload time can be moved later by a re-upload but never earlier, so the
+`provider_declared` grade can under-claim availability and cannot over-claim it. One genuinely
+late run (14 June 2021, published 1 h 39 m after the illustrative cutoff) and one entirely missing
+cycle (2 February 2021) are excluded by named cause. The late run is the concrete case that
+justifies quarantining the `assumed` grade: a nominal-latency assumption would have admitted it
+and been wrong.
+
+**What is still open.** The decoder was proven on CPython 3.12.3 and 3.13.12 in the development
+environment, not on the `actions/setup-python` images; v0.9.1's first CI run, where `eccodes` is
+first declared, closes that residual, and a failure there returns the choice to the G0 branch. The
+EEX fallback, the ECMWF and Open-Meteo alternatives, the ENTSO-E Track B candidates and the
+Regulation (EU) 543/2013 deadlines are recorded unknowns: the egress policy refuses those hosts,
+none of them is selected, and no part of v0.9 depends on any of them. Successful retrieval is
+still not accepted use — the data-acceptance document of the design's Section 7 precedes any
+benchmark document. Documentation only: no source code, no dependency, no workflow, no committed
+provider content, and no accepted figure or analytical behaviour changed.
 
 ## One-command synthetic public demonstration
 
