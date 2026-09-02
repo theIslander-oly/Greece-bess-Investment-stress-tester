@@ -1,0 +1,19 @@
+{
+  "geography_id": "example-not-a-declaration",
+  "area": "GR",
+  "points": [
+    {
+      "point_id": "example-point-north",
+      "latitude": 40.6,
+      "longitude": 23.0,
+      "weight": 0.5
+    },
+    {
+      "point_id": "example-point-south",
+      "latitude": 38.0,
+      "longitude": 23.75,
+      "weight": 0.5
+    }
+  ],
+  "reference": "REPLACE BEFORE USE. This example shows the file format only. Name the points a gridded fundamentals variable is sampled at and the weight each carries in the declared aggregate, and cite what the choice represents: installed capacity by region, demand density, or another stated basis with its vintage. Coordinates and weights are judgmental inputs with no default; the tooling aggregates exactly as declared here and cannot check that the declaration represents the Greek bidding zone."
+}

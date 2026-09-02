@@ -20,6 +20,11 @@ adverse scenarios?
 - Day-Ahead Market energy arbitrage only until other revenue streams are independently
   researched and validated.
 - Official HEnEx and ENTSO-E price data when available to the user.
+- Exogenous point-in-time inputs for forecasting, admitted one source at a time and only when
+  every value used for a delivery day is provably available before a declared decision cutoff,
+  with its availability evidence graded and weak evidence quarantined (amended 2 September 2026 by
+  user approval; design in `docs/v0.9_design.md`). ADMIE load and RES forecasts remain out of
+  scope by the decision of 1 September 2026, by any route.
 - Synthetic data only for deterministic tests and public demonstrations.
 - Transparent physical constraints, forecast timing, degradation state and unlevered cash
   flows.

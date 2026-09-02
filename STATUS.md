@@ -26,7 +26,58 @@ that is exact by construction, property-based tests over the market calendar tha
 a canonical timestamp-resolution defect, closed-form dispatch checks, a subcommand registry
 replacing the CLI's 30-branch chain, a README quickstart, coverage measurement and a 3.12/3.13 CI
 matrix, with no analytical result changed
-(`docs/history/implementation_report_v0.8.3_review_response.md`)
+(`docs/history/implementation_report_v0.8.3_review_response.md`); and v0.9 has been opened as a
+point-in-time fundamentals forecast benchmark, with its design recorded, its two declaration
+formats committed as refused examples, no source chosen and no code written
+(`docs/v0.9_design.md`)
+
+## v0.9 opened — point-in-time fundamentals forecast benchmark
+
+**Design recorded, nothing built, no source chosen.** v0.9 was opened on 2 September 2026 and
+`docs/v0.9_design.md` is its design of record (decision entry 2026-09-02). It addresses the one
+open analytic question the forecasting layer carries: every accepted forecast figure comes from
+price history alone, because validated weather, demand, fuel, renewable and interconnector
+forecasts are not included. The milestone asks whether an independently validated exogenous input
+improves *realized settled dispatch value* — the accepted held-out evidence shows price error and
+settled value disagreeing, so value is the primary metric and price error explains the mechanism
+rather than deciding.
+
+What landed today is documentation and configuration only: the design, the two declaration formats
+(`config/decision_cutoff.example.json`, `config/fundamentals_geography.example.json`) with
+placeholder references, and the test that keeps both parseable by the reader that will read the
+real declaration and refused as declarations while the placeholders remain. No source code,
+dependency, workflow or data source was added, and no accepted figure or analytical behaviour
+changed.
+
+What the design commits to, and what it refuses:
+
+- **A declared decision cutoff and decision lead, with no defaults**, in the existing dated-regime
+  schedule format. A feature is available for a delivery day only if its publication instant is
+  strictly before the cutoff; a publication at the cutoff is late. This is the gate-closure
+  refusal of 2026-08-31 applied to a live feature path rather than a quarantined one.
+- **Graded availability evidence that never merges.** `witnessed` and `provider_declared` are
+  admissible and reported separately; `assumed` — availability inferred from a regulatory deadline
+  or a nominal latency rather than from the datum — is quarantined and usable only in a labelled
+  exploratory run that is never recorded as accepted.
+- **Leakage ruled out by construction.** Every revision stored, the decision-time revision being
+  the latest published strictly before the cutoff, later revisions counted and excluded, every
+  value traceable to a source document, revision and byte digest, days complete or excluded by
+  named cause, nothing forward-filled or imputed, and realized target-day quantities refused by
+  name as well as by timestamp.
+- **Data acceptance before any model.** A dated acceptance document must precede any benchmark
+  document, and no benchmark manifest may name a feature-set digest no acceptance document names.
+- **A negative result recorded under the same labels**, with no re-splitting, re-tuning or cutoff
+  change after seeing test results, and an exploratory label whenever accepted coverage is thinner
+  than one full meteorological season of quarter-hour common test days.
+
+**Two things are open and block the next phase.** The source-selection spike has not been run, so
+every external fact in the design's source assessment is labelled as an inference and the
+recommended primary source and its fallback are recommendations, not a decision; and the decision
+cutoff, decision lead and sampling geography are operator declarations the repository will not
+supply. The ADMIE removal of 2026-09-01 is not reopened: ENTSO-E's Greek load and renewable
+forecasts originate from ADMIE, are isolated as a separate track requiring its own dated decision,
+and nothing in v0.9 depends on them
+(`docs/history/implementation_report_v0.9.0.md`).
 
 ## One-command synthetic public demonstration
 

@@ -15,8 +15,10 @@ Suggested future branch sequence:
 5. `research-reports` (v0.8; supersedes the earlier `streamlit-dashboard` label — the
    2026-09-01 design puts a static manifest renderer first and makes any interactive viewer a
    separate decision)
-6. `ai-explanations` (only after outputs and guardrails are validated)
-7. `final-audit`
+6. `point-in-time-fundamentals` (v0.9; the design of record is `docs/v0.9_design.md`, and each
+   phase in it is one branch and one pull request)
+7. `ai-explanations` (only after outputs and guardrails are validated)
+8. `final-audit`
 
 ## Standing position (1 September 2026)
 
@@ -90,6 +92,26 @@ The plan below is therefore organised by what each item waits on, not by milesto
 - **`ENTSOE_SECURITY_TOKEN`.** The secret is no longer configured, so
   `Reconcile HEnEx and ENTSO-E prices` refuses at its guard step and the reconciliation cannot be
   re-run. The accepted evidence is safe in the custody copy; only regeneration is blocked.
+- **The v0.9 decision cutoff and decision lead.** The point-in-time benchmark opened on
+  2 September 2026 needs a declared day-ahead closure schedule with a real rulebook citation and a
+  declared decision lead in minutes, and supplies neither on the operator's behalf. This is the
+  same refusal the gate-closure schedule already records: the tooling reports whatever closure is
+  declared and cannot check the declaration against the market rules.
+  `config/decision_cutoff.example.json` shows the format and is refused as a declaration while its
+  placeholder reference remains. Nothing in v0.9 runs without it.
+- **The v0.9 sampling geography.** A gridded fundamentals variable must be sampled at declared
+  points with declared weights and a stated basis for the choice; there is no default geography.
+  `config/fundamentals_geography.example.json` shows the format under the same refusal.
+
+### Waiting on the v0.9 source-selection spike
+
+- **`docs/fundamentals_source_assessment_<date>.md` does not exist.** The v0.9 design records a
+  recommended primary source and a fallback, and every external fact behind that recommendation is
+  labelled as an inference. The spike must verify archive coverage across the accepted history,
+  byte-range retrieval, a decoder that installs and runs on the 3.12 and 3.13 CI images, and the
+  licence text, and a dated decision must then name the chosen source. Until that document exists,
+  v0.9.1 does not start and the recommendation is not a decision. Live endpoints are reachable
+  only from Actions runners, so the spike is a workflow dispatch, not a local run.
 
 ### Resolved on 1 September 2026: the v0.8 scope decision
 
@@ -237,6 +259,95 @@ evidence, never from a working checkout. Plan any live acceptance step as a work
     manifest now applies every check that is a property of its recorded content, while the
     guaranteed-key check stays a record-time promise and an absent guaranteed key is stated
     rather than assumed or refused (decision entry 2026-09-02).
+
+- [~] v0.9 — Point-in-time fundamentals forecast benchmark (**opened 2026-09-02**; design of
+  record in `docs/v0.9_design.md`). The one open analytic question in the forecasting layer is
+  the one `LIMITATIONS.md` already names: validated weather, demand, fuel, renewable and
+  interconnector forecasts are not included, so every accepted forecast figure comes from price
+  history alone. v0.9 asks whether an independently validated exogenous input improves *realized
+  settled dispatch value* — not price error — and is built so that the answer is defensible in
+  either direction. Every feature value used for a delivery day must be provably available before
+  a declared decision cutoff; nothing else may enter a fit.
+  - The milestone is two unequal halves, and the records keep them apart. The engineering half —
+    a typed point-in-time feature schema, a declared decision cutoff, a revision-aware as-of join
+    with a per-value audit table, an availability audit with graded evidence, and manifest kinds
+    that carry all of it — is buildable today from parts the repository already has; the
+    `Audit ADMIE publication timing` surface retained as unused is the working prototype of the
+    availability policy. The analytical half depends on one candidate source passing a
+    point-in-time availability audit over enough delivery days to say anything, and that is
+    established for no source today.
+  - **Two new judgmental inputs, both required and neither defaulted**, following the
+    gate-closure refusal of 2026-08-31: a `decision_cutoff` schedule in the existing dated-regime
+    format, and `decision_lead_minutes`, which may be `0`. A feature is available for delivery
+    day D only when its publication instant is *strictly* before the cutoff; a publication at the
+    cutoff is late. `config/decision_cutoff.example.json` ships the format with a placeholder
+    reference and is not a declaration.
+  - **Availability evidence is graded and the grades never merge.** `witnessed` (this project
+    retrieved the datum before the cutoff) and `provider_declared` (a provider instant attached
+    to that datum places it before the cutoff) are admissible and reported separately;
+    `assumed` — availability inferred from a regulatory deadline or a nominal latency rather than
+    from the datum — is quarantined and usable only in an explicitly labelled exploratory run
+    that is never recorded as accepted.
+  - **The ADMIE removal of 2026-09-01 is not reopened.** ENTSO-E's Greek load and renewable
+    forecasts originate from ADMIE, so obtaining them through another publisher would be the same
+    reversal by another route. They are isolated as Track B, need their own dated decision, the
+    restored token and forward-witnessed acceptance, and no part of v0.9 depends on them.
+  - Recommended primary source, pending the v0.9.0 spike: archived NOAA GFS forecast vintages
+    (public domain, no secret, objects identified by issue cycle). Fallback if the spike fails
+    archive coverage, byte-range retrieval or a working GRIB2 decoder on the CI matrix: EEX EU ETS
+    primary-auction results. The choice is made at v0.9.0 and not carried as pending.
+  - [~] v0.9.0 — Design and source selection (design, examples and records landed 2026-09-02;
+    `docs/history/implementation_report_v0.9.0.md`). Documentation and configuration only: no
+    source code, no dependency, no workflow, no data source and no analytical change.
+    - [x] `docs/v0.9_design.md` as the design of record, with the source assessment, the
+      cutoff contract, the feature schema, the join algorithm and its invariants, the
+      acceptance milestone, the benchmark and evaluation design, the adversarial test plan, the
+      phase sequence, the risk register and the go/no-go gates.
+    - [x] `config/decision_cutoff.example.json` and `config/fundamentals_geography.example.json`,
+      both carrying placeholder references, with a test that keeps them parseable by the reader
+      that will read the real declaration and refused as declarations while the placeholder text
+      remains.
+    - [ ] **Waiting on the source-selection spike.**
+      `docs/fundamentals_source_assessment_<date>.md` must convert every inference in section 3
+      of the design into a verified fact or a recorded unknown — archive coverage across
+      2021-2026, byte-range retrieval through the `.idx` sidecars, a pip-installable ecCodes
+      binding passing all four gates on 3.12 and 3.13, and the licence text — and a dated
+      decision must then name the chosen source. Until that document exists, no phase below may
+      start and the recommended source above is a recommendation, not a decision.
+  - [ ] v0.9.1 — One-source ingestion and availability audit: `data/decision_cutoff.py` (the
+    gate-closure schedule moved to a neutral module and re-exported, because a live feature must
+    not import from a module documented as retained and unused), `data/point_in_time.py`,
+    the source client, `data/availability_audit.py`, `fetch-fundamentals` and
+    `audit-feature-availability`, the fetch and witness workflows, and the
+    `point_in_time_availability_audit` manifest kind. The witness workflow starts here so that
+    witnessed days have accumulated by v0.9.5; witnessed days arrive one per day and cannot be
+    backfilled.
+  - [ ] v0.9.2 — The point-in-time join and its audit table: one feature value per delivery
+    interval, selected as the latest revision published strictly before the cutoff, with later
+    revisions counted and excluded, every value traceable to a source document, revision and byte
+    digest, and a day either complete or excluded by named cause. Nothing is forward-filled,
+    interpolated or imputed.
+  - [ ] v0.9.3 — The forecast ablation: the two existing models on price-history features
+    (control) against the same two models, the same fixed hyperparameters, the same refit
+    cadence and the same splits with the accepted features appended (challenger). One feature
+    set, no tuning, validation-only model selection.
+  - [ ] v0.9.4 — The settled dispatch comparison on common days under an identical battery,
+    identical realized prices and a common perfect-foresight ceiling, recording the incremental
+    realized margin of each challenger over its own control and the paired daily differences.
+  - [ ] v0.9.5 — Manifest and report integration and the official acceptance run: a data
+    acceptance document before any benchmark document, and no benchmark manifest declaring a
+    feature-set digest that no acceptance document names.
+  - **A negative result is a result.** If fundamentals do not improve settled value, that is
+    recorded under the same labels; the cutoff, the split and the feature set are never revised
+    after seeing test results. Any such revision is a new benchmark under a new decision entry.
+  - **Exploratory unless the coverage earns otherwise.** If the accepted feature coverage yields
+    fewer than one full meteorological season of quarter-hour common test days, the run is
+    labelled exploratory, the label carries a suffix saying so, and no general conclusion reaches
+    the README.
+  - Out of scope for v0.9 and unchanged: ADMIE-originated forecasts by any route, fuel prices
+    without a licensed feed, probability or confidence outputs, hyperparameter search, deep
+    learning, any change to an accepted price-history figure, and every exclusion `PROMPT.md`
+    already carries.
 
 ## Parallel acceptance track
 

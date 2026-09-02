@@ -1,5 +1,65 @@
 # Decision log
 
+## 2026-09-02 — Open v0.9 as a point-in-time fundamentals forecast benchmark
+
+- **Decision:** Open v0.9 and record `docs/v0.9_design.md` as its design of record. v0.9 asks
+  one question: does an independently validated exogenous input improve the *realized settled
+  dispatch value* of a day-ahead battery over price-history models alone? It answers it as an
+  ablation — the two existing model families on the existing causal features, against the same
+  two families with the same fixed hyperparameters, refit cadence and splits plus accepted
+  point-in-time features — settled against realized official prices on common delivery days under
+  an identical battery and a common perfect-foresight ceiling. `PROMPT.md` is amended the same day
+  to name exogenous point-in-time inputs as in scope for forecasting.
+- **Reason:** `LIMITATIONS.md` names exactly one open analytic question in the forecasting layer:
+  validated weather, demand, fuel, renewable and interconnector forecasts are not included, so
+  every accepted forecast figure comes from price history alone. The accepted held-out comparison
+  already shows the two model families and a naive rolling mean within half a percentage point of
+  capture of each other, which says the binding constraint is the *information* available to the
+  models and not the function class. A third price-history model would answer nothing; a
+  dashboard, a second demo or a finance layer would add no evidence and two of the three are
+  already declined or excluded by dated decision.
+- **What is landed today:** the design, `config/decision_cutoff.example.json`,
+  `config/fundamentals_geography.example.json`, the test keeping both parseable and both refused
+  as declarations, and the project-record entries. No source code, dependency, workflow or data
+  source, and no accepted figure or analytical behaviour changed.
+- **Controls:**
+  - **The cutoff is declared, never defaulted.** A declared closure schedule in the existing
+    dated-regime format and a declared decision lead in minutes are required arguments of every
+    v0.9 surface where availability matters. A feature is available for delivery day D only if its
+    publication instant is strictly before the cutoff; a publication at the cutoff is late. Both
+    committed examples carry placeholder references and are refused as declarations, as the
+    gate-closure example already is.
+  - **Availability evidence is graded and the grades never merge.** `witnessed` (retrieved by this
+    project before the cutoff) and `provider_declared` (a provider instant attached to that datum)
+    are admissible and reported separately. `assumed` — inferred from a regulatory deadline or a
+    nominal latency rather than from the datum — is quarantined and usable only in an explicitly
+    labelled exploratory run that is never recorded as accepted.
+  - **Leakage is ruled out by construction, not by assertion.** Every revision is stored, the
+    decision-time revision is the latest published strictly before the cutoff, later revisions are
+    counted and excluded, every feature value is traceable to a source document, revision and byte
+    digest, and a day is complete or excluded by named cause with nothing forward-filled,
+    interpolated or imputed. Realized target-day quantities are refused by name as well as by
+    timestamp, so a label cannot be smuggled in through a timestamp error.
+  - **Data acceptance precedes any model.** Successful retrieval is not accepted use. A dated
+    acceptance document must exist before any benchmark document, and no benchmark manifest may
+    declare a feature-set digest that no acceptance document names.
+  - **The result is recorded whichever way it falls.** If fundamentals do not improve settled
+    value, the negative result is recorded under the same labels. The cutoff, split, geography and
+    feature set are never revised after seeing test results; any such revision is a new benchmark
+    under a new decision entry. If accepted coverage yields fewer than one full meteorological
+    season of quarter-hour common test days, the run is labelled exploratory and no general
+    conclusion reaches the README.
+- **Consequence:** The 2026-09-01 removal of ADMIE load and RES forecasts from scope is not
+  reopened. ENTSO-E's Greek load and renewable forecasts originate from ADMIE, so taking them
+  through another publisher would be that reversal by another route; they are isolated as Track B
+  and require their own dated decision, the restored token and forward-witnessed acceptance, and
+  no part of v0.9 depends on them. Perfect foresight remains an upper bound, forecast backtests
+  remain historical research results, and the standing exclusions — intraday, balancing, reserves,
+  capacity, subsidies, taxes, debt, grid feasibility and revenue stacking — are unchanged. The
+  choice of data source is *not* made by this entry: the recommended primary source and its
+  fallback are recommendations until the v0.9.0 spike verifies them and a further dated entry
+  names the source.
+
 ## 2026-09-02 — Commit one reproducible synthetic-only demonstration report
 
 - **Decision:** Add `greek-bess demo` and commit `docs/sample_report.html` as the sole exception

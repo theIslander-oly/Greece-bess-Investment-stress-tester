@@ -1,0 +1,12 @@
+{
+  "schedule_id": "example-not-a-declaration",
+  "regimes": [
+    {
+      "effective_from_delivery_day": "2020-11-01",
+      "closure_day_offset": -1,
+      "closure_local_time": "12:00:00",
+      "closure_timezone": "Europe/Athens",
+      "reference": "REPLACE BEFORE USE. This example shows the file format only. Cite the day-ahead market trading schedule that was in force from effective_from_delivery_day, with the rulebook section and its effective dates, and add one regime per rule change across the benchmarked history. A point-in-time feature is admitted only when it was published strictly before the closure declared here, minus the declared decision lead; the tooling reports whatever closure is declared and cannot check the declaration against the market rules."
+    }
+  ]
+}

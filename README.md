@@ -378,6 +378,23 @@ an unhandled error rather than a contract refusal; and three distinct manifest I
 to two in-document anchors, so one index link led to another manifest's block. No analytical,
 dispatch, forecast, stress, degradation or finance behaviour changed.
 AI-generated explanations remain outside v0.8.
+
+v0.9 was opened on 2 September 2026 as a point-in-time fundamentals forecast benchmark, with the
+design recorded in `docs/v0.9_design.md`. It addresses the one open analytic question the
+forecasting layer carries: every accepted forecast figure here comes from price history alone,
+because validated weather, demand, fuel, renewable and interconnector forecasts are not included.
+The milestone asks whether an independently validated exogenous input improves *realized settled
+dispatch value*, comparing the two existing model families with and without accepted features
+under identical hyperparameters, refit cadence, splits, battery and realized prices. Every feature
+value must be provably available before a declared decision cutoff — declared by the operator with
+no default, strict, with a publication at the cutoff counting as late — with its availability
+evidence graded, every revision stored, the decision-time revision selected, and weaker evidence
+quarantined. So far only the design and the two declaration formats
+(`config/decision_cutoff.example.json`, `config/fundamentals_geography.example.json`, both refused
+as declarations while their placeholder references remain) have landed: no source code, no
+dependency, no workflow, no data source and no chosen source. A negative result would be recorded
+under the same labels, and a thin accepted coverage makes the run exploratory rather than general.
+ADMIE load and RES forecasts stay out of scope by any route, including through another publisher.
 Percentile outputs (P5/P50/P95) and loss probabilities were removed from the roadmap because
 the seasonal bootstrap resamples a non-stationary 2020-2026 history uniformly and therefore
 supports no calibrated probability interpretation; see the 2026-08-27 decision entries.
