@@ -1,5 +1,74 @@
 # Decision log
 
+## 2026-09-02 — Choose NOAA GFS forecast vintages as the v0.9 fundamentals source
+
+- **Decision:** The v0.9.0 source-selection spike is run and recorded in
+  `docs/fundamentals_source_assessment_2026-09-02.md`. It passed all three checks the design made
+  the source choice conditional on, so **NOAA GFS 0.25° forecast vintages from the AWS Open Data
+  archive** are the single v0.9 fundamentals source, taken from the **00 UTC cycle of D-1**,
+  restricted to delivery days from **27 February 2021** onward, with the object's `Last-Modified`
+  instant as the `provider_declared` availability evidence and the witness workflow adding
+  `witnessed` days from v0.9.1. G0 is not triggered, so the EEX EU ETS fallback is **not** selected
+  and stays unassessed; it may not be adopted later without its own spike.
+- **Reason:** The design named a recommendation and labelled every external fact behind it an
+  inference. The spike verified them: the archive serves anonymous byte-range reads through `.idx`
+  sidecars at a 157× reduction (3.27 MiB rather than 514 MiB per step, 85 MiB per delivery day,
+  167 GiB across the usable history); all four proposed variables are present in every step
+  inspected; a pip-installable ecCodes binding installs with no system package and the
+  repository's four gates pass unchanged with it on 3.12 and 3.13; and the provider's licence text
+  permits the intended use under attribution, no implied endorsement and no presentation of
+  derived values as unaltered NOAA data. No credential is involved, so nothing here touches the
+  blocked-secret items.
+- **What the spike corrected, and what that costs:**
+  - **The usable record starts later than the archive does.** Before 26 February 2021 the 0.25°
+    product is 3-hourly, so the first delivery day that can carry hourly features is 27 February
+    2021. **118 of the accepted history's 2,131 delivery days carry no feature**; they are
+    disclosed and excluded by named cause, and a 3-hourly broadcast over that window is refused
+    rather than used to fill it.
+  - **The cycle is 00 UTC of D-1.** The 06 UTC cycle's step-48 object was observed appearing at
+    10:00:22 UTC on 15 July 2025, after a 12:00 CEST cutoff. The 00 UTC cycle cleared the same
+    illustrative cutoff on all 365 days of 2025, with a normal publication lag of 3 h 41 m to
+    4 h 10 m.
+  - **Two ingestion facts became requirements.** Both key layouts must be tried for days before
+    April 2021 — the `atmos/` segment appears only from 23 March 2021 — and availability must be
+    checked per forecast step, because upload order is not monotone in step (1 August 2026: step
+    48 was written before step 24).
+  - **A restated-timestamp finding is recorded, not resolved.** Every object from 1 January to
+    25 February 2021 carries a `Last-Modified` from March or April 2024, 1,107 to 1,215 days after
+    its cycle. This is G7. It changes no admissibility, because `Last-Modified` is written when
+    the object is written and a re-upload can only move the recorded instant later: the
+    `provider_declared` grade can under-claim availability but cannot over-claim it, which is the
+    direction a leakage control must fail in.
+  - **A genuinely late run and a missing cycle exist in the sample.** The 00 UTC run of 14 June
+    2021 published 1 h 39 m after the illustrative cutoff, and the whole 00 UTC 0.25° cycle of
+    2 February 2021 is absent from the archive. Both days are excluded by named cause. The late
+    run is the concrete case that justifies quarantining the `assumed` grade: a nominal-latency
+    assumption of "about four hours" would have admitted it and been wrong.
+- **A correction to the plan:** `PLAN.md` recorded that live endpoints are reachable only from
+  Actions runners and that this spike therefore had to be a workflow dispatch. That holds for
+  `www.admie.gr` and not for this archive, which is reachable from a working checkout, so the
+  spike ran locally. The egress policy did refuse `www.eex.com`, `eur-lex.europa.eu`,
+  `data.ecmwf.int`, `archive-api.open-meteo.com` and `registry.opendata.aws`, which is why the
+  assessment carries those candidates as recorded unknowns rather than verified facts.
+- **What is landed today:** the assessment document, an amendment note on Section 3 of the design,
+  and the project-record entries. Still no source code, no dependency, no workflow and no data
+  source: the decoder was installed into a throwaway virtual environment to test the four gates
+  and `pyproject.toml` is unchanged. No accepted figure or analytical behaviour changed, and
+  nothing retrieved during the spike is committed.
+- **What is still refused:** the decision cutoff, the decision lead and the sampling geography
+  remain operator declarations with no defaults, and no v0.9 surface runs without them (G3). The
+  12:00 `Europe/Brussels` instant used in the assessment to size publication margins is
+  illustrative arithmetic, not a declaration, and nothing is accepted against it. Successful
+  retrieval is still not accepted use: the data-acceptance document of Section 7 precedes any
+  benchmark document.
+- **Consequence:** v0.9.1 may start. It declares `eccodes` alone — not `cfgrib` or `xarray`, which
+  the low-level single-message read does not need — and its first CI run closes the one residual
+  the spike could not: the decoder was proven on CPython 3.12.3 and 3.13.12 in this environment,
+  not on the `actions/setup-python` images. If it fails there, the source choice returns to the G0
+  branch and the fallback needs the spike it has not had. The 2026-09-01 removal of ADMIE load and
+  RES forecasts from scope is untouched: the chosen source carries no ADMIE content by any route,
+  and the ENTSO-E candidates stay isolated as Track B with their unknowns intact.
+
 ## 2026-09-02 — Open v0.9 as a point-in-time fundamentals forecast benchmark
 
 - **Decision:** Open v0.9 and record `docs/v0.9_design.md` as its design of record. v0.9 asks

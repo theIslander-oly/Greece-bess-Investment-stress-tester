@@ -6,6 +6,31 @@ All notable project changes are documented here.
 
 ### Added
 
+- **The v0.9 fundamentals source is chosen: NOAA GFS 0.25° forecast vintages.** The v0.9.0
+  source-selection spike ran against the live public archive and is recorded in
+  `docs/fundamentals_source_assessment_2026-09-02.md`, which converts every external fact the
+  design labelled an inference into a verified fact or a recorded unknown with a named closing
+  step. All three checks passed — archive coverage across 2021-2026, `.idx` byte-range retrieval
+  at a 157x reduction (3.27 MiB rather than 514 MiB per forecast step, 85 MiB per delivery day,
+  167 GiB across the usable history), and a pip-installable ecCodes binding that installs with no
+  system package and leaves Ruff, mypy, 403 tests and the wheel build green on 3.12 and 3.13 — so
+  G0 is not triggered, the EEX EU ETS fallback is not selected and stays unassessed, and the
+  provider licence is captured verbatim with its three obligations named. The spike corrected the
+  design in four places: the usable hourly record begins at delivery day 27 February 2021 rather
+  than at the archive start, leaving 118 of the accepted history's 2,131 delivery days without a
+  feature; the decision-time cycle is fixed at 00 UTC of D-1, because the 06 UTC cycle was
+  observed publishing after a midday cutoff; both archive key layouts must be tried for days
+  before April 2021; and availability must be checked per forecast step, because upload order is
+  not monotone in step. Three findings are recorded rather than resolved: a restated-timestamp
+  window covering 1 January to 25 February 2021, where the recorded instant can only under-claim
+  availability and never over-claim it; one genuinely late run on 14 June 2021; and one whole
+  missing cycle on 2 February 2021. Documentation only: no source code, no dependency — the
+  decoder was tested in a throwaway virtual environment and `pyproject.toml` is unchanged — no
+  workflow, no committed provider content, and no accepted figure or analytical behaviour
+  changed. The decision cutoff, decision lead and sampling geography remain operator declarations
+  with no defaults, and the 2026-09-01 removal of ADMIE load and RES forecasts from scope is
+  untouched.
+
 - **v0.9 is open: a point-in-time fundamentals forecast benchmark.** `docs/v0.9_design.md` is the
   design of record for the one open analytic question in the forecasting layer — whether an
   independently validated exogenous input improves realized settled dispatch value over
