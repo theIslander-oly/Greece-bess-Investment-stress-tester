@@ -427,7 +427,7 @@ dated entry when a milestone changes scope, assumptions, data handling or valida
   supports and audits it.
 - **Consequence:** No dispatch, forecast, stress, degradation, finance or data behavior changes.
   A metadata regression keeps the roadmap aligned with the tested ensemble contract. The formal
-  review is recorded in `docs/implementation_report_v0.7_review.md`; no v0.8 branch, dependency,
+  review is recorded in `docs/history/implementation_report_v0.7_review.md`; no v0.8 branch, dependency,
   stub or implementation is authorized by this decision.
 
 ## 2026-08-31 — Define negative-price events as declared interval replacements

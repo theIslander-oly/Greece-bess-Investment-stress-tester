@@ -313,7 +313,7 @@ All notable project changes are documented here.
 - Where a summary declares the standing claims itself, the contract cross-checks rather than
   ignores them: `is_probabilistic`, `is_forecast` or `is_investment_evidence` set to anything but
   false is refused as a scope change requiring a recorded decision.
-- `docs/run_manifest_contract.md`, `docs/implementation_report_v0.7.11.md`, and a dated decision.
+- `docs/run_manifest_contract.md`, `docs/history/implementation_report_v0.7.11.md`, and a dated decision.
 
 - `audit-admie-publication-timing` and `greek_bess.data.admie_timing`, turning the
   `requires_pre_auction_timing_validation` quarantine label into an executable acceptance step.
@@ -346,7 +346,7 @@ All notable project changes are documented here.
 - The summary states its own limits in its own output: `establishes_only_publication_timing`,
   `does_not_establish` and `quarantine_lifted`. Timing acceptance is not format acceptance and
   does not lift the forecast-feature quarantine on its own.
-- `docs/implementation_report_v0.7.10.md`, and a dated decision recording the audit contract.
+- `docs/history/implementation_report_v0.7.10.md`, and a dated decision recording the audit contract.
 
 - `apply-negative-price-events` and `greek_bess.stress.apply_negative_price_events`, completing
   the approved v0.7 modeling scope. Each event declares an identifier, inclusive UTC start,
@@ -358,7 +358,7 @@ All notable project changes are documented here.
 - One-to-one provenance covers every path interval, including untouched rows. The summary records
   the policy, method, full configuration, applied interval counts and negative/zero counts before
   and after. Existing signed prices outside named windows are unchanged and no price is clipped.
-- `docs/implementation_report_v0.7.9.md`, and a dated decision defining the event unit and the
+- `docs/history/implementation_report_v0.7.9.md`, and a dated decision defining the event unit and the
   refusal to sample occurrence.
 
 - `greek_bess.stress.build_availability_profile` and `dispatch-bootstrap-paths
@@ -443,7 +443,7 @@ All notable project changes are documented here.
   resolution and day span, input run identity and bootstrap seed for each scenario and path, and
   `scenario_ranges` repeats scenario name, transformation and run identity for the scenarios at
   both ends of each path's range.
-- `docs/implementation_report_v0.7.7.md`, and dated `DECISIONS.md` entries covering the
+- `docs/history/implementation_report_v0.7.7.md`, and dated `DECISIONS.md` entries covering the
   non-probabilistic framing and the equivalent-basis refusal rule.
 
 ### Fixed

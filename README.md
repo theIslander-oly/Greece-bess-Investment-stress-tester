@@ -32,6 +32,56 @@ Read this before interpreting any output:
 - **Illustrative inputs stay illustrative.** The example battery, degradation and finance
   configurations are placeholders. Any number computed from them is arithmetic, not evidence.
 
+## Quickstart
+
+Python 3.12 or 3.13. No API key and no official data are needed for this; it runs on the
+deterministic synthetic series the repository generates for demonstrations.
+
+```bash
+python -m pip install -e .
+
+greek-bess generate-synthetic \
+  --start-day 2025-01-01 --end-day 2026-01-01 \
+  --output prices.csv
+
+greek-bess optimize-perfect-foresight prices.csv \
+  --config examples/battery_50mw_100mwh.json \
+  --daily-solves \
+  --output dispatch.csv
+```
+
+The second command writes `dispatch.csv` and `dispatch.summary.json`, and prints:
+
+```json
+{
+  "result_label": "Perfect-foresight Greek DAM gross-margin upper bound composed from independent daily solves; not expected or forecast investment revenue.",
+  "solve_mode": "daily_independent_solves",
+  "solve_path_counts": {"relaxation_accepted": 365},
+  "market_day_count": 365,
+  "net_market_margin_eur": 2162101.190159156,
+  "grid_charge_mwh": 61918.854685378,
+  "grid_discharge_mwh": 54711.5,
+  "equivalent_full_cycles": 547.115,
+  "nominal_round_trip_efficiency": 0.8836
+}
+```
+
+That number is what a 50 MW / 100 MWh battery would have made on that synthetic year if it had
+known every price in advance. It is a ceiling on one revenue stream, on data that is not real.
+`result_label` says so, and travels with every result the tool produces. Reaching a defensible
+figure from here means supplying official prices, replacing the illustrative battery, and reading
+what the ceiling does and does not bound.
+
+**Where to go next**
+
+| | |
+| --- | --- |
+| What the results mean and what they cannot | [LIMITATIONS.md](LIMITATIONS.md) |
+| How each number is computed | [METHODOLOGY.md](METHODOLOGY.md) |
+| Why the tool refuses what it refuses | [DECISIONS.md](DECISIONS.md) |
+| Every command, in workflow order | the numbered sections below |
+| Per-release implementation reports | [docs/history/](docs/history/) |
+
 ## Current implementation
 
 The current implementation provides:
@@ -452,7 +502,7 @@ Review the source terms before any deployment or redistribution:
 
 ## Installation
 
-Python 3.12 is required.
+Python 3.12 or 3.13. CI runs the suite on both.
 
 ```bash
 python -m venv .venv
@@ -1283,37 +1333,40 @@ ruff check . && mypy && pytest -v && python -m build --wheel
 
 ## Project records
 
+Per-release implementation reports and release notes live in
+[docs/history/](docs/history/), indexed there. The full list follows.
+
 - [Changelog](CHANGELOG.md)
-- [Release notes v0.2.0](docs/release_notes_v0.2.md)
-- [Implementation report v0.2](docs/implementation_report_v0.2.md)
-- [Release notes v0.3.0](docs/release_notes_v0.3.md)
-- [Implementation report v0.3](docs/implementation_report_v0.3.md)
-- [Release notes v0.3.1](docs/release_notes_v0.3.1.md)
-- [Implementation report v0.3.1](docs/implementation_report_v0.3.1.md)
-- [Release notes v0.4.0](docs/release_notes_v0.4.md)
-- [Implementation report v0.4](docs/implementation_report_v0.4.md)
-- [Release notes v0.5.0](docs/release_notes_v0.5.md)
-- [Implementation report v0.5](docs/implementation_report_v0.5.md)
-- [Release notes v0.6.0](docs/release_notes_v0.6.md)
-- [Implementation report v0.6](docs/implementation_report_v0.6.md)
-- [Release notes v0.6.1](docs/release_notes_v0.6.1.md)
-- [Implementation report v0.6.1](docs/implementation_report_v0.6.1.md)
-- [Release notes v0.6.2](docs/release_notes_v0.6.2.md)
-- [Implementation report v0.6.2](docs/implementation_report_v0.6.2.md)
-- [Release notes v0.6.3](docs/release_notes_v0.6.3.md)
-- [Implementation report v0.6.3](docs/implementation_report_v0.6.3.md)
-- [Implementation report v0.7 foundation](docs/implementation_report_v0.7.md)
-- [Implementation report v0.7.1 price-level shock](docs/implementation_report_v0.7.1.md)
-- [Implementation report v0.7.2 bootstrap dispatch](docs/implementation_report_v0.7.2.md)
-- [Implementation report v0.7.4 per-year replay decomposition](docs/implementation_report_v0.7.4.md)
-- [Implementation report v0.7.5 bootstrap source-era policy](docs/implementation_report_v0.7.5.md)
-- [Implementation report v0.7.6 spread compression](docs/implementation_report_v0.7.6.md)
-- [Implementation report v0.7.7 scenario-ensemble range reporting](docs/implementation_report_v0.7.7.md)
-- [Implementation report v0.7.8 availability and outage paths](docs/implementation_report_v0.7.8.md)
-- [Implementation report v0.7.9 declared negative-price events](docs/implementation_report_v0.7.9.md)
-- [Implementation report v0.7.10 ADMIE publication-timing acceptance](docs/implementation_report_v0.7.10.md)
-- [Implementation report v0.7.11 run manifest and report contract](docs/implementation_report_v0.7.11.md)
-- [ADMIE filetype acceptance implementation report](docs/implementation_report_admie_filetype_acceptance_2026-08-31.md)
+- [Release notes v0.2.0](docs/history/release_notes_v0.2.md)
+- [Implementation report v0.2](docs/history/implementation_report_v0.2.md)
+- [Release notes v0.3.0](docs/history/release_notes_v0.3.md)
+- [Implementation report v0.3](docs/history/implementation_report_v0.3.md)
+- [Release notes v0.3.1](docs/history/release_notes_v0.3.1.md)
+- [Implementation report v0.3.1](docs/history/implementation_report_v0.3.1.md)
+- [Release notes v0.4.0](docs/history/release_notes_v0.4.md)
+- [Implementation report v0.4](docs/history/implementation_report_v0.4.md)
+- [Release notes v0.5.0](docs/history/release_notes_v0.5.md)
+- [Implementation report v0.5](docs/history/implementation_report_v0.5.md)
+- [Release notes v0.6.0](docs/history/release_notes_v0.6.md)
+- [Implementation report v0.6](docs/history/implementation_report_v0.6.md)
+- [Release notes v0.6.1](docs/history/release_notes_v0.6.1.md)
+- [Implementation report v0.6.1](docs/history/implementation_report_v0.6.1.md)
+- [Release notes v0.6.2](docs/history/release_notes_v0.6.2.md)
+- [Implementation report v0.6.2](docs/history/implementation_report_v0.6.2.md)
+- [Release notes v0.6.3](docs/history/release_notes_v0.6.3.md)
+- [Implementation report v0.6.3](docs/history/implementation_report_v0.6.3.md)
+- [Implementation report v0.7 foundation](docs/history/implementation_report_v0.7.md)
+- [Implementation report v0.7.1 price-level shock](docs/history/implementation_report_v0.7.1.md)
+- [Implementation report v0.7.2 bootstrap dispatch](docs/history/implementation_report_v0.7.2.md)
+- [Implementation report v0.7.4 per-year replay decomposition](docs/history/implementation_report_v0.7.4.md)
+- [Implementation report v0.7.5 bootstrap source-era policy](docs/history/implementation_report_v0.7.5.md)
+- [Implementation report v0.7.6 spread compression](docs/history/implementation_report_v0.7.6.md)
+- [Implementation report v0.7.7 scenario-ensemble range reporting](docs/history/implementation_report_v0.7.7.md)
+- [Implementation report v0.7.8 availability and outage paths](docs/history/implementation_report_v0.7.8.md)
+- [Implementation report v0.7.9 declared negative-price events](docs/history/implementation_report_v0.7.9.md)
+- [Implementation report v0.7.10 ADMIE publication-timing acceptance](docs/history/implementation_report_v0.7.10.md)
+- [Implementation report v0.7.11 run manifest and report contract](docs/history/implementation_report_v0.7.11.md)
+- [ADMIE filetype acceptance implementation report](docs/history/implementation_report_admie_filetype_acceptance_2026-08-31.md)
 - [Official annual-history acceptance](docs/official_history_acceptance_2026-08-26.md)
 - [Official multi-year operational acceptance](docs/official_multiyear_operational_acceptance_2026-08-27.md)
 - [Official HEnEx to ENTSO-E reconciliation](docs/official_source_reconciliation_2026-08-27.md)
@@ -1323,10 +1376,10 @@ ruff check . && mypy && pytest -v && python -m build --wheel
 - [ADMIE pre-auction publication-timing policy](docs/admie_publication_timing_policy.md)
 - [ADMIE day-ahead forecast filetype acceptance](docs/admie_filetype_acceptance_2026-08-31.md)
 - [Run manifest and report contract](docs/run_manifest_contract.md)
-- [Implementation report v0.8.0](docs/implementation_report_v0.8.0.md)
-- [Implementation report v0.8.1](docs/implementation_report_v0.8.1.md)
-- [Implementation report v0.8.2](docs/implementation_report_v0.8.2.md)
-- [Completed-v0.8 review](docs/implementation_report_v0.8.2_review.md)
+- [Implementation report v0.8.0](docs/history/implementation_report_v0.8.0.md)
+- [Implementation report v0.8.1](docs/history/implementation_report_v0.8.1.md)
+- [Implementation report v0.8.2](docs/history/implementation_report_v0.8.2.md)
+- [Completed-v0.8 review](docs/history/implementation_report_v0.8.2_review.md)
 - [Current status](STATUS.md)
 - [Implementation plan](PLAN.md)
 - [Contributing guidance](CONTRIBUTING.md)

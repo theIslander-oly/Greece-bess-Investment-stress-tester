@@ -475,4 +475,4 @@ this build understands. Policy in `docs/run_manifest_contract.md`.
 Code changes must pass Ruff, mypy, pytest and a clean wheel build. Tests use deterministic
 synthetic inputs or small purpose-built fixtures. Official-data acceptance is recorded as
 aggregate evidence and hashes without committing the source files. Detailed milestone methods
-and test evidence are retained in `docs/implementation_report_v*.md`.
+and test evidence are retained in `docs/history/implementation_report_v*.md`.

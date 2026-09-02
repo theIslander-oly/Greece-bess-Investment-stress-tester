@@ -45,7 +45,7 @@ live acceptance step is a workflow dispatch rather than a command in a checkout.
 
 - `greek_bess.reporting.render` and the `render-report` command render verified run manifests,
   and only verified run manifests, into one self-contained static HTML report plus a
-  machine-readable index (`docs/implementation_report_v0.8.0.md`).
+  machine-readable index (`docs/history/implementation_report_v0.8.0.md`).
 - `read_run_manifest` is the sole doorway, so the schema-version check, the closed kind
   registry, the basis cross-check, the guaranteed-key check and the scoped distributional-term
   refusal are inherited by the presentation layer rather than restated in it. The renderer
@@ -77,7 +77,7 @@ live acceptance step is a workflow dispatch rather than a command in a checkout.
 
 - A report now composes many verified manifests, and composition is layout only: nothing is
   computed across manifests, and figures of different bases are never merged into one row, total
-  or derived value (`docs/implementation_report_v0.8.1.md`).
+  or derived value (`docs/history/implementation_report_v0.8.1.md`).
 - **An index across every manifest, grouped by basis**, naming each manifest by ID, result kind,
   recorded label, producing command, recorded time and SHA-256 digest, linking to the block that
   holds its figures, and naming the bases the report does *not* cover — a reader cannot otherwise
@@ -113,7 +113,7 @@ live acceptance step is a workflow dispatch rather than a command in a checkout.
 ## v0.8.2 complete — interactive viewer declined
 
 - The dated v0.8.2 decision declines Streamlit or another local viewer and completes v0.8 with
-  the indexed, self-contained static renderer (`docs/implementation_report_v0.8.2.md`).
+  the indexed, self-contained static renderer (`docs/history/implementation_report_v0.8.2.md`).
 - The decision is based on surface area rather than schedule: a viewer cannot add evidence under
   the approved read-only design. Controls that compute, open a manifest-declared file or combine
   manifests would violate that design; controls that do not merely duplicate the report's index
@@ -142,7 +142,7 @@ live acceptance step is a workflow dispatch rather than a command in a checkout.
 
 - The formal review of the completed v0.8 scope covered the manifest contract, the renderer, the
   reporting CLI surfaces, the design of record and the project records
-  (`docs/implementation_report_v0.8.2_review.md`).
+  (`docs/history/implementation_report_v0.8.2_review.md`).
 - Confirmed: the renderer computes nothing, opens no file a manifest names, reads no environment
   or network variable, merges no figure across manifests or bases, re-declares no label, and
   refuses an unverifiable manifest rather than rendering the rest as the whole.
