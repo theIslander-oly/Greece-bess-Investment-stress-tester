@@ -8,12 +8,16 @@ import sys
 from ..analysis import AnnualDecompositionError
 from ..data.admie import AdmieError
 from ..data.admie_timing import AdmiePublicationTimingError
+from ..data.availability_audit import FeatureAvailabilityError
 from ..data.custody import CustodyError
+from ..data.decision_cutoff import DecisionCutoffError
 from ..data.entsoe import EntsoeError
+from ..data.gfs import NoaaGfsError
 from ..data.henex import HenexParseError
 from ..data.henex_archive import HenexArchiveError
 from ..data.henex_daily import HenexDailyError
 from ..data.http import OfficialDataDownloadError
+from ..data.point_in_time import PointInTimeSchemaError
 from ..dispatch import DispatchInputError, DispatchSolveError
 from ..reporting import ReportContractError
 from ..stress import (
@@ -31,6 +35,7 @@ from . import (
     dispatch,
     finance,
     forecast,
+    fundamentals,
     ingest,
     manifests,
     stress,
@@ -47,6 +52,7 @@ COMMAND_MODULES = (
     manifests,
     dispatch,
     forecast,
+    fundamentals,
     finance,
     stress,
     analysis,
@@ -70,6 +76,10 @@ HANDLED_ERRORS = (
     HenexDailyError,
     AdmieError,
     AdmiePublicationTimingError,
+    DecisionCutoffError,
+    FeatureAvailabilityError,
+    PointInTimeSchemaError,
+    NoaaGfsError,
     OfficialDataDownloadError,
     BootstrapInputError,
     AvailabilityInputError,

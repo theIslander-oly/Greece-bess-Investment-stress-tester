@@ -147,6 +147,11 @@ GUARANTEED_VALUES: dict[str, Any] = {
     "operating_margin_case": "illustrative_supplied_operating_margin",
     "timing_accepted": True,
     "quarantine_lifted": False,
+    "availability_accepted": True,
+    "evidence_basis": "provider_declared_publication_instants",
+    "decision_cutoff_schedule_id": "declared-for-tests",
+    "decision_lead_minutes": 30,
+    "establishes_only_availability": True,
 }
 
 FIGURE_BLOCK = re.compile(

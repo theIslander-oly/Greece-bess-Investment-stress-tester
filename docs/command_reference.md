@@ -438,6 +438,75 @@ forecasting skill, and the summary says so in its own output. It would not now a
 field into forecasting either: those forecasts are out of scope, so the quarantine it was built to
 discharge is closed rather than pending. See `docs/admie_publication_timing_policy.md`.
 
+### Retrieve point-in-time fundamentals
+
+Retrieve NOAA GFS 0.25° forecast vintages for a window of delivery days and build a
+point-in-time feature table, one row per delivery interval per variable, each carrying the
+publication instant, the retrieval instant, the documents it came from and a byte digest:
+
+```bash
+greek-bess fetch-fundamentals \
+  --source noaa_gfs \
+  --variables dswrf_surface temperature_2m wind_speed_10m \
+  --geography config/fundamentals_geography.json \
+  --start-day 2026-08-01 \
+  --end-day 2026-08-31 \
+  --raw-dir data/raw/noaa_gfs \
+  --output acceptance/fundamentals/features.csv \
+  --manifest acceptance/fundamentals/retrieval_manifest.json
+```
+
+The sampling geography has **no default**. A gridded variable has a value at every grid node;
+which nodes represent the Greek bidding zone, and with what weights, is an operator judgment.
+`config/fundamentals_geography.example.json` shows the format and is **refused by name** while
+its placeholder reference remains, so an example cannot be copied into a run and mistaken for a
+declaration. A declared point that does not land on a grid node is refused rather than
+interpolated, and the refusal names the nearest node.
+
+Only the 00 UTC cycle of D-1 is read: the 06 UTC cycle was observed publishing after a midday
+cutoff. Delivery days before 27 February 2021 carry no feature — the product is 3-hourly before
+then — and are excluded by named cause rather than filled from a coarser resolution. A window
+holding no usable day is refused rather than written as an empty table.
+
+Everything this command writes is private: the retrieved GRIB2 messages, the feature table, its
+coverage table, its retrieval manifest and its summary. None of it is committed.
+
+### Audit point-in-time feature availability
+
+The audit asks, per delivery interval, whether a value was published strictly before that day's
+**declared** decision cutoff — the declared gate closure minus the declared decision lead:
+
+```bash
+greek-bess audit-feature-availability \
+  acceptance/fundamentals/features.csv \
+  --decision-cutoff config/decision_cutoff.json \
+  --decision-lead-minutes 90 \
+  --variables dswrf_surface temperature_2m wind_speed_10m \
+  --start-day 2026-08-01 \
+  --end-day 2026-08-31 \
+  --output acceptance/fundamentals/delivery_days.csv
+```
+
+Neither the cutoff nor the lead has a default, and both are refused rather than guessed: the
+committed `config/decision_cutoff.example.json` is refused by name, and the lead must be declared
+as a non-negative integer, where `0` is a declaration and absence is not.
+
+Availability is established **per delivery interval**, never per day. Upload order is not
+monotone in forecast step — a later step of one cycle was observed appearing before an earlier
+one — so one step's availability says nothing about another's, and one late step makes the whole
+day `incomplete_before_cutoff` rather than a day with fewer intervals.
+
+Each day is reported as `witnessed_before_cutoff` (this project retrieved the values before the
+cutoff), `provider_declared_before_cutoff` (a provider instant attached to the datum places it in
+time), `incomplete_before_cutoff`, `all_publications_after_cutoff`, `grade_not_admitted` or
+`no_publication`. A publication exactly at the cutoff is late. `--admit-assumed-grade` admits the
+quarantined grade and makes the run exploratory: such days carry their own status and can never
+be counted as accepted. The command exits `2` on any unaccepted day.
+
+Passing establishes availability and nothing else. It accepts no value and no unit, proves no
+forecasting skill, and does not admit the source to any benchmark — the data-acceptance document
+of the v0.9 design's Section 7 does that. See `docs/point_in_time_feature_contract.md`.
+
 ## Record a result under the report contract
 
 Every result summary can be recorded under a versioned run manifest, so a consumer reads a

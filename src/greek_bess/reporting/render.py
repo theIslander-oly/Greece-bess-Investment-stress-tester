@@ -249,6 +249,31 @@ DECLARATION_CHECKLIST: tuple[DeclarationRequirement, ...] = (
         ),
     ),
     DeclarationRequirement(
+        input_name="Decision cutoff and decision lead",
+        must_declare=(
+            "the day-ahead closure schedule a point-in-time feature is judged against, with a "
+            "rulebook citation and one dated regime per rule change, and the decision lead in "
+            "minutes. Neither has a default; a publication at the cutoff is late"
+        ),
+        decision="Admit exogenous features only when provably available before a declared "
+        "cutoff, with graded evidence",
+        decided_on="2026-09-02",
+        records_a_result_with=(
+            "greek-bess audit-feature-availability --decision-cutoff <cutoff.json> "
+            "--decision-lead-minutes <minutes>"
+        ),
+    ),
+    DeclarationRequirement(
+        input_name="Sampling geography of a gridded feature",
+        must_declare=(
+            "every point a gridded variable is sampled at, the weight each carries and what the "
+            "choice represents. There is no default geography and no implicit centroid"
+        ),
+        decision="Sample gridded fundamentals at declared, weighted points with a stated basis",
+        decided_on="2026-09-02",
+        records_a_result_with="greek-bess fetch-fundamentals --geography <geography.json>",
+    ),
+    DeclarationRequirement(
         input_name="Scenario set of an ensemble",
         must_declare=(
             "every scenario, by name, in a manifest. There is no default scenario set and no "

@@ -52,9 +52,11 @@ Read this before interpreting any output:
 - **Illustrative inputs stay illustrative.** The example battery, degradation and finance
   configurations are placeholders. Any number computed from them is arithmetic, not evidence.
 
-**Current release:** `v0.8.3` — a deterministic report renderer over verified run manifests,
-and only verified run manifests, composing many of them into one indexed report, with the
-completed-v0.8 review's corrections to the manifest doorway applied.
+**Current release:** `v0.9.1` — point-in-time fundamentals ingestion and the availability audit:
+one chosen source read by byte range, a typed feature table carrying the publication instant and
+byte digest behind every value, and a per-delivery-interval audit against a declared decision
+cutoff. Nothing it retrieves is accepted for forecasting, and no surface runs until the operator
+declares the cutoff, the decision lead and the sampling geography.
 
 ## Quickstart
 
@@ -393,10 +395,19 @@ quarantined. The source-selection spike ran the same day
 (`docs/fundamentals_source_assessment_2026-09-02.md`) and the source is NOAA GFS 0.25° forecast
 vintages, taken from the 00 UTC cycle of the day before delivery; the usable record starts at
 delivery day 27 February 2021, so 118 of the accepted history's 2,131 delivery days carry no
-feature and are excluded rather than filled. So far only the design, that assessment and the two
-declaration formats (`config/decision_cutoff.example.json`,
-`config/fundamentals_geography.example.json`, both refused as declarations while their placeholder
-references remain) have landed: no source code, no dependency, no workflow and no retrieved data. A negative result would be recorded
+feature and are excluded rather than filled.
+
+v0.9.1 landed the first code for it: a neutral home for the declared cutoff, the typed
+point-in-time feature schema, the NOAA GFS client reading single GRIB2 messages by byte range,
+the per-delivery-interval availability audit, the `fetch-fundamentals` and
+`audit-feature-availability` commands, a fetch workflow and a daily witness workflow, and the
+`point_in_time_availability_audit` manifest kind. `eccodes` is the one new dependency — not
+`cfgrib` or `xarray`, which the low-level read does not need. The policy the code enforces is
+`docs/point_in_time_feature_contract.md`. **No surface runs yet**: the decision cutoff, the
+decision lead and the sampling geography are operator declarations with no defaults, the
+committed examples are refused by name, and until all three exist nothing is retrieved, no day is
+audited and the witness workflow accumulates no witnessed days — which are the one kind of
+evidence here that cannot be produced later. A negative result would be recorded
 under the same labels, and a thin accepted coverage makes the run exploratory rather than general.
 ADMIE load and RES forecasts stay out of scope by any route, including through another publisher.
 Percentile outputs (P5/P50/P95) and loss probabilities were removed from the roadmap because

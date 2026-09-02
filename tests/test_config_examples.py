@@ -12,6 +12,7 @@ checked only the second would let the format rot.
 from __future__ import annotations
 
 import json
+import re
 import unittest
 from datetime import date
 from pathlib import Path
@@ -82,6 +83,30 @@ class FundamentalsGeographyExampleTest(unittest.TestCase):
 
     def test_area_is_the_greek_bidding_zone(self) -> None:
         self.assertEqual(self.payload["area"], "GR")
+
+
+
+class DecisionLeadExampleTest(unittest.TestCase):
+    """The decision lead is one integer, and the example is deliberately not one.
+
+    A placeholder integer would be the one placeholder a reader could not tell from a
+    declaration, because any integer is a syntactically valid lead. So the example carries no
+    number at all: copying it unchanged fails the reader that expects one.
+    """
+
+    def setUp(self) -> None:
+        self.text = (CONFIG_DIR / "decision_lead_minutes.example.txt").read_text(
+            encoding="utf-8"
+        )
+
+    def test_the_example_is_refused_as_a_declaration(self) -> None:
+        self.assertIn(PLACEHOLDER_MARKER, self.text)
+        self.assertFalse(re.fullmatch(r"\s*\d+\s*", self.text))
+
+    def test_the_example_states_that_zero_is_a_declaration_and_not_a_default(self) -> None:
+        normalized = " ".join(self.text.split())
+        self.assertIn("There is no default", normalized)
+        self.assertIn("Zero is a valid declaration", normalized)
 
 
 if __name__ == "__main__":  # pragma: no cover - manual execution helper

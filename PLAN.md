@@ -102,6 +102,15 @@ The plan below is therefore organised by what each item waits on, not by milesto
 - **The v0.9 sampling geography.** A gridded fundamentals variable must be sampled at declared
   points with declared weights and a stated basis for the choice; there is no default geography.
   `config/fundamentals_geography.example.json` shows the format under the same refusal.
+- **All three v0.9 declarations are now load-bearing rather than prospective.** Since v0.9.1
+  landed on 2 September 2026 the code exists and refuses: `read_decision_cutoff_schedule` and
+  `read_sampling_geography` reject the committed examples by name, `validate_decision_lead_minutes`
+  refuses an absent lead, and both workflows stop at their guard steps. The declarations are
+  `config/decision_cutoff.json`, `config/decision_lead_minutes.txt` (one non-negative integer;
+  `config/decision_lead_minutes.example.txt` deliberately holds no number) and
+  `config/fundamentals_geography.json`. **Each day without them costs a witnessed day that cannot
+  be recovered:** witnessed evidence exists only if a retrieval happened before that delivery
+  day's cutoff, and the scheduled `witness-fundamentals` workflow says so every time it refuses.
 
 ### Resolved on 2 September 2026: the v0.9 source-selection spike
 
@@ -118,7 +127,9 @@ The plan below is therefore organised by what each item waits on, not by milesto
   3.13.12 in the development environment, not on the `actions/setup-python` images. The first CI
   run of v0.9.1, which is where `eccodes` is first declared in `pyproject.toml`, closes it. A
   failure there returns the source choice to the G0 branch, and the fallback would then need the
-  spike it has not had.
+  spike it has not had. v0.9.1 landed that declaration on 2 September 2026 and
+  `tests/test_gfs.py` asks the binding for its ecCodes library version, so the residual is closed
+  by whichever interpreters CI runs rather than by assertion here.
 
 ### Resolved on 1 September 2026: the v0.8 scope decision
 
@@ -328,18 +339,32 @@ plan it as one whenever the host is refused.
       verbatim, with every remaining inference recorded as an unknown and a named closing step.
       The dated decision of the same day names the source, and Section 3 of the design carries an
       amendment note pointing at it.
-  - [ ] v0.9.1 — One-source ingestion and availability audit against the chosen source. It
-    declares `eccodes` alone as the new dependency — not `cfgrib` or `xarray`, which the
-    low-level single-message read does not need — and its first CI run closes the spike's one
-    residual by proving the decoder on the `actions/setup-python` images. Modules:
-    `data/decision_cutoff.py` (the
-    gate-closure schedule moved to a neutral module and re-exported, because a live feature must
-    not import from a module documented as retained and unused), `data/point_in_time.py`,
-    the source client, `data/availability_audit.py`, `fetch-fundamentals` and
-    `audit-feature-availability`, the fetch and witness workflows, and the
-    `point_in_time_availability_audit` manifest kind. The witness workflow starts here so that
-    witnessed days have accumulated by v0.9.5; witnessed days arrive one per day and cannot be
-    backfilled.
+  - [x] v0.9.1 — One-source ingestion and availability audit against the chosen source (landed
+    2026-09-02; `docs/history/implementation_report_v0.9.1.md`,
+    `docs/point_in_time_feature_contract.md`). `eccodes` alone is declared as the new dependency —
+    not `cfgrib` or `xarray`, which the low-level single-message read does not need — and its
+    first CI run closes the spike's one residual by proving the decoder on the
+    `actions/setup-python` images. Landed: `data/decision_cutoff.py` (the gate-closure schedule
+    moved to a neutral module and re-exported, with `tests/test_admie_timing.py` passing untouched
+    as the evidence the move changed nothing), `data/point_in_time.py`, `data/gfs.py`,
+    `data/availability_audit.py`, `cli/fundamentals.py` with `fetch-fundamentals` and
+    `audit-feature-availability`, `fetch-fundamentals.yml`, `witness-fundamentals.yml`, the
+    `point_in_time_availability_audit` manifest kind and three renderer checklist entries. The
+    witness workflow is scheduled from today so that witnessed days accumulate by v0.9.5;
+    witnessed days arrive one per day and cannot be backfilled.
+    - Availability is established **per delivery interval**, never per day: upload order is not
+      monotone in forecast step, so one step's availability says nothing about another's, and one
+      late step makes the day `incomplete_before_cutoff` rather than a shorter day.
+    - The required forecast steps are **22-47**, not the assessment's 21-46, because this
+      project's delivery day is the CET/CEST market day rather than the Athens day; the step set
+      is derived from each market day rather than declared, and a test asserts the widest range
+      across the usable record (decision entry 2026-09-02).
+    - **Its acceptance criteria that need a dispatched run are outstanding for one reason only:**
+      the decision cutoff, decision lead and sampling geography are undeclared, so no
+      `fetch-fundamentals` window has been retrieved and no witnessed day exists yet. The code
+      path was exercised end to end against the live archive once during development for one
+      delivery day; that is evidence the pipeline works, not an accepted figure, and nothing from
+      it is committed.
   - [ ] v0.9.2 — The point-in-time join and its audit table: one feature value per delivery
     interval, selected as the latest revision published strictly before the cutoff, with later
     revisions counted and excluded, every value traceable to a source document, revision and byte

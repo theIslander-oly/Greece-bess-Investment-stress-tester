@@ -8,6 +8,7 @@ Review each provider's current terms before use or redistribution.
 | HEnEx Day-Ahead Market results | Primary official Greek DAM prices and publication metadata | Accepted end to end: parser, 2020-2025 archives, incremental 2026 daily retrieval, and operational dispatch/forecast acceptance over the complete history | `docs/official_data_acceptance_2026-08-25.md`, `docs/official_history_acceptance_2026-08-26.md`, `docs/official_multiyear_operational_acceptance_2026-08-27.md`, `docs/official_data_retrieval.md` |
 | ENTSO-E Transparency Platform A44 | Independent official price retrieval and reconciliation | Client implemented; private-token acceptance pending | `docs/entsoe_github_retrieval.md` |
 | IPTO/ADMIE publications | Future demand, generation, renewable and system context | Public catalog/download client implemented; feature parsing and publication-timing acceptance pending | `docs/official_data_retrieval.md` |
+| NOAA GFS 0.25° forecast vintages | Point-in-time exogenous forecast features for the v0.9 benchmark: surface downward shortwave radiation, 2 m temperature and 10 m wind speed | Source chosen 2026-09-02 and ingestion implemented; **not accepted** — availability audit and a dated data-acceptance document precede any use | `docs/fundamentals_source_assessment_2026-09-02.md`, `docs/point_in_time_feature_contract.md` |
 | HEnEx market/rule publications | Market definitions, products and rule changes | Research input; not encoded as project-specific legal advice | Future legal/market-access review |
 
 ## Primary locations
@@ -19,6 +20,14 @@ Review each provider's current terms before use or redistribution.
 - IPTO/ADMIE: <https://www.admie.gr/en>
 - HEnEx DAM/IDM archive: <https://www.enexgroup.gr/dam-idm-archive>
 - ADMIE file API: <https://www.admie.gr/en/market/market-statistics/file-download-api>
+- NOAA GFS on AWS Open Data: <https://registry.opendata.aws/noaa-gfs-bdp-pds/>
+- NOAA GFS objects: `https://noaa-gfs-bdp-pds.s3.amazonaws.com/` (anonymous `GET`, `HEAD` and
+  `Range`; no credential is involved)
+
+The NOAA licence requires attribution, forbids implying NOAA endorsement, and forbids presenting
+derived values as unaltered NOAA data. All three are carried in `config/official_sources.json`
+and restated verbatim in every retrieval summary this project writes, so the obligation travels
+with the evidence.
 
 Machine-readable source roles and leakage classifications are versioned in
 `config/official_sources.json`. Annual HEnEx archive URLs are pinned in

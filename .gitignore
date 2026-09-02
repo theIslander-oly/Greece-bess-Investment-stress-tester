@@ -60,3 +60,8 @@ CLAUDE.md
 AGENT.md
 .cursor/
 .aider*
+
+# Workflow evidence directories. Retrieved provider content and derived acceptance
+# artifacts are produced by workflow runs and uploaded as private artifacts; they are
+# never committed.
+acceptance/
