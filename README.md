@@ -718,6 +718,24 @@ declaration checklist itself: each default-free input, the dated decision that m
 the command that records a result once it is declared. It contains no figures and no example
 numbers, because an example shown before anything is declared becomes the de facto default.
 
+### Rendering the accepted replay
+
+Official price data lives outside Git and live endpoints are reachable only from GitHub Actions
+runners, so a report over the accepted official history is produced by workflow rather than from
+a working checkout. The
+[`Render a report from the accepted replay`](.github/workflows/render-accepted-replay-report.yml)
+workflow takes the run ID of a completed `Decompose the accepted replay by delivery year` run,
+refuses one whose custody verification did not pass, records each accepted summary that run wrote
+— the daily-composed perfect-foresight ceiling, the per-delivery-year decomposition and every
+forecast backtest — under the run-manifest contract, verifies each manifest, renders them into one
+indexed report and uploads it as a private artifact.
+
+It renders an accepted analysis rather than re-running one: the decomposition workflow already
+verified the official history against its committed custody record, and re-solving would take
+hours and could produce figures differing from the ones the acceptance document records. Nothing
+is computed by the workflow either — every figure is a value one of those summaries already
+recorded. The report and its index are generated research outputs and are never committed.
+
 See `docs/v0.8_design.md`.
 
 ## 3. Fetch ENTSO-E prices

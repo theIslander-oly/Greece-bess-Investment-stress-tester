@@ -18,8 +18,9 @@ composition, have both landed — a deterministic `render-report` command that r
 manifests, and only verified run manifests, into self-contained static reports, now composing
 many of them into one indexed report that computes nothing across them; v0.8.2 has declined
 an interactive viewer and completed v0.8 with that single deterministic presentation surface;
-and the completed-v0.8 review has passed after correcting four reporting-layer defects in
-v0.8.3, none of which changes an analytical result
+the completed-v0.8 review has passed after correcting four reporting-layer defects in
+v0.8.3, none of which changes an analytical result; and a workflow now renders an accepted
+decomposition run into one indexed report, awaiting its first dispatch
 
 **Standing position, 2 September 2026:** the approved `PROMPT.md` scope is implemented, v0.7
 was re-verified on the unchanged v0.7.11 implementation (Ruff, mypy, 301 tests, clean wheel
@@ -123,6 +124,19 @@ live acceptance step is a workflow dispatch rather than a command in a checkout.
 - Interactivity is not prohibited forever. A future proposal must name a need the static report
   cannot meet, define any requested scope change, and preserve the verified-manifest-only doorway
   and export refusals under its own dated decision and milestone.
+
+## Open — render the accepted replay, awaiting a dispatch
+
+- The `Render a report from the accepted replay` workflow exists as of 2 September 2026. It takes
+  a completed `Decompose the accepted replay by delivery year` run, refuses one whose custody
+  verification did not pass, records that run's accepted summaries under the run-manifest
+  contract, verifies each manifest and renders one indexed report as a private artifact.
+- **No report has been rendered from the accepted official history yet.** The v0.8 renderer was
+  validated on synthetic manifests and real module summaries; a dispatch against an accepted
+  decomposition run is what turns that into evidence. Run `33147448666` is the accepted
+  decomposition (2026-08-28); its artifact retention is 90 days from that run.
+- Until a run happens, this is machinery, not evidence. The acceptance document for the first
+  rendered report is not written, and this entry stays open.
 
 ## v0.8.3 landed — completed-v0.8 review corrections
 

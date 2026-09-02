@@ -1,0 +1,261 @@
+name: Render a report from the accepted replay
+
+# The v0.8 reporting layer was validated against synthetic manifests and real module summaries,
+# but no report had ever been rendered from the accepted official history. This workflow closes
+# that gap and does nothing else.
+#
+# It renders an accepted analysis rather than re-running one. The "Decompose the accepted replay
+# by delivery year" workflow already verifies the official-history artifact against its committed
+# custody record and writes the summaries this report needs; re-solving them here would take
+# hours and could produce figures that differ from the ones the acceptance document records. So
+# this workflow consumes that run's evidence artifact, records each summary under the run-manifest
+# contract, and renders the manifests.
+#
+# Nothing is computed here. Every figure in the report is a value one of those summaries already
+# recorded, and the renderer refuses any manifest it cannot verify. The report and its index are
+# generated research outputs: they are uploaded as a private artifact and never committed.
+
+on:
+  workflow_dispatch:
+    inputs:
+      decomposition_run_id:
+        description: >-
+          Run ID of a completed "Decompose the accepted replay by delivery year" run holding the
+          annual-replay-decomposition artifact
+        required: true
+        type: string
+      report_id:
+        description: >-
+          Prefix for the manifest identifiers; defaults to accepted-replay-<decomposition_run_id>
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DECOMPOSITION_RUN_ID: ${{ inputs.decomposition_run_id }}
+      REPORT_ID: ${{ inputs.report_id }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install the project
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install .
+
+      - name: Download the accepted decomposition evidence
+        uses: actions/download-artifact@v4
+        with:
+          name: annual-replay-decomposition
+          run-id: ${{ inputs.decomposition_run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: artifacts/annual-replay-decomposition
+
+      - name: Refuse a decomposition whose custody verification did not pass
+        shell: bash
+        run: |
+          # A report renders accepted evidence. The decomposition run verified the official
+          # history against its committed custody record and uploaded that result; a run whose
+          # verification failed, or which carries no verification at all, is not evidence this
+          # report may present. Neither case is re-run here: a difference is a finding to record.
+          report=$(find artifacts/annual-replay-decomposition -type f \
+            -name 'greek-dam-official-history.verification.json' -print -quit)
+          if [[ -z "$report" ]]; then
+            echo "The decomposition artifact carries no custody verification result."
+            echo "Only a run that verified the official history against its committed custody"
+            echo "record produces evidence this report may render."
+            exit 1
+          fi
+          verified=$(python -c "import json,sys;print(json.load(open(sys.argv[1]))['verified'])" \
+            "$report")
+          echo "Custody verification recorded by run ${DECOMPOSITION_RUN_ID}: ${verified}"
+          if [[ "$verified" != "True" ]]; then
+            echo "The decomposition run did not verify the official history against its"
+            echo "committed custody record. Refusing to render a report from it."
+            exit 1
+          fi
+          mkdir -p report
+          cp "$report" report/source_custody_verification.json
+
+      - name: Record each accepted summary under the run-manifest contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p report/manifests
+          prefix="${REPORT_ID:-}"
+          if [[ -z "$prefix" ]]; then
+            prefix="accepted-replay-${DECOMPOSITION_RUN_ID}"
+          fi
+          echo "PREFIX=${prefix}" >> "$GITHUB_ENV"
+
+          root=$(dirname "$(find artifacts/annual-replay-decomposition -type f \
+            -name 'annual_summary.json' -print -quit)")
+          if [[ ! -d "$root" ]]; then
+            echo "The decomposition artifact carries no annual_summary.json."
+            exit 1
+          fi
+          echo "Reading accepted summaries from ${root}"
+
+          # Declared input provenance is the same for every manifest: each summary came from one
+          # accepted decomposition run whose custody verification passed. The renderer displays
+          # this beside the figures, so it names where the evidence came from and nothing else.
+          python - "$root" <<'PY' > report/declared_inputs.json
+          import json
+          import os
+          import sys
+
+          print(
+              json.dumps(
+                  {
+                      "source_workflow": "Decompose the accepted replay by delivery year",
+                      "source_run_id": os.environ["DECOMPOSITION_RUN_ID"],
+                      "source_artifact": "annual-replay-decomposition",
+                      "official_history_custody": "verified against the committed record",
+                      "summary_directory_in_artifact": sys.argv[1],
+                  },
+                  indent=2,
+              )
+          )
+          PY
+
+          record() {
+            local summary="$1" kind="$2" identifier="$3" producer="$4"
+            if [[ ! -f "$summary" ]]; then
+              echo "Expected summary ${summary} is absent from the artifact."
+              exit 1
+            fi
+            echo "Recording ${identifier} (${kind})"
+            greek-bess record-run-manifest "$summary" \
+              --result-kind "$kind" \
+              --manifest-id "$identifier" \
+              --produced-by "$producer" \
+              --declared-inputs report/declared_inputs.json \
+              --output "report/manifests/${identifier}.manifest.json" > /dev/null
+          }
+
+          record "${root}/perfect_foresight_daily.summary.json" \
+            daily_perfect_foresight_dispatch \
+            "${prefix}-ceiling" \
+            optimize-perfect-foresight
+
+          record "${root}/annual_summary.json" \
+            annual_replay_decomposition \
+            "${prefix}-annual" \
+            decompose-annual-replay
+
+          shopt -s nullglob
+          found=0
+          for summary in "${root}"/backtest_*.summary.json; do
+            method=$(basename "$summary" .summary.json)
+            method="${method#backtest_}"
+            record "$summary" \
+              forecast_dispatch_backtest \
+              "${prefix}-backtest-${method}" \
+              backtest-forecast-dispatch
+            found=$((found + 1))
+          done
+          if [[ "$found" -eq 0 ]]; then
+            echo "The decomposition artifact carries no forecast backtest summaries."
+            exit 1
+          fi
+
+      - name: Verify every recorded manifest before rendering it
+        shell: bash
+        run: |
+          set -euo pipefail
+          for manifest in report/manifests/*.manifest.json; do
+            greek-bess verify-run-manifest "$manifest" > /dev/null
+            echo "verified $(basename "$manifest")"
+          done
+
+      - name: Render the report
+        shell: bash
+        run: |
+          set -euo pipefail
+          greek-bess render-report report/manifests/*.manifest.json \
+            --output report/accepted_replay_report.html \
+            --index report/accepted_replay_report.index.json > /dev/null
+
+      - name: Check the report against the manifests it claims to render
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          from pathlib import Path
+
+          index = json.loads(
+              Path("report/accepted_replay_report.index.json").read_text(encoding="utf-8")
+          )
+          recorded = sorted(path.name for path in Path("report/manifests").glob("*.json"))
+
+          assert index["state"] == "rendered_manifests", index["state"]
+          assert index["manifest_count"] == len(recorded), (index["manifest_count"], recorded)
+          assert index["figure_count"] > 0, "a report of accepted results carries figures"
+          assert "historical_replay_upper_bound" in index["bases_rendered"]
+          assert "historical_forecast_backtest" in index["bases_rendered"]
+
+          document = Path("report/accepted_replay_report.html").read_text(encoding="utf-8")
+          assert "not a probability-calibrated estimate" in document
+          assert "not investment evidence, financial advice or a bankable study" in document
+
+          # The step summary carries the index and no figure, for the same reason the report's
+          # own index does: a table spanning bases is where a ceiling would end up beside a
+          # settled backtest. The figures stay in the uploaded report, beside their labels.
+          lines = [
+              "",
+              "# Report rendered from the accepted replay",
+              "",
+              f"- Manifests rendered: {index['manifest_count']}",
+              f"- Figures: {index['figure_count']}",
+              f"- Report contract version: {index['report_contract_version']},"
+              f" renderer version: {index['report_render_version']}",
+              f"- Project version: {index['project_version']}",
+              f"- Bases rendered: {', '.join(index['bases_rendered'])}",
+              f"- Bases this report does not cover: {', '.join(index['bases_absent'])}",
+              "",
+              "| Manifest | Result kind | Basis | Produced by | Manifest digest |",
+              "| --- | --- | --- | --- | --- |",
+          ]
+          for entry in index["manifests"]:
+              lines.append(
+                  f"| {entry['manifest_id']} | {entry['result_kind']} | {entry['basis']} |"
+                  f" {entry['produced_by']} | `{entry['manifest_sha256'][:16]}…` |"
+              )
+          lines += [
+              "",
+              "Every figure in the report is a value one of these manifests recorded. Nothing was",
+              "computed while rendering, and no figure of one basis was combined with a figure of",
+              "another. The report is a generated research output and is not committed.",
+              "",
+          ]
+          print("\n".join(lines))
+          PY
+
+      - name: Upload the rendered report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: accepted-replay-report
+          path: |
+            report/accepted_replay_report.html
+            report/accepted_replay_report.index.json
+            report/manifests/*.manifest.json
+            report/source_custody_verification.json
+          if-no-files-found: error
+          retention-days: 90

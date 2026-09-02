@@ -4,6 +4,32 @@ All notable project changes are documented here.
 
 ## [Unreleased]
 
+### Added
+
+- **`Render a report from the accepted replay` workflow.** The v0.8 reporting layer was validated
+  against synthetic manifests and real module summaries, but no report had ever been rendered from
+  the accepted official history: `render-report` appeared nowhere outside the design documents,
+  the implementation reports and the tests. This workflow closes that gap and does nothing else.
+- It renders an accepted analysis rather than re-running one. Given the run ID of a completed
+  `Decompose the accepted replay by delivery year` run, it records that run's summaries — the
+  daily-composed perfect-foresight ceiling, the per-delivery-year decomposition and every forecast
+  backtest — under the run-manifest contract, verifies each manifest, and renders them into one
+  indexed report. Re-solving would take hours and could produce figures differing from the ones
+  the acceptance document records.
+- It refuses a decomposition run whose custody verification did not pass, and one that carries no
+  custody verification at all: only a run that verified the official history against its committed
+  custody record produces evidence a report may present. Neither case is re-run, because a
+  difference is a finding to record.
+- The job's step summary carries the report's index — manifest identity, kind, basis, producing
+  command and digest — and no figure, for the same reason the report's own index carries none. The
+  figures stay in the uploaded report beside the labels that say what they are and are not. The
+  report and its index are generated research outputs and are never committed.
+- Two regression tests assert that a real forecast-backtest summary and a real annual-decomposition
+  summary satisfy the result kinds the workflow declares for them, so a renamed summary key fails
+  the suite rather than a dispatched workflow.
+- No source behaviour, dependency, command, contract or report format changed, and the declared
+  project version is unchanged: the workflow runs the existing CLI against existing evidence.
+
 ### Fixed
 
 - **v0.8.3 — completed-v0.8 review corrections.** The formal review of the completed v0.8 scope
