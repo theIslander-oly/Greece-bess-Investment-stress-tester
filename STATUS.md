@@ -28,6 +28,15 @@ replacing the CLI's 30-branch chain, a README quickstart, coverage measurement a
 matrix, with no analytical result changed
 (`docs/history/implementation_report_v0.8.3_review_response.md`)
 
+## One-command synthetic public demonstration
+
+`greek-bess demo` now provides the shortest path from a clone to a complete, indexed output:
+synthetic prices, daily-composed ceiling, declared spread compression, stressed ceiling,
+illustrative finance screening, verified manifests and static rendering. The README links a
+committed synthetic-only sample and the suite regenerates it byte for byte. This is presentation
+and workflow integration, not new market evidence or an analytical-scope change
+(`docs/history/implementation_report_demo_2026-09-02.md`).
+
 ## Documentation — accepted findings now lead the README
 
 The repository landing page now opens with the recorded per-delivery-year official-history

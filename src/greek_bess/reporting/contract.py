@@ -159,6 +159,18 @@ def _kinds() -> dict[str, ResultKind]:
             "Seeded seasonal block-bootstrap synthetic price paths.",
         ),
         ResultKind(
+            "synthetic_price_series",
+            "synthetic_scenario",
+            "Deterministic synthetic prices for a public demonstration; not market evidence.",
+            ("result_label", "interval_count"),
+        ),
+        ResultKind(
+            "synthetic_perfect_foresight_dispatch",
+            "synthetic_scenario",
+            "Perfect-foresight gross-margin upper bound on deterministic synthetic prices.",
+            ("result_label", "interval_count", "net_market_margin_eur"),
+        ),
+        ResultKind(
             "bootstrap_path_dispatch",
             "synthetic_scenario",
             "Independent deterministic dispatch across validated bootstrap paths.",
