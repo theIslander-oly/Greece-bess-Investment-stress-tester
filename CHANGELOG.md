@@ -39,6 +39,16 @@ All notable project changes are documented here.
 
 ### Added
 
+- **The accepted replay has been rendered into a report for the first time.** Run `33609809770`
+  consumed the accepted decomposition run `33147448666`, whose artifact digest matched the one
+  recorded on acceptance, applied the custody gate live (`Custody verification recorded by run
+  33147448666: True`), recorded and verified six run manifests — the daily-composed ceiling, the
+  annual decomposition and one per causal backtest method — and rendered one indexed report in 58
+  seconds. The reporting layer had until now been validated only on synthetic manifests and real
+  module summaries. No analytical result changed; rendering computes nothing. Recorded in
+  `docs/official_report_render_acceptance_2026-09-02.md`, which also states what the run did not
+  establish: the rendered HTML was not inspected outside the runner, and the report is not
+  published anywhere.
 - **Property-based tests over the market calendar.** Delivery days across 2015-2035 at both
   resolutions are generated rather than enumerated, asserting that a market day is contiguous in
   UTC, spans exactly one local midnight-to-midnight, has one of only three legal lengths and

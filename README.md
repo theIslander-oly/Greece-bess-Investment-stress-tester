@@ -430,6 +430,7 @@ Per-release implementation reports and release notes live in
 - [Official multi-year operational acceptance](docs/official_multiyear_operational_acceptance_2026-08-27.md)
 - [Official HEnEx to ENTSO-E reconciliation](docs/official_source_reconciliation_2026-08-27.md)
 - [Per-delivery-year replay decomposition](docs/official_annual_decomposition_2026-08-28.md)
+- [First report rendered from the accepted replay](docs/official_report_render_acceptance_2026-09-02.md)
 - [Durable custody of accepted official artifacts](docs/official_artifact_custody.md)
 - [Bootstrap source-era and resolution policy](docs/bootstrap_source_era_policy.md)
 - [ADMIE pre-auction publication-timing policy](docs/admie_publication_timing_policy.md)

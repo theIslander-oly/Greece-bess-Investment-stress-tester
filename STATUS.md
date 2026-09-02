@@ -19,8 +19,10 @@ manifests, and only verified run manifests, into self-contained static reports, 
 many of them into one indexed report that computes nothing across them; v0.8.2 has declined
 an interactive viewer and completed v0.8 with that single deterministic presentation surface;
 the completed-v0.8 review has passed after correcting four reporting-layer defects in
-v0.8.3, none of which changes an analytical result; and a workflow now renders an accepted
-decomposition run into one indexed report, awaiting its first dispatch; and an external review of
+v0.8.3, none of which changes an analytical result; a workflow renders an accepted
+decomposition run into one indexed report, and its first dispatch against the accepted official
+history passed on 2 September 2026, exercising the custody refusal live and rendering six verified
+manifests (`docs/official_report_render_acceptance_2026-09-02.md`); and an external review of
 v0.8.3 has been answered on the engineering items it raised — a relaxation-first dispatch solve
 that is exact by construction, property-based tests over the market calendar that found and fixed
 a canonical timestamp-resolution defect, closed-form dispatch checks, a subcommand registry
@@ -139,18 +141,27 @@ live acceptance step is a workflow dispatch rather than a command in a checkout.
   cannot meet, define any requested scope change, and preserve the verified-manifest-only doorway
   and export refusals under its own dated decision and milestone.
 
-## Open — render the accepted replay, awaiting a dispatch
+## Closed — the accepted replay has been rendered
 
-- The `Render a report from the accepted replay` workflow exists as of 2 September 2026. It takes
-  a completed `Decompose the accepted replay by delivery year` run, refuses one whose custody
-  verification did not pass, records that run's accepted summaries under the run-manifest
-  contract, verifies each manifest and renders one indexed report as a private artifact.
-- **No report has been rendered from the accepted official history yet.** The v0.8 renderer was
-  validated on synthetic manifests and real module summaries; a dispatch against an accepted
-  decomposition run is what turns that into evidence. Run `33147448666` is the accepted
-  decomposition (2026-08-28); its artifact retention is 90 days from that run.
-- Until a run happens, this is machinery, not evidence. The acceptance document for the first
-  rendered report is not written, and this entry stays open.
+- The `Render a report from the accepted replay` workflow takes a completed `Decompose the
+  accepted replay by delivery year` run, refuses one whose custody verification did not pass,
+  records that run's accepted summaries under the run-manifest contract, verifies each manifest
+  and renders one indexed report as a private artifact.
+- **The first render against the accepted official history ran on 2 September 2026**, run
+  `33609809770`, on `main` at `2a6bd80`, in 58 seconds. It consumed the accepted decomposition
+  run `33147448666`, whose artifact digest matched the one recorded on acceptance, logged
+  `Custody verification recorded by run 33147448666: True`, recorded and verified six manifests —
+  the daily-composed ceiling, the annual decomposition and one per causal backtest method — and
+  rendered one indexed report. The acceptance record is
+  `docs/official_report_render_acceptance_2026-09-02.md`.
+- This closes the question the entry was open on: the reporting layer is no longer machinery
+  validated only on synthetic manifests, and its custody refusal has now been exercised live
+  against accepted evidence. No analytical result changed; rendering computes nothing.
+- Two things this run did not establish, recorded in the acceptance document rather than assumed:
+  the rendered HTML was not inspected outside the runner, because the dispatching session's egress
+  policy denies the artifact storage host, so the run's own self-check is the evidence for its
+  content; and the report is not published anywhere. Publication is a separate question with its
+  own disclosure consequences, and it has not been decided.
 
 ## v0.8.3 landed — completed-v0.8 review corrections
 
