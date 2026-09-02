@@ -71,6 +71,16 @@ The plan below is therefore organised by what each item waits on, not by milesto
   unchanged. The workflow's `history_run_id` and `history_digest` defaults now point at the same
   run, and the superseded record remains in Git history.
 
+### Waiting on a workflow dispatch
+
+- **The first report from the accepted replay.** `Render a report from the accepted replay`
+  landed on 2 September 2026 and has never been run. The v0.8 renderer is validated against
+  synthetic manifests and real module summaries, which is not the same as having rendered one
+  report from the accepted 2020-2026 history. Dispatch it against the accepted decomposition run
+  `33147448666`; the evidence document follows the run, not the workflow. This is the last mile
+  of a delivered feature rather than new scope: no source behaviour, dependency, contract or
+  report format changed, and the workflow computes nothing.
+
 ### Waiting on an operator declaration
 
 - **The second custody copy.** Both encrypted copies were published as release

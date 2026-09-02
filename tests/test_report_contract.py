@@ -18,10 +18,16 @@ from pathlib import Path
 from typing import Any
 
 import greek_bess
+from greek_bess.analysis import decompose_annual_replay
+from greek_bess.backtest import backtest_forecast_dispatch
 from greek_bess.cli import main
 from greek_bess.data.admie_timing import ADMIE_TIMING_LABEL
 from greek_bess.data.synthetic import generate_synthetic_prices
-from greek_bess.dispatch import BatteryDispatchConfig, optimize_perfect_foresight
+from greek_bess.dispatch import (
+    BatteryDispatchConfig,
+    optimize_daily_perfect_foresight,
+    optimize_perfect_foresight,
+)
 from greek_bess.dispatch.perfect_foresight import UPPER_BOUND_LABEL
 from greek_bess.reporting import (
     REPORT_CONTRACT_VERSION,
@@ -246,6 +252,20 @@ class DistributionalTermScopeTests(unittest.TestCase):
         self.assertEqual(manifest.basis, "data_acceptance_evidence")
 
 
+def _small_battery() -> BatteryDispatchConfig:
+    return BatteryDispatchConfig(
+        charge_power_mw=1.0,
+        discharge_power_mw=1.0,
+        energy_capacity_mwh=2.0,
+        soc_min_fraction=0.0,
+        soc_max_fraction=1.0,
+        initial_soc_fraction=0.0,
+        terminal_soc_fraction=0.0,
+        charge_efficiency=0.95,
+        discharge_efficiency=0.95,
+    )
+
+
 class RealSummaryTests(unittest.TestCase):
     """The registry must accept what the modules actually emit, not what a fixture says.
 
@@ -280,6 +300,56 @@ class RealSummaryTests(unittest.TestCase):
 
         self.assertEqual(manifest.result_label, UPPER_BOUND_LABEL)
         self.assertEqual(manifest.summary, result.summary)
+
+    def test_a_real_backtest_summary_satisfies_the_kind_the_report_workflow_declares(
+        self,
+    ) -> None:
+        """`Render a report from the accepted replay` records this summary under this kind.
+
+        The workflow maps each accepted summary file to a result kind by name. A renamed key or
+        a dropped label would break it only when someone dispatched it against real evidence,
+        which is the worst place to find out; this fails in the suite instead.
+        """
+
+        prices = generate_synthetic_prices(
+            date(2026, 1, 5), date(2026, 1, 18), negative_price_share=0
+        )
+        result = backtest_forecast_dispatch(
+            prices, _small_battery(), method="daily_persistence", rolling_window_days=3
+        )
+        manifest = build_run_manifest(
+            result.summary,
+            kind_id="forecast_dispatch_backtest",
+            manifest_id="real-backtest",
+            produced_by="backtest-forecast-dispatch",
+        )
+
+        self.assertEqual(manifest.basis, "historical_forecast_backtest")
+        self.assertEqual(manifest.summary, result.summary)
+        self.assertTrue(manifest.result_label.strip())
+
+    def test_a_real_annual_decomposition_satisfies_the_kind_the_report_workflow_declares(
+        self,
+    ) -> None:
+        prices = generate_synthetic_prices(
+            date(2026, 1, 5), date(2026, 1, 18), negative_price_share=0
+        )
+        ceiling = optimize_daily_perfect_foresight(prices, _small_battery())
+        decomposition = decompose_annual_replay(
+            prices,
+            perfect_foresight_schedule=ceiling.schedule,
+            energy_capacity_mwh=2.0,
+        )
+        manifest = build_run_manifest(
+            decomposition.summary,
+            kind_id="annual_replay_decomposition",
+            manifest_id="real-annual",
+            produced_by="decompose-annual-replay",
+        )
+
+        self.assertEqual(manifest.basis, "historical_replay_upper_bound")
+        self.assertEqual(manifest.summary, decomposition.summary)
+        self.assertTrue(manifest.result_label.strip())
 
     def test_the_real_summary_carries_a_term_a_blanket_ban_would_refuse(self) -> None:
         # `average_charge_price_eur_per_mwh` is a settled input price, not a claim about the
