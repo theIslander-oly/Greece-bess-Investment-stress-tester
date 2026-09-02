@@ -17,5 +17,6 @@
   "degradation_cost_eur_per_mwh_discharged": 0.0,
   "require_complete_market_days": true,
   "mip_relative_gap": 1e-7,
-  "solver_time_limit_seconds": null
+  "solver_time_limit_seconds": null,
+  "solve_strategy": "relaxation_first"
 }

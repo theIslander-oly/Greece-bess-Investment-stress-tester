@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import unittest
+from dataclasses import replace
 from datetime import date
 
 import numpy as np
@@ -243,3 +244,100 @@ class DailyComposedDispatchTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SolveStrategyTests(unittest.TestCase):
+    """The relaxation shortcut must be a speedup only, never a different answer."""
+
+    def test_relaxation_is_accepted_when_no_interval_wants_to_do_both(self) -> None:
+        result = optimize_perfect_foresight(
+            price_frame([10.0, 10.0, 100.0, 100.0]), config()
+        )
+
+        self.assertEqual(result.summary["solve_strategy"], "relaxation_first")
+        self.assertEqual(result.summary["solve_path"], "relaxation_accepted")
+        self.assertEqual(result.summary["relaxation_simultaneous_interval_count"], 0)
+        self.assertFalse(result.summary["mixed_integer_solve_required"])
+
+    def test_negative_prices_send_the_relaxation_back_to_the_mixed_integer_solve(
+        self,
+    ) -> None:
+        # A full battery at -100 EUR/MWh is the case the binary exists for. Being
+        # paid to charge is only reachable by discharging at the same time to make
+        # room, and because the round trip returns less than it takes, the pair
+        # nets a profit: 1.0 MWh bought at -100 against 0.81 MWh sold at -100.
+        # Without the binary the relaxation takes it; with it, the answer is idle.
+        prices = price_frame([-100.0])
+        strict = config(
+            initial_soc_fraction=1.0,
+            terminal_soc_fraction=1.0,
+            charge_efficiency=0.9,
+            discharge_efficiency=0.9,
+        )
+        result = optimize_perfect_foresight(prices, strict)
+
+        self.assertEqual(result.summary["solve_path"], "mixed_integer")
+        self.assertGreater(result.summary["relaxation_simultaneous_interval_count"], 0)
+        self.assertTrue(result.summary["mixed_integer_solve_required"])
+        simultaneous = (result.schedule["charge_mw"] > 1e-8) & (
+            result.schedule["discharge_mw"] > 1e-8
+        )
+        self.assertFalse(simultaneous.any())
+        self.assertAlmostEqual(result.summary["net_market_margin_eur"], 0.0)
+
+    def test_both_strategies_agree_across_a_month_of_signed_prices(self) -> None:
+        prices = generate_synthetic_prices(
+            date(2025, 6, 1),
+            date(2025, 7, 1),
+            resolution_minutes=60,
+            negative_price_share=0.05,
+        )
+        battery = BatteryDispatchConfig(
+            charge_power_mw=25.0, discharge_power_mw=25.0, energy_capacity_mwh=50.0
+        )
+
+        exact = optimize_perfect_foresight(
+            prices, replace(battery, solve_strategy="mixed_integer")
+        )
+        shortcut = optimize_perfect_foresight(
+            prices, replace(battery, solve_strategy="relaxation_first")
+        )
+
+        # A relative tolerance, not an absolute one: where the two solves land on
+        # different optima of equal value, the margins agree to floating-point
+        # summation order, far inside the solver's own mip_relative_gap.
+        self.assertAlmostEqual(
+            shortcut.summary["net_market_margin_eur"]
+            / exact.summary["net_market_margin_eur"],
+            1.0,
+            places=12,
+        )
+        for result in (exact, shortcut):
+            simultaneous = (result.schedule["charge_mw"] > 1e-8) & (
+                result.schedule["discharge_mw"] > 1e-8
+            )
+            self.assertFalse(simultaneous.any())
+
+    def test_daily_solve_reports_how_many_days_needed_the_mixed_integer_program(
+        self,
+    ) -> None:
+        prices = generate_synthetic_prices(
+            date(2025, 6, 1),
+            date(2025, 6, 8),
+            resolution_minutes=60,
+            negative_price_share=0.0,
+        )
+        battery = BatteryDispatchConfig(
+            charge_power_mw=25.0, discharge_power_mw=25.0, energy_capacity_mwh=50.0
+        )
+        result = optimize_daily_perfect_foresight(prices, battery)
+
+        self.assertEqual(result.summary["solve_strategy"], "relaxation_first")
+        self.assertEqual(result.summary["mixed_integer_solve_count"], 0)
+        self.assertEqual(
+            result.summary["solve_path_counts"], {"relaxation_accepted": 7}
+        )
+
+    def test_an_unknown_solve_strategy_is_rejected(self) -> None:
+        with self.assertRaises(DispatchInputError):
+            config(solve_strategy="whatever_is_fastest")

@@ -28,6 +28,15 @@ DAILY_SOLVE_LABEL = (
 )
 NUMERICAL_THROUGHPUT_TIEBREAK_EUR_PER_MWH = 1e-7
 
+RELAXATION_FIRST = "relaxation_first"
+MIXED_INTEGER = "mixed_integer"
+SOLVE_STRATEGIES = (RELAXATION_FIRST, MIXED_INTEGER)
+
+# Charge and discharge powers below this many MW are reported as zero, so a pair of
+# values that both survive it is a genuine simultaneous charge and discharge rather
+# than solver noise. `_clean` applies the same threshold to the reported schedule.
+SIMULTANEITY_TOLERANCE_MW = 1e-8
+
 
 class DispatchInputError(ValueError):
     """Raised when prices or battery assumptions are unsuitable for dispatch."""
@@ -65,6 +74,7 @@ class BatteryDispatchConfig:
     require_complete_market_days: bool = True
     mip_relative_gap: float = 1e-7
     solver_time_limit_seconds: float | None = None
+    solve_strategy: str = RELAXATION_FIRST
 
     def __post_init__(self) -> None:
         for name in ("charge_power_mw", "discharge_power_mw", "energy_capacity_mwh"):
@@ -106,6 +116,10 @@ class BatteryDispatchConfig:
         if self.solver_time_limit_seconds is not None:
             _require_finite_positive(
                 "solver_time_limit_seconds", self.solver_time_limit_seconds
+            )
+        if self.solve_strategy not in SOLVE_STRATEGIES:
+            raise DispatchInputError(
+                "solve_strategy must be one of " + ", ".join(SOLVE_STRATEGIES)
             )
 
     @property
@@ -246,14 +260,17 @@ def optimize_perfect_foresight(
     if config.solver_time_limit_seconds is not None:
         options["time_limit"] = config.solver_time_limit_seconds
 
-    result = milp(
-        c=objective,
+    result, solve_record = _solve_dispatch_program(
+        objective=objective,
         integrality=integrality,
         bounds=Bounds(lower, upper),
         constraints=LinearConstraint(
             matrix.tocsr(), constraint_lower, constraint_upper
         ),
         options=options,
+        charge_index=charge_index,
+        discharge_index=discharge_index,
+        strategy=config.solve_strategy,
     )
     if not result.success or result.x is None:
         raise DispatchSolveError(
@@ -271,8 +288,93 @@ def optimize_perfect_foresight(
         discharge_mw,
         energy_mwh,
     )
-    summary = _build_summary(schedule, config, result)
+    summary = _build_summary(schedule, config, result, solve_record)
     return DispatchResult(schedule=schedule, summary=summary, config=config)
+
+
+def _solve_dispatch_program(
+    *,
+    objective: np.ndarray,
+    integrality: np.ndarray,
+    bounds: Bounds,
+    constraints: LinearConstraint,
+    options: dict[str, Any],
+    charge_index: np.ndarray,
+    discharge_index: np.ndarray,
+    strategy: str,
+) -> tuple[Any, dict[str, Any]]:
+    """Return the mixed-integer optimum, reaching it through the relaxation when it can.
+
+    The binary mode variable exists for exactly one purpose: to forbid charging and
+    discharging in the same interval. Without it an optimizer will happily do both at
+    once whenever a price is negative, because the round-trip efficiency losses of a
+    pointless circulating flow are a way to get paid for consuming energy. Dropping
+    that variable therefore enlarges the feasible set, which makes the relaxed optimum
+    an upper bound on the mixed-integer optimum.
+
+    That bound is what makes the shortcut exact rather than approximate. Every binary
+    constraint in this program has the form `charge <= cap * mode` and
+    `discharge <= cap * (1 - mode)`, and both bounds already cap charge and discharge
+    at `cap`. So an interval that charges but does not discharge admits `mode = 1`, an
+    interval that discharges but does not charge admits `mode = 0`, and an idle
+    interval admits either: a relaxed solution that never does both in one interval can
+    be extended to a full mixed-integer feasible point. A feasible point that attains
+    an upper bound on the optimum *is* an optimum, so it is returned unchanged.
+
+    Only when the relaxation actually violates the exclusivity it dropped does the
+    mixed-integer program have to be solved, and the answer this function returns is
+    the mixed-integer optimum on either path. Empirically the relaxation succeeds on
+    every market day with no negative prices, which on Greek DAM history is most of
+    them, and the daily solve convention means one negative-price day costs only its
+    own re-solve.
+    """
+
+    relaxed_simultaneous: int | None = None
+    if strategy == RELAXATION_FIRST:
+        relaxed = milp(
+            c=objective,
+            integrality=np.zeros_like(integrality),
+            bounds=bounds,
+            constraints=constraints,
+            options=options,
+        )
+        if relaxed.success and relaxed.x is not None:
+            relaxed_simultaneous = _simultaneous_interval_count(
+                relaxed.x[charge_index], relaxed.x[discharge_index]
+            )
+            if relaxed_simultaneous == 0:
+                return relaxed, {
+                    "solve_strategy": strategy,
+                    "solve_path": "relaxation_accepted",
+                    "relaxation_simultaneous_interval_count": 0,
+                    "mixed_integer_solve_required": False,
+                }
+
+    result = milp(
+        c=objective,
+        integrality=integrality,
+        bounds=bounds,
+        constraints=constraints,
+        options=options,
+    )
+    return result, {
+        "solve_strategy": strategy,
+        "solve_path": "mixed_integer",
+        "relaxation_simultaneous_interval_count": relaxed_simultaneous,
+        "mixed_integer_solve_required": True,
+    }
+
+
+def _simultaneous_interval_count(
+    charge_mw: np.ndarray, discharge_mw: np.ndarray
+) -> int:
+    """Count intervals that both charge and discharge by more than reporting noise."""
+
+    charging = np.abs(np.asarray(charge_mw, dtype=float)) >= SIMULTANEITY_TOLERANCE_MW
+    discharging = (
+        np.abs(np.asarray(discharge_mw, dtype=float)) >= SIMULTANEITY_TOLERANCE_MW
+    )
+    return int(np.count_nonzero(charging & discharging))
 
 
 def _build_schedule(
@@ -326,6 +428,7 @@ def _build_summary(
     schedule: pd.DataFrame,
     config: BatteryDispatchConfig,
     solver_result: Any,
+    solve_record: dict[str, Any],
 ) -> dict[str, Any]:
     charge_mwh = float(schedule["charge_grid_mwh"].sum())
     discharge_mwh = float(schedule["discharge_grid_mwh"].sum())
@@ -337,6 +440,7 @@ def _build_summary(
     net_margin = float(schedule["net_market_margin_eur"].sum())
     return {
         "result_label": UPPER_BOUND_LABEL,
+        **solve_record,
         "interval_count": int(len(schedule)),
         "horizon_start_utc": str(schedule["delivery_start_utc"].min()),
         "horizon_end_utc_exclusive": str(schedule["delivery_end_utc"].max()),
@@ -409,6 +513,7 @@ def optimize_daily_perfect_foresight(
 
     schedules: list[pd.DataFrame] = []
     solver_statuses: list[int] = []
+    solve_paths: list[str] = []
     terminal_errors: list[float] = []
     target_energy = config.energy_capacity_mwh * config.effective_terminal_soc_fraction
 
@@ -422,12 +527,15 @@ def optimize_daily_perfect_foresight(
         schedule.insert(0, "market_day", market_day)
         schedules.append(schedule)
         solver_statuses.append(int(result.summary["solver_status"]))
+        solve_paths.append(str(result.summary["solve_path"]))
         terminal_errors.append(
             abs(float(result.summary["terminal_energy_mwh"]) - target_energy)
         )
 
     composed = pd.concat(schedules, ignore_index=True)
-    summary = _daily_summary(composed, config, solver_statuses, terminal_errors)
+    summary = _daily_summary(
+        composed, config, solver_statuses, solve_paths, terminal_errors
+    )
     return DispatchResult(schedule=composed, summary=summary, config=config)
 
 
@@ -435,6 +543,7 @@ def _daily_summary(
     schedule: pd.DataFrame,
     config: BatteryDispatchConfig,
     solver_statuses: list[int],
+    solve_paths: list[str],
     terminal_errors: list[float],
 ) -> dict[str, Any]:
     charge_mwh = float(schedule["charge_grid_mwh"].sum())
@@ -444,9 +553,15 @@ def _daily_summary(
     status_counts: dict[str, int] = {}
     for status in solver_statuses:
         status_counts[str(status)] = status_counts.get(str(status), 0) + 1
+    path_counts: dict[str, int] = {}
+    for path in solve_paths:
+        path_counts[path] = path_counts.get(path, 0) + 1
     return {
         "result_label": DAILY_SOLVE_LABEL,
         "solve_mode": "daily_independent_solves",
+        "solve_strategy": config.solve_strategy,
+        "solve_path_counts": path_counts,
+        "mixed_integer_solve_count": path_counts.get("mixed_integer", 0),
         "interval_count": int(len(schedule)),
         "market_day_count": len(solver_statuses),
         "horizon_start_utc": str(schedule["delivery_start_utc"].min()),
