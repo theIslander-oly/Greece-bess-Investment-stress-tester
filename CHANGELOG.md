@@ -6,6 +6,35 @@ All notable project changes are documented here.
 
 ### Added
 
+- **v0.9.1: point-in-time fundamentals ingestion and the availability audit.** The first v0.9
+  code. `data/decision_cutoff.py` gives the declared gate-closure schedule a neutral home —
+  moved verbatim out of the retained-but-unused ADMIE timing module, which re-exports it, so a
+  live feature path no longer reaches its decision rule through a module documented as unused —
+  and adds the readers that refuse the committed example by name, a required decision lead where
+  `0` is a declaration and absence is not, and the effective cutoff that is closure minus lead.
+  `data/point_in_time.py` is the typed feature schema: a closed column set, a closed source set,
+  a closed variable registry with its units, four evidence grades, and refusals for a missing
+  value that is not an absent row, a unit that is not the registry's, a naive instant, a
+  retrieval that precedes its publication, and two rows that share the uniqueness key and
+  disagree. `data/gfs.py` reads NOAA GFS 0.25° forecast vintages from the 00 UTC cycle of D-1:
+  both archive key layouts, `.idx` sidecar parsing into inclusive byte ranges, single-message
+  byte-range retrieval, ecCodes decoding, sampling at declared grid nodes, and the stated
+  two-step de-averaging rule for bucketed radiation. `data/availability_audit.py` judges every
+  delivery interval on its own evidence against the declared cutoff, because upload order is not
+  monotone in forecast step. `cli/fundamentals.py` adds `fetch-fundamentals` and
+  `audit-feature-availability`, the latter exiting `2` on any unaccepted day with its evidence
+  still written. `.github/workflows/fetch-fundamentals.yml` and `witness-fundamentals.yml`
+  dispatch and schedule them; the witness workflow starts now because a witnessed day exists only
+  if a retrieval happened before that day's cutoff and can never be backfilled.
+  `reporting/contract.py` gains the `point_in_time_availability_audit` kind on the
+  `data_acceptance_evidence` basis, and `reporting/render.py` gains checklist entries for the
+  decision cutoff, the decision lead and the sampling geography. `eccodes` is declared as the one
+  new dependency — not `cfgrib` or `xarray` — and its first CI run closes the source spike's one
+  open residual by proving the decoder on the `actions/setup-python` images. The policy the code
+  enforces is `docs/point_in_time_feature_contract.md`. Nothing is accepted: no value, no unit and
+  no source enters forecasting, and no accepted figure or analytical behaviour changed
+  (`docs/history/implementation_report_v0.9.1.md`).
+
 - **The v0.9 fundamentals source is chosen: NOAA GFS 0.25° forecast vintages.** The v0.9.0
   source-selection spike ran against the live public archive and is recorded in
   `docs/fundamentals_source_assessment_2026-09-02.md`, which converts every external fact the
@@ -54,6 +83,26 @@ All notable project changes are documented here.
   ADMIE and are isolated as a separate track that no part of v0.9 depends on.
 
 ### Changed
+
+- **Two corrections to the v0.9 source assessment, both verified in v0.9.1.** The assessment
+  computed the required forecast-step range as 21-46 from the *Athens* delivery day; this
+  project's delivery day is the CET/CEST market day, the same day the canonical price schema
+  uses, which begins an hour later, so the range a market day needs is **22-47**. Rather than
+  replace one constant with another, the client derives the step set from each market day, so a
+  23-hour or 25-hour day produces its own, and a test walks every market day of the usable record
+  to assert the widest range. Separately, the schema's assumption that one value comes from one
+  message does not hold for two of the three variables: wind speed combines the two 10 m
+  components and a de-averaged radiation hour combines two adjacent step objects. For a derived
+  value the publication instant is therefore the **latest** contributing object's — the value
+  became available when its last input did — the document identity names every contributing
+  object, and the byte digest is taken over the contributing digests in a stated order, with each
+  contributing message listed separately in the retrieval manifest.
+
+- **`fetch_https_bytes` accepts a byte range, and `head_https_headers` reads response headers.**
+  A gridded forecast object is hundreds of megabytes of which a few are wanted, and the provider
+  publishes a sidecar giving the exact offsets. A server that answers `200` to a range request is
+  refused rather than accepted as the requested slice. `HEAD` exists because an object store's
+  publication instant is a response header, not a value inside the object.
 
 - **The README now leads with the accepted official-history findings.** A compact, fully
   labelled annual table presents the recorded official market-day coverage, historical

@@ -1,0 +1,12 @@
+REPLACE BEFORE USE. This file holds one line: a non-negative whole number of minutes, and
+nothing else. It is deliberately not a number here, so that copying this file unchanged fails
+the reader rather than declaring a value on the operator's behalf.
+
+The decision lead is how long before the day-ahead gate closure the bid decision is actually
+taken: the time a bidder needs to build a forecast, plan a schedule and submit it. The effective
+cutoff for a delivery day is the declared gate closure minus this lead, and a feature published
+at or after that instant is late.
+
+There is no default and no environment fallback. Zero is a valid declaration and means the
+decision is taken at the gate; it is a judgment that must be stated, not the value assumed when
+nothing is stated.

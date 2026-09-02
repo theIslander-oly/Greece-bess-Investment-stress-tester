@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "greek-bess-investment-stress-tester"
-version = "0.8.3"
+version = "0.9.1"
 description = "Transparent research and pre-feasibility tooling for Greek standalone BESS projects."
 readme = "README.md"
 requires-python = ">=3.12"
@@ -16,6 +16,12 @@ dependencies = [
   "openpyxl>=3.1,<4",
   "scipy>=1.14,<2",
   "scikit-learn>=1.5,<2",
+  # The GRIB2 decoder for the v0.9 point-in-time fundamentals source. `eccodes` alone, not
+  # `cfgrib` or `xarray`: the low-level single-message read needs neither, and the smaller
+  # dependency is the one the source-selection spike actually exercised. The binding is a
+  # pure-Python wheel; the ecCodes C library arrives through its own `eccodeslib` wheel, so no
+  # system package and no compiler is required.
+  "eccodes>=2.38,<3",
 ]
 
 [project.scripts]

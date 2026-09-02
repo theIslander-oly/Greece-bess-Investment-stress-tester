@@ -1,5 +1,65 @@
 # Decision log
 
+## 2026-09-02 — Build v0.9.1 ingestion so that availability is per interval, and correct the step range
+
+- **Decision:** v0.9.1 lands the point-in-time ingestion path and the availability audit, and
+  fixes four things the design and the source assessment left open or stated at the wrong
+  granularity.
+  1. **Availability is established per delivery interval, never per delivery day.** A day is
+     accepted only when every one of its intervals is covered by an admitted-grade value
+     published strictly before the cutoff. One late forecast step makes the day
+     `incomplete_before_cutoff`, not a day with fewer intervals.
+  2. **The required forecast steps are 22-47, and are derived rather than declared.** The source
+     assessment computed 21-46 from the *Athens* delivery day. This project's delivery day is the
+     **CET/CEST market day** — the same day `market_day_starts` and the canonical price schema use
+     — which begins an hour later. Rather than replace one constant with another,
+     `required_forecast_steps` derives the set from each market day, so a 23-hour or 25-hour day
+     produces its own; a test asserts the widest range over the whole usable record is exactly
+     (22, 47) and lies inside the hourly product.
+  3. **A derived value's provenance is the union of its inputs.** Wind speed combines the two
+     10 m components and a de-averaged radiation hour combines two adjacent step objects, so for
+     such a value `published_at_utc` is the **latest** contributing object's instant,
+     `source_document_id` names every contributing object and message, and `raw_sha256` is taken
+     over the contributing message digests in a stated order.
+  4. **The stored evidence grade records what the retrieval established; the effective grade is
+     derived per delivery day.** `witnessed` is defined by a row's own two instants against a
+     cutoff, and a retrieval does not know the cutoff, so the audit computes it. The derivation
+     may lower a grade and may raise `provider_declared` to `witnessed` when the row's own
+     retrieval instant earns it, but a row stored as `assumed` stays `assumed` whatever its
+     timestamps say.
+- **Reason:** Each is forced by something already on the record rather than chosen for
+  convenience. (1) is the spike's observation that upload order is not monotone in forecast step
+  — on 1 August 2026 step 48 was written before step 24 — so a day-level verdict built from any
+  one object would be wrong in both directions. (2) follows from this repository's own definition
+  of a delivery day, which is `MARKET_TZ`; adopting the assessment's Athens-based range would have
+  left the last hour of every winter market day without its radiation bucket. (3) is the only
+  reading that does not over-claim: a value is available when its *last* input is, and a digest of
+  one input would not identify the value. (4) keeps the anti-promotion rule where it belongs — what
+  is weak about an assumed row is that the instant was inferred, not that the arithmetic came out
+  badly — while letting the two mechanically defined grades be computed rather than trusted.
+- **What this does not decide:** nothing is accepted. No value, unit or source enters
+  forecasting; the data-acceptance document of design Section 7 still precedes any benchmark
+  document, and the audit summary says so in its own output
+  (`establishes_only_availability: true`, `quarantine_lifted: false`). The `assumed` grade stays
+  quarantined: admitting it makes a run exploratory and gives its days a status that can never be
+  counted as accepted. ADMIE-originated forecasts are not reopened by any route.
+- **Also settled, smaller:** `AdmiePublicationTimingError` becomes an **alias** of
+  `DecisionCutoffError` rather than a subclass, so that a refusal raised by the moved schedule
+  code is still caught by every existing `except AdmiePublicationTimingError`;
+  `tests/test_admie_timing.py` passes untouched, which is the evidence the move changed nothing.
+  A declared sampling point must land on a grid node, because a point between nodes would have to
+  be interpolated and no interpolation rule is declared. `source_revision` is normalized to a
+  nullable string, because a revision is an identity rather than a quantity and an absent one must
+  read back from CSV as absent rather than as `NaN`. `eccodes` alone is declared as the new
+  dependency; `cfgrib` and `xarray` are not, because the low-level single-message read needs
+  neither.
+- **Consequence:** v0.9.1's code is complete and tested, and no v0.9 surface can run until the
+  operator declares the decision cutoff, the decision lead and the sampling geography (G3). The
+  witness workflow is scheduled from today and refuses at its guard step without them, stating
+  each time that the day it did not witness is not recoverable.
+- **Records:** `docs/point_in_time_feature_contract.md`,
+  `docs/history/implementation_report_v0.9.1.md`.
+
 ## 2026-09-02 — Choose NOAA GFS forecast vintages as the v0.9 fundamentals source
 
 - **Decision:** The v0.9.0 source-selection spike is run and recorded in

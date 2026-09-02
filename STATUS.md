@@ -1,6 +1,6 @@
 # Project status
 
-**Version:** 0.8.3
+**Version:** 0.9.1
 **Updated:** 2 September 2026
 **Status:** Official multi-year operational acceptance and HEnEx-to-ENTSO-E cross-source
 reconciliation passed; encrypted custody copies published and the private key exercised;
@@ -30,9 +30,67 @@ matrix, with no analytical result changed
 point-in-time fundamentals forecast benchmark, with its design recorded, its two declaration
 formats committed as refused examples and its source-selection spike run and recorded — NOAA GFS
 0.25° forecast vintages chosen from the 00 UTC cycle of D-1 for delivery days from 27 February
-2021, with 118 accepted delivery days carrying no feature and the EEX fallback not selected — and
-still no code written (`docs/v0.9_design.md`,
-`docs/fundamentals_source_assessment_2026-09-02.md`)
+2021, with 118 accepted delivery days carrying no feature and the EEX fallback not selected; and
+v0.9.1 has landed the first v0.9 code — the declared decision cutoff in a neutral module, the
+typed point-in-time feature schema, the NOAA GFS client reading single GRIB2 messages by byte
+range, the per-delivery-interval availability audit, two commands, a fetch workflow, a daily
+witness workflow and one new manifest kind, with `eccodes` as the single new dependency — while
+accepting nothing and leaving every surface blocked on three operator declarations
+(`docs/v0.9_design.md`, `docs/fundamentals_source_assessment_2026-09-02.md`,
+`docs/point_in_time_feature_contract.md`, `docs/history/implementation_report_v0.9.1.md`)
+
+## v0.9.1 — ingestion and the availability audit are built; nothing runs yet
+
+**The code is complete and tested; the declarations it needs do not exist.** v0.9.1 landed on
+2 September 2026 and is the first v0.9 code
+(`docs/history/implementation_report_v0.9.1.md`). It builds everything that can be built without
+the operator declarations v0.9 waits on, and stops exactly where those begin.
+
+**What landed.** `data/decision_cutoff.py` gives the declared gate-closure schedule a neutral
+home, moved verbatim out of the retained-but-unused ADMIE timing module, which re-exports it — a
+live feature path must not import its decision rule from a module whose own docstring says it is
+unused, and `tests/test_admie_timing.py` passing untouched is the evidence the move changed
+nothing. `data/point_in_time.py` is the typed feature schema: a closed column set, a closed
+source set, a closed variable registry with its units, four evidence grades, and refusals for a
+missing value that is not an absent row, a unit that is not the registry's, a naive instant, a
+retrieval that precedes its publication, and two rows that share the uniqueness key and disagree.
+`data/gfs.py` reads NOAA GFS 0.25° vintages from the 00 UTC cycle of D-1 through both archive key
+layouts, parses the `.idx` sidecar into inclusive byte ranges, retrieves single GRIB2 messages,
+decodes them through ecCodes, samples at declared grid nodes and de-averages bucketed radiation
+by a stated two-step rule. `data/availability_audit.py` judges every delivery interval on its own
+evidence. `cli/fundamentals.py` adds `fetch-fundamentals` and `audit-feature-availability`, the
+latter exiting `2` on any unaccepted day with its evidence still written.
+`fetch-fundamentals.yml` and `witness-fundamentals.yml` dispatch and schedule them.
+`contract.py` gains the `point_in_time_availability_audit` kind and `render.py` gains the
+checklist entries for the cutoff, the lead and the geography. The policy the code enforces is
+`docs/point_in_time_feature_contract.md`. Ruff, mypy, 520 tests and the wheel build are green.
+
+**What the phase corrected.** The source assessment computed the required forecast steps as 21-46
+from the *Athens* delivery day; this project's delivery day is the CET/CEST market day, which
+begins an hour later, so the range a market day needs is **22-47**. The client derives the step
+set from each market day rather than carrying a constant, so a 23- or 25-hour day produces its
+own, and a test asserts the widest range across the usable record. Separately, two of the three
+variables are derived from more than one message, so for a derived value the publication instant
+is the **latest** contributing object's — the value became available when its last input did —
+the document identity names every contributing object, and the digest is taken over the
+contributing digests in a stated order (decision entry 2026-09-02).
+
+**What is blocked, and what that costs each day.** Three operator declarations have no default
+and no fallback (gate G3): the decision-cutoff schedule with a real rulebook citation, the
+decision lead in minutes, and the sampling geography with its weights and stated basis. Until all
+three exist, `fetch-fundamentals` and `audit-feature-availability` refuse at their readers, both
+workflows stop at their guard steps, and the phase's acceptance criteria that need a dispatched
+run — a one-month window with its audit recorded, and a witness run producing a witnessed day —
+stay outstanding for that reason and no other. **The witnessed subset is the part that does not
+wait patiently:** a provider-declared publication instant can be read at any point in the future,
+but a witnessed one exists only if a retrieval actually happened before that delivery day's
+cutoff, so every day without the declarations is a witnessed day v0.9.5 can never recover.
+
+**What it did not do.** No join, no model, no manifest recorded from real data, no acceptance
+document, no `cfgrib` and no `xarray`. The client was exercised once end to end against the live
+archive during development for a single delivery day; that is evidence the pipeline works, not an
+accepted figure, and nothing from it is committed. ADMIE-originated forecasts were not reopened
+by any route.
 
 ## v0.9 opened — point-in-time fundamentals forecast benchmark
 

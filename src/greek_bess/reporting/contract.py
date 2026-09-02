@@ -227,6 +227,27 @@ def _kinds() -> dict[str, ResultKind]:
             "Pre-auction publication-timing audit of quarantined ADMIE forecast files.",
             ("result_label", "timing_accepted", "quarantine_lifted"),
         ),
+        # The guaranteed keys are the ones a reader needs before the verdict means anything:
+        # which cutoff schedule and lead the days were judged against, on what evidence, and
+        # the two standing statements that a passing audit establishes availability alone and
+        # lifts nothing. `forbids_distributional_terms` stays unset for the same reason the
+        # ADMIE audit leaves it unset: this summary's `median_decision_time_lead_minutes` is a
+        # statistic about a publisher, not a claim about the distribution of outcomes.
+        ResultKind(
+            "point_in_time_availability_audit",
+            "data_acceptance_evidence",
+            "Point-in-time availability audit of one exogenous feature source against a "
+            "declared decision cutoff.",
+            (
+                "result_label",
+                "availability_accepted",
+                "evidence_basis",
+                "decision_cutoff_schedule_id",
+                "decision_lead_minutes",
+                "establishes_only_availability",
+                "quarantine_lifted",
+            ),
+        ),
     )
     return {kind.kind_id: kind for kind in declared}
 

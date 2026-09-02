@@ -12,7 +12,9 @@ import pandas as pd
 from ..analysis import AnnualDecompositionError
 from ..data.admie import AdmieClient, AdmieError
 from ..data.admie_timing import GateClosureSchedule
+from ..data.decision_cutoff import read_decision_cutoff_schedule
 from ..data.http import OfficialDataDownloadError
+from ..data.point_in_time import SamplingGeography, read_sampling_geography
 from ..data.quality import QualityReport
 from ..data.schema import ensure_canonical, read_canonical_csv
 from ..data.timezones import GREECE_TZ, MARKET_TZ
@@ -331,3 +333,15 @@ def _write_json(payload: object, output: Path) -> None:
     temporary = output.with_suffix(output.suffix + ".tmp")
     temporary.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
     temporary.replace(output)
+
+
+def _read_decision_cutoff_schedule(path: Path) -> GateClosureSchedule:
+    """Read a declared v0.9 decision-cutoff schedule, refusing the committed example."""
+
+    return read_decision_cutoff_schedule(path)
+
+
+def _read_sampling_geography(path: Path) -> SamplingGeography:
+    """Read a declared gridded-feature sampling geography, refusing the committed example."""
+
+    return read_sampling_geography(path)

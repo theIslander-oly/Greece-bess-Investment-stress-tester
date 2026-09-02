@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "reviewed_on": "2026-08-31",
+  "reviewed_on": "2026-09-02",
   "sources": [
     {
       "source_id": "henex_dam_results",
@@ -36,6 +36,32 @@
       "role": "independent price reconciliation",
       "availability_classification": "published market result",
       "credential_policy": "personal token from ENTSOE_SECURITY_TOKEN; never commit or log"
+    },
+    {
+      "source_id": "noaa_gfs_0p25",
+      "provider": "NOAA National Centers for Environmental Prediction",
+      "archive": "NOAA Open Data Dissemination, AWS Open Data bucket noaa-gfs-bdp-pds",
+      "landing_page": "https://registry.opendata.aws/noaa-gfs-bdp-pds/",
+      "object_host": "noaa-gfs-bdp-pds.s3.amazonaws.com",
+      "dataset": "gfs.0p25",
+      "decision_time_cycle_utc": "00 UTC of the day before delivery",
+      "variables": [
+        "dswrf_surface",
+        "temperature_2m",
+        "wind_speed_10m"
+      ],
+      "delivery_coverage": "2021-02-27 onward; the 0.25 degree product is 3-hourly before 2021-02-26",
+      "role": "candidate point-in-time exogenous forecast features for the v0.9 benchmark",
+      "availability_classification": "requires_point_in_time_acceptance",
+      "forecast_feature_policy": "prohibited until the point-in-time availability audit and a dated data-acceptance document admit it",
+      "credential_policy": "no credential; anonymous HTTPS GET, HEAD and Range requests only",
+      "licence_obligations": [
+        "attribute NOAA as the source",
+        "do not imply NOAA endorsement",
+        "do not present derived values as unaltered NOAA data"
+      ],
+      "selected_on": "2026-09-02",
+      "assessment": "docs/fundamentals_source_assessment_2026-09-02.md"
     }
   ]
 }

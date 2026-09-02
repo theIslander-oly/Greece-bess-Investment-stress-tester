@@ -1,5 +1,10 @@
 """Pre-auction publication-timing acceptance for quarantined ADMIE forecast files.
 
+**The gate-closure schedule now lives elsewhere.** ``GateClosureRegime``, ``GateClosureSchedule``
+and ``DECLARABLE_CLOSURE_TIMEZONES`` moved to :mod:`greek_bess.data.decision_cutoff` in v0.9.1
+without a behaviour change, and are re-exported here. The v0.9 point-in-time feature path needs
+the same declared cutoff, and it must not reach it through a module documented as unused.
+
 **Retained but unused.** ADMIE load and RES forecasts were removed from scope on 2026-09-01 and
 the 2026-08-26 quarantine was closed as never accepted: no ADMIE field ever entered forecasting,
 and a passing audit would no longer admit one. This module is kept, tested and runnable so that a
@@ -40,12 +45,18 @@ from __future__ import annotations
 import json
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
-from datetime import date, datetime, time, timedelta
+from datetime import date, timedelta
 from pathlib import Path
 from typing import Any
-from zoneinfo import ZoneInfo
 
 import pandas as pd
+
+from .decision_cutoff import (
+    DECLARABLE_CLOSURE_TIMEZONES,
+    DecisionCutoffError,
+    GateClosureRegime,
+    GateClosureSchedule,
+)
 
 ADMIE_TIMING_LABEL = (
     "Pre-auction publication-timing audit of quarantined ADMIE forecast files; data-acceptance "
@@ -81,8 +92,6 @@ NO_RECORD = "no_record"
 
 ACCEPTABLE_DAY_STATUSES = frozenset({WITNESSED_PRE_GATE, ASSERTED_PRE_GATE})
 
-DECLARABLE_CLOSURE_TIMEZONES = frozenset({"Europe/Athens", "Europe/Brussels", "UTC"})
-
 _REQUIRED_RECORD_FIELDS = (
     "source",
     "dataset",
@@ -95,167 +104,32 @@ _REQUIRED_RECORD_FIELDS = (
 )
 
 
-class AdmiePublicationTimingError(ValueError):
-    """Raised when publication timing cannot be audited exactly as declared."""
+#: The gate-closure schedule moved to :mod:`greek_bess.data.decision_cutoff` in v0.9.1, so that
+#: the live point-in-time feature path need not import its decision rule from this
+#: retained-but-unused module. The names are re-exported here because they are part of this
+#: module's published surface, and this module's error name is an **alias** of the neutral one
+#: rather than a subclass of it: a subclass would mean a ``DecisionCutoffError`` raised by the
+#: moved schedule code is no longer caught by ``except AdmiePublicationTimingError``, which is
+#: what every existing caller, workflow and test does. The move changes no behaviour.
+AdmiePublicationTimingError = DecisionCutoffError
 
-
-@dataclass(frozen=True)
-class GateClosureRegime:
-    """One dated day-ahead gate-closure rule.
-
-    ``closure_day_offset`` is counted in days from the delivery day and must not be positive:
-    a closure on the delivery day itself or later would make the whole question moot. The
-    ``reference`` is required so the rule behind an accepted day is on the record.
-    """
-
-    effective_from_delivery_day: date
-    closure_day_offset: int
-    closure_local_time: time
-    closure_timezone: str
-    reference: str
-
-    def __post_init__(self) -> None:
-        if not isinstance(self.effective_from_delivery_day, date) or isinstance(
-            self.effective_from_delivery_day, datetime
-        ):
-            raise AdmiePublicationTimingError(
-                "effective_from_delivery_day must be a calendar date, not a timestamp"
-            )
-        if isinstance(self.closure_day_offset, bool) or not isinstance(
-            self.closure_day_offset, int
-        ):
-            raise AdmiePublicationTimingError("closure_day_offset must be an integer")
-        if self.closure_day_offset > 0:
-            raise AdmiePublicationTimingError(
-                "closure_day_offset must not be positive; a gate closing after the delivery "
-                "day starts cannot bound a day-ahead decision"
-            )
-        if not isinstance(self.closure_local_time, time):
-            raise AdmiePublicationTimingError("closure_local_time must be a time of day")
-        if self.closure_local_time.tzinfo is not None:
-            raise AdmiePublicationTimingError(
-                "closure_local_time must be a naive time of day; declare its clock in "
-                "closure_timezone"
-            )
-        if self.closure_timezone not in DECLARABLE_CLOSURE_TIMEZONES:
-            allowed = ", ".join(sorted(DECLARABLE_CLOSURE_TIMEZONES))
-            raise AdmiePublicationTimingError(
-                f"closure_timezone must be one of: {allowed}"
-            )
-        if not isinstance(self.reference, str) or not self.reference.strip():
-            raise AdmiePublicationTimingError(
-                "reference must name the market rule or publication the closure comes from"
-            )
-
-    def closure_utc(self, delivery_day: date) -> pd.Timestamp:
-        """Return the closure instant in UTC for one delivery day."""
-
-        naive = datetime.combine(
-            delivery_day + timedelta(days=self.closure_day_offset), self.closure_local_time
-        )
-        try:
-            localized = pd.Timestamp(naive).tz_localize(
-                ZoneInfo(self.closure_timezone), nonexistent="raise", ambiguous="raise"
-            )
-        # pandas raises a pytz NonExistentTimeError/AmbiguousTimeError here, and pytz is a
-        # transitive dependency this project does not import; the refusal is the same for
-        # either, so the localization call is guarded rather than the exception class named.
-        except Exception as exc:
-            raise AdmiePublicationTimingError(
-                f"Gate closure {self.closure_local_time.isoformat()} "
-                f"{self.closure_timezone} does not exist exactly once on "
-                f"{(delivery_day + timedelta(days=self.closure_day_offset)).isoformat()}; a "
-                "daylight-saving transition makes the declared closure ambiguous and it is "
-                "refused rather than guessed"
-            ) from exc
-        return localized.tz_convert("UTC")
-
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "effective_from_delivery_day": self.effective_from_delivery_day.isoformat(),
-            "closure_day_offset": int(self.closure_day_offset),
-            "closure_local_time": self.closure_local_time.isoformat(),
-            "closure_timezone": self.closure_timezone,
-            "reference": self.reference,
-        }
-
-
-@dataclass(frozen=True)
-class GateClosureSchedule:
-    """An ordered, dated sequence of declared gate-closure regimes."""
-
-    schedule_id: str
-    regimes: tuple[GateClosureRegime, ...]
-
-    def __post_init__(self) -> None:
-        if not isinstance(self.schedule_id, str) or not self.schedule_id.strip():
-            raise AdmiePublicationTimingError("schedule_id must be a non-empty string")
-        if self.schedule_id != self.schedule_id.strip():
-            raise AdmiePublicationTimingError("schedule_id must not have surrounding whitespace")
-        if not isinstance(self.regimes, tuple) or not self.regimes:
-            raise AdmiePublicationTimingError(
-                "A gate-closure schedule must declare at least one regime; there is no default "
-                "closure time"
-            )
-        for regime in self.regimes:
-            if not isinstance(regime, GateClosureRegime):
-                raise AdmiePublicationTimingError("Every regime must be a GateClosureRegime")
-        days = [regime.effective_from_delivery_day for regime in self.regimes]
-        if days != sorted(days):
-            raise AdmiePublicationTimingError(
-                "Gate-closure regimes must be declared in ascending effective_from_delivery_day "
-                "order"
-            )
-        if len(set(days)) != len(days):
-            raise AdmiePublicationTimingError(
-                "Two gate-closure regimes share an effective_from_delivery_day; a delivery day "
-                "would have two declared closures"
-            )
-
-    @classmethod
-    def from_dict(cls, payload: object) -> GateClosureSchedule:
-        if not isinstance(payload, Mapping):
-            raise AdmiePublicationTimingError("Gate-closure schedule config must be one object")
-        required = {"schedule_id", "regimes"}
-        unknown = sorted(set(payload) - required)
-        missing = sorted(required - set(payload))
-        if unknown:
-            raise AdmiePublicationTimingError(
-                f"Unknown gate-closure schedule fields: {', '.join(unknown)}"
-            )
-        if missing:
-            raise AdmiePublicationTimingError(
-                f"Missing gate-closure schedule fields: {', '.join(missing)}"
-            )
-        declared = payload["regimes"]
-        if not isinstance(declared, Sequence) or isinstance(declared, (str, bytes)):
-            raise AdmiePublicationTimingError("regimes must be a non-empty list")
-        return cls(
-            schedule_id=str(payload["schedule_id"]),
-            regimes=tuple(_regime_from_dict(entry) for entry in declared),
-        )
-
-    def regime_for(self, delivery_day: date) -> GateClosureRegime:
-        selected: GateClosureRegime | None = None
-        for regime in self.regimes:
-            if regime.effective_from_delivery_day <= delivery_day:
-                selected = regime
-        if selected is None:
-            raise AdmiePublicationTimingError(
-                f"Delivery day {delivery_day.isoformat()} precedes the first declared "
-                f"gate-closure regime ({self.regimes[0].effective_from_delivery_day.isoformat()}); "
-                "a day is not audited against a rule that was not declared for it"
-            )
-        return selected
-
-    def closure_utc(self, delivery_day: date) -> pd.Timestamp:
-        return self.regime_for(delivery_day).closure_utc(delivery_day)
-
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "schedule_id": self.schedule_id,
-            "regimes": [regime.to_dict() for regime in self.regimes],
-        }
+__all__ = [
+    "ACCEPTABLE_DAY_STATUSES",
+    "ADMIE_TIMING_LABEL",
+    "ADMIE_TIMING_POLICY",
+    "ASSERTED_PRE_GATE",
+    "DECLARABLE_CLOSURE_TIMEZONES",
+    "NO_PRE_GATE_PUBLICATION",
+    "NO_RECORD",
+    "TIMING_ESTABLISHES_NOT",
+    "WITNESSED_PRE_GATE",
+    "AdmiePublicationTimingError",
+    "GateClosureRegime",
+    "GateClosureSchedule",
+    "PublicationTimingAudit",
+    "audit_admie_publication_timing",
+    "read_retrieval_manifests",
+]
 
 
 @dataclass(frozen=True)
@@ -368,43 +242,6 @@ def audit_admie_publication_timing(
     )
 
 
-def _regime_from_dict(payload: object) -> GateClosureRegime:
-    if not isinstance(payload, Mapping):
-        raise AdmiePublicationTimingError("Every gate-closure regime must be an object")
-    required = {
-        "effective_from_delivery_day",
-        "closure_day_offset",
-        "closure_local_time",
-        "closure_timezone",
-        "reference",
-    }
-    unknown = sorted(set(payload) - required)
-    missing = sorted(required - set(payload))
-    if unknown:
-        raise AdmiePublicationTimingError(
-            f"Unknown gate-closure regime fields: {', '.join(unknown)}"
-        )
-    if missing:
-        raise AdmiePublicationTimingError(
-            f"Missing gate-closure regime fields: {', '.join(missing)}"
-        )
-    try:
-        effective_from = date.fromisoformat(str(payload["effective_from_delivery_day"]))
-        closure_time = time.fromisoformat(str(payload["closure_local_time"]))
-    except ValueError as exc:
-        raise AdmiePublicationTimingError(
-            "effective_from_delivery_day must be an ISO date and closure_local_time an ISO time"
-        ) from exc
-    offset = payload["closure_day_offset"]
-    if isinstance(offset, bool) or not isinstance(offset, int):
-        raise AdmiePublicationTimingError("closure_day_offset must be an integer")
-    return GateClosureRegime(
-        effective_from_delivery_day=effective_from,
-        closure_day_offset=offset,
-        closure_local_time=closure_time,
-        closure_timezone=str(payload["closure_timezone"]),
-        reference=str(payload["reference"]),
-    )
 
 
 def _validate_filetypes(filetypes: Sequence[str]) -> tuple[str, ...]:
