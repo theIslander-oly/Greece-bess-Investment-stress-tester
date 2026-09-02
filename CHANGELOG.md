@@ -89,6 +89,12 @@ All notable project changes are documented here.
 
 ### Changed
 
+- **v0.9.2 review correction:** revision selection now occurs before evidence-grade admission,
+  so an inadmissible latest pre-cutoff revision excludes the day instead of allowing an older
+  revision to be cherry-picked. Per-value audit rows now count only post-cutoff revisions of
+  that native feature interval; the summary remains de-duplicated when a coarser value is
+  broadcast across price intervals.
+
 - Merge the deferred v0.8.x narrative for renderer-contract version 3: scenario-ensemble reports include deterministic, dependency-free inline SVGs of already-recorded path ranges, with labels, basis and exclusions retained and no new analytical quantity.
 
 

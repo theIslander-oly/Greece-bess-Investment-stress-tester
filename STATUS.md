@@ -39,7 +39,10 @@ accepting nothing and leaving every surface blocked on three operator declaratio
 `docs/point_in_time_feature_contract.md`, `docs/history/implementation_report_v0.9.1.md`);
 and v0.9.2 now adds the revision-aware, whole-day-atomic as-of join and per-value provenance
 audit, validated only on synthetic fixtures while the same declarations remain absent
-(`docs/history/implementation_report_v0.9.2.md`)
+(`docs/history/implementation_report_v0.9.2.md`); its completed review corrected grade admission
+to occur after latest-revision selection and corrected the per-value supersession count, with no
+real-data or analytical result affected
+(`docs/history/implementation_report_v0.9.2_review.md`)
 
 ## v0.9.2 — point-in-time join complete on synthetic fixtures
 

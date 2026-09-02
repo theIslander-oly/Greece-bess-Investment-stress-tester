@@ -278,3 +278,7 @@
 ## Point-in-time join limitations
 
 Passing the v0.9.2 join establishes only that the selected synthetic-test value obeyed the declared as-of rule and is traceable to identified bytes. It does not establish that a real feature is correct, representative of Greece, available under a defensible market cutoff, accepted for forecasting or useful for settled battery value. The three real operator declarations are absent, so no real join result, model, manifest or acceptance document exists. Coarser containment is an explicit broadcast rather than interpolation; finer-to-coarser aggregation remains refused. ADMIE-originated forecasts remain excluded by every route.
+
+Evidence-grade admission cannot be used to select an older revision: the latest pre-cutoff
+revision is selected first, and an inadmissible selected grade excludes the day. This prevents
+stale cherry-picking but does not validate the provider's revision policy or publication record.

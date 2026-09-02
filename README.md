@@ -60,6 +60,12 @@ byte digest behind every value, and a per-delivery-interval audit against a decl
 cutoff. Nothing it retrieves is accepted for forecasting, and no surface runs until the operator
 declares the cutoff, the decision lead and the sampling geography.
 
+The completed v0.9.2 review corrected the order of two join operations: the latest strictly
+pre-cutoff revision is selected before its evidence grade is judged, so the join cannot
+cherry-pick an older admissible revision when the latest revision is inadmissible. It also scopes
+each audit row's later-revision count to that native feature interval. No real-data or analytical
+result changed.
+
 
 ## Measured engineering evidence
 
