@@ -20,7 +20,13 @@ many of them into one indexed report that computes nothing across them; v0.8.2 h
 an interactive viewer and completed v0.8 with that single deterministic presentation surface;
 the completed-v0.8 review has passed after correcting four reporting-layer defects in
 v0.8.3, none of which changes an analytical result; and a workflow now renders an accepted
-decomposition run into one indexed report, awaiting its first dispatch
+decomposition run into one indexed report, awaiting its first dispatch; and an external review of
+v0.8.3 has been answered on the engineering items it raised — a relaxation-first dispatch solve
+that is exact by construction, property-based tests over the market calendar that found and fixed
+a canonical timestamp-resolution defect, closed-form dispatch checks, a subcommand registry
+replacing the CLI's 30-branch chain, a README quickstart, coverage measurement and a 3.12/3.13 CI
+matrix, with no analytical result changed
+(`docs/history/implementation_report_v0.8.3_review_response.md`)
 
 **Standing position, 2 September 2026:** the approved `PROMPT.md` scope is implemented, v0.7
 was re-verified on the unchanged v0.7.11 implementation (Ruff, mypy, 301 tests, clean wheel

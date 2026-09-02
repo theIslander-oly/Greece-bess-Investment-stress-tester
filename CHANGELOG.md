@@ -4,8 +4,49 @@ All notable project changes are documented here.
 
 ## [Unreleased]
 
+### Changed
+
+- **The dispatch program is solved relaxation-first.** The binary operating mode is the only
+  integer variable and earns its place in one situation: a negative price with no headroom to
+  charge into. The continuous relaxation is solved first, and returned unchanged when it never
+  charges and discharges in the same interval, which makes it mixed-integer feasible and, because
+  the relaxation bounds the integer optimum from above, optimal. The integer program is solved
+  whenever the relaxation violates the exclusivity it dropped. The reported answer is the
+  mixed-integer optimum on either path; no result changes. A year of quarter-hourly prices solves
+  9.1x faster over the full horizon with no negative prices, and 1.6-1.7x faster under the daily
+  composed convention. `solve_strategy` in the battery configuration selects the strategy and
+  defaults to the shortcut; the summary records which path produced the figure.
+- **Canonical timestamps are normalized to one resolution.** `ensure_canonical` was normalizing
+  everything about a timestamp except its resolution, so a generated history carried microseconds
+  and the same history read back from CSV carried nanoseconds, and the two compared unequal
+  despite describing identical instants. All five timestamp columns are now nanoseconds. No
+  figure or interval changes.
+- **Each subcommand has its own module and a registry entry.** `cli.py` declared thirty
+  subcommands in one 460-line function and handled them in one 30-branch chain with nothing
+  connecting the two. A `Command` record now pairs each name with its help, its argument
+  configuration and its handler, so the parser and the dispatch table are built from one list.
+  All thirty subcommands' help output and argument sets are byte-identical; only the order the
+  top-level help lists them in changed, now grouped by workflow stage. `greek_bess.cli.AdmieClient`
+  is now `greek_bess.cli.admie.AdmieClient` for callers that patch it.
+- **The README opens with a quickstart** and the per-release implementation reports and release
+  notes moved to `docs/history/`, indexed there, with every link updated.
+
 ### Added
 
+- **Property-based tests over the market calendar.** Delivery days across 2015-2035 at both
+  resolutions are generated rather than enumerated, asserting that a market day is contiguous in
+  UTC, spans exactly one local midnight-to-midnight, has one of only three legal lengths and
+  agrees with the real elapsed duration; that canonicalization is idempotent and independent of
+  row order; and that a complete generated day passes the quality gate. The round-trip property
+  is what found the timestamp-resolution defect above.
+- **Closed-form dispatch tests** checking the optimizer against arithmetic rather than against
+  itself: asymmetric one-way efficiencies, fees and degradation cost, and self-discharge
+  compounding once per interval at both resolutions.
+- **Registry coherence tests** asserting every declared subcommand is reachable from the parser,
+  no two claim the same name, and every command module still contributes.
+- **Coverage measurement and a 3.12/3.13 CI matrix.** Coverage is reported without a threshold:
+  a percentage measures which lines ran, not whether what they computed was correct, and this
+  repository does not treat it as an acceptance gate.
 - **`Render a report from the accepted replay` workflow.** The v0.8 reporting layer was validated
   against synthetic manifests and real module summaries, but no report had ever been rendered from
   the accepted official history: `render-report` appeared nowhere outside the design documents,
