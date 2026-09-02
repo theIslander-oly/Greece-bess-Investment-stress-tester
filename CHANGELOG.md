@@ -6,6 +6,12 @@ All notable project changes are documented here.
 
 ### Changed
 
+- **The README now leads with the accepted official-history findings.** A compact, fully
+  labelled annual table presents the recorded official market-day coverage, historical
+  daily-composed perfect-foresight gross-margin ceilings, causal-method capture ranges,
+  negative-price intervals and mean within-day ranges, with partial years explicit and the
+  unchanged limitations immediately following. Detailed scenario and end-to-end command
+  workflows moved to `docs/command_reference.md`; no analytical result or behavior changed.
 - **The dispatch program is solved relaxation-first.** The binary operating mode is the only
   integer variable and earns its place in one situation: a negative price with no headroom to
   charge into. The continuous relaxation is solved first, and returned unchanged when it never

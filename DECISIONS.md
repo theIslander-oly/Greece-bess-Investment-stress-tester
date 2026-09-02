@@ -3,6 +3,20 @@
 This file records decisions that materially affect interpretation or reproducibility. Add a
 dated entry when a milestone changes scope, assumptions, data handling or validation.
 
+## 2026-09-02 — Lead the repository landing page with accepted findings
+
+- **Decision:** Present the accepted annual official-history decomposition before the README's
+  limitations, then retain those limitations immediately after it; keep detailed per-command
+  workflows in `docs/command_reference.md`.
+- **Reason:** The landing page should state the tool's recorded research result before bounding
+  its interpretation, rather than making readers traverse operating instructions to discover
+  that accepted official-history evidence exists. The command catalogue obscured that result and
+  made the README difficult to navigate.
+- **Consequence:** Every landing-page figure carries its historical result basis, partial years
+  and the resolution-change caveat. The move changes documentation structure only: perfect
+  foresight remains an upper bound, forecast capture remains a historical backtest, and no figure
+  becomes expected revenue, a forecast or investment evidence.
+
 ## 2026-09-02 — Solve the dispatch relaxation first where that is provably the same answer
 
 - **Decision:** `optimize_perfect_foresight` solves the continuous relaxation of the dispatch
