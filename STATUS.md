@@ -1,7 +1,7 @@
 # Project status
 
-**Version:** 0.8.2
-**Updated:** 1 September 2026
+**Version:** 0.8.3
+**Updated:** 2 September 2026
 **Status:** Official multi-year operational acceptance and HEnEx-to-ENTSO-E cross-source
 reconciliation passed; encrypted custody copies published and the private key exercised;
 per-delivery-year replay decomposition accepted against the official history;
@@ -16,12 +16,14 @@ versioned run manifest and report contract now carries every recorded result, ma
 retention executable; and v0.8.0, the report rendering foundation, and v0.8.1, multi-run
 composition, have both landed — a deterministic `render-report` command that renders verified run
 manifests, and only verified run manifests, into self-contained static reports, now composing
-many of them into one indexed report that computes nothing across them; and v0.8.2 has declined
-an interactive viewer and completed v0.8 with that single deterministic presentation surface
+many of them into one indexed report that computes nothing across them; v0.8.2 has declined
+an interactive viewer and completed v0.8 with that single deterministic presentation surface;
+and the completed-v0.8 review has passed after correcting four reporting-layer defects in
+v0.8.3, none of which changes an analytical result
 
-**Standing position, 1 September 2026:** the approved `PROMPT.md` scope is implemented, v0.7
+**Standing position, 2 September 2026:** the approved `PROMPT.md` scope is implemented, v0.7
 was re-verified on the unchanged v0.7.11 implementation (Ruff, mypy, 301 tests, clean wheel
-build), and v0.8 is complete through v0.8.2. The interactive viewer was declined: it would add a
+build), and v0.8 is complete through v0.8.3, its completed scope formally reviewed. The interactive viewer was declined: it would add a
 dependency, a server lifecycle and a second rendering surface without adding evidence. A future
 proposal must identify a need the static report cannot meet and receive separate approval. The
 artifact expiry is retired: run
@@ -121,6 +123,30 @@ live acceptance step is a workflow dispatch rather than a command in a checkout.
 - Interactivity is not prohibited forever. A future proposal must name a need the static report
   cannot meet, define any requested scope change, and preserve the verified-manifest-only doorway
   and export refusals under its own dated decision and milestone.
+
+## v0.8.3 landed — completed-v0.8 review corrections
+
+- The formal review of the completed v0.8 scope covered the manifest contract, the renderer, the
+  reporting CLI surfaces, the design of record and the project records
+  (`docs/implementation_report_v0.8.2_review.md`).
+- Confirmed: the renderer computes nothing, opens no file a manifest names, reads no environment
+  or network variable, merges no figure across manifests or bases, re-declares no label, and
+  refuses an unverifiable manifest rather than rendering the rest as the whole.
+- Four defects found and corrected, none of which changes an analytical result or a recorded
+  figure. A verified manifest missing one of its kind's guaranteed summary keys crashed
+  `render-report` with an unhandled `KeyError`; the absence is now stated. The standing-claim
+  cross-check and the scoped distributional-term refusal ran only when a manifest was recorded,
+  so a summary declaring `is_probabilistic` was rendered above the standing exclusion denying it;
+  both now run when one is read. A non-object `declared_inputs` raised an unhandled error rather
+  than a contract refusal. Three distinct manifest IDs could reduce to two in-document anchors,
+  sending one index link to another manifest's block.
+- The split between the two kinds of check is now recorded and executable: reading applies every
+  check that is a property of the recorded content, while the guaranteed-key check stays a
+  record-time promise so a manifest written before its kind guaranteed a key still verifies
+  (decision entry 2026-09-02).
+- The manifest `schema_version` stays at 1, the renderer version stays at 2, and no report
+  format or index field changed. Ruff, mypy over 43 source files, 361 tests and a clean wheel
+  build pass on Python 3.12.
 
 ## v0.8 opened — research interface and exportable reports
 

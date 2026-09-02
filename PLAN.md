@@ -34,6 +34,12 @@ v0.8.2 is complete: the dated decision declines an interactive viewer and closes
 static renderer. A viewer would duplicate a validated rendering surface and add a runtime
 dependency and server lifecycle without adding evidence. Any future interactive proposal must
 state a need the static report cannot meet and proceed as a separately approved milestone.
+The completed v0.8 scope was then formally reviewed on 2 September 2026. The review found four
+defects, all in the reporting layer and none affecting an analytical result, and v0.8.3 corrected
+them: a verified manifest missing a guaranteed summary key crashed the renderer, two content
+checks ran only when a manifest was recorded and not when one was read, a non-object
+`declared_inputs` raised an unhandled error, and one in-document anchor could serve two
+manifests.
 
 **Two operator items remain open** (the custody second copy and `ENTSOE_SECURITY_TOKEN`,
 below). The lesson the closed quarantine records is worth keeping in front of the plan: between
@@ -212,6 +218,15 @@ evidence, never from a working checkout. Plan any live acceptance step as a work
     rules, add a dependency and server lifecycle, and create no new evidence. A future proposal
     must identify a need the static report cannot meet and receive its own approval and milestone.
     AI-generated explanations remain outside v0.8.
+  - [x] v0.8.3 — Completed-v0.8 review corrections (completed 2026-09-02;
+    `docs/implementation_report_v0.8.2_review.md`). The review covered the manifest contract,
+    the renderer, the reporting CLI surfaces, the design of record and the project records. It
+    confirmed that the renderer computes nothing, opens no file a manifest names, reads no
+    environment or network, merges no figure across bases and re-declares no label — and found
+    four defects at the doorway between a recorded manifest and a rendered one. Reading a
+    manifest now applies every check that is a property of its recorded content, while the
+    guaranteed-key check stays a record-time promise and an absent guaranteed key is stated
+    rather than assumed or refused (decision entry 2026-09-02).
 
 ## Parallel acceptance track
 

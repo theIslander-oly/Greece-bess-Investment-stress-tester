@@ -5,10 +5,16 @@ one sentence governs every choice in this module:
 
     A report renders verified manifests, and only verified manifests.
 
-`read_run_manifest` is the sole doorway. Every integrity property the contract enforces — the
-schema-version check, the closed kind registry, the basis cross-check, the guaranteed-key check
-and the scoped distributional-term refusal — is therefore inherited here rather than restated,
+`read_run_manifest` is the sole doorway, so every integrity property that doorway enforces —
+the schema-version check, the closed kind registry, the basis cross-check, the standing-claim
+cross-check and the scoped distributional-term refusal — is inherited here rather than restated,
 which is what keeps this layer thin by construction instead of by discipline.
+
+The one check the doorway deliberately does not apply is the guaranteed-key check, which the
+contract runs when a manifest is built rather than when one is read so that a manifest recorded
+before its kind guaranteed a key still verifies. This module therefore states such a key as not
+recorded, exactly as it states any other value a manifest does not carry, rather than assuming
+it is present or inventing one.
 
 What this module deliberately cannot do:
 
@@ -851,11 +857,21 @@ def _render_provenance(source: _Source) -> str:
 def _figure_row(
     source: _Source, key: str, *, is_headline: bool, figures: list[RenderedFigure]
 ) -> str:
+    """One recorded value as a labelled row, including a guaranteed key that is absent.
+
+    A kind's guaranteed keys are checked when a manifest is built, not when one is read, so a
+    verified manifest can still reach the renderer without one — a manifest recorded before its
+    kind guaranteed that key, or recorded by another build. Such a key is stated as not recorded
+    by the same route every other absent value takes. Reading it out of the summary directly
+    would raise ``KeyError`` instead, turning a manifest this report can describe honestly into
+    an unhandled crash.
+    """
+
     cell = _figure_cell(
         source,
         key=key,
         summary_path=(key,),
-        recorded=(True, source.manifest.summary[key]),
+        recorded=_lookup(source.manifest.summary, (key,)),
         figures=figures,
         is_headline=is_headline,
     )
@@ -944,6 +960,11 @@ def _anchors(sources: Sequence[_Source]) -> dict[str, str]:
     readable anchor, which would put two elements behind one fragment identifier. Sources are
     already in the report's declared order, so a positional suffix disambiguates without making
     the anchor depend on input order.
+
+    The suffixed anchor is itself checked and advanced until it is unused. A single unchecked
+    suffix is not enough: IDs ``A``, ``A-2`` and ``a`` are three distinct manifests whose second
+    and third anchors both reduce to ``manifest-a-2``, and the index link for one would then
+    jump to the other's block.
     """
 
     anchors: dict[str, str] = {}
@@ -953,9 +974,12 @@ def _anchors(sources: Sequence[_Source]) -> dict[str, str]:
         safe = "".join(
             character if character.isalnum() else "-" for character in manifest_id.lower()
         )
-        anchor = f"manifest-{safe}"
-        if anchor in taken:
-            anchor = f"{anchor}-{position}"
+        base = f"manifest-{safe}"
+        anchor = base
+        suffix = position
+        while anchor in taken:
+            anchor = f"{base}-{suffix}"
+            suffix += 1
         taken.add(anchor)
         anchors[manifest_id] = anchor
     return anchors

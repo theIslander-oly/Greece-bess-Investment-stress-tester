@@ -4,6 +4,39 @@ All notable project changes are documented here.
 
 ## [Unreleased]
 
+### Fixed
+
+- **v0.8.3 — completed-v0.8 review corrections.** The formal review of the completed v0.8 scope
+  found four defects in the reporting layer. None changes an analytical result: no dispatch,
+  forecast, stress, degradation, finance or data behaviour is touched, and no recorded figure
+  changes value.
+- A verified manifest missing one of its result kind's guaranteed summary keys crashed
+  `render-report` with an unhandled `KeyError` instead of producing a report. The guaranteed-key
+  check runs when a manifest is built rather than when one is read — deliberately, so that a
+  manifest recorded before its kind guaranteed a key still verifies — so the renderer must be
+  able to meet one. It now states such a key as not recorded, by the same route every other
+  absent value takes, and records no figure for it.
+- `read_run_manifest` now applies the standing-claim cross-check and the scoped
+  distributional-term refusal, not only `build_run_manifest`. A manifest whose summary declared
+  `is_probabilistic`, `is_forecast` or `is_investment_evidence` as anything but false was refused
+  when recorded, yet read and rendered — placing that claim in a report directly above the
+  standing exclusion "not a probability-calibrated estimate". Both checks are properties of the
+  recorded content, and a manifest travels; neither can refuse a manifest this project recorded,
+  because building one already applied both.
+- A manifest whose `declared_inputs` is not an object is refused with a contract error naming the
+  field. It previously raised an unhandled `TypeError`, or a `ValueError` whose message described
+  a dictionary update sequence rather than the manifest.
+- Two distinct manifest IDs reducing to one readable anchor were disambiguated with a single
+  unchecked positional suffix, which could itself already be taken: IDs `A`, `A-2` and `a` are
+  three manifests but produced two anchors, so the index link for one led to another's block.
+  The suffixed anchor is now advanced until unused.
+- The `greek_bess.reporting.render` module docstring claimed the manifest doorway inherits the
+  guaranteed-key check. It does not, by design; the docstring now states which checks reading
+  applies, and why that one is a record-time check.
+- Project version raised to 0.8.3 in `pyproject.toml`, `greek_bess.__version__` and the README
+  release line. The manifest `schema_version` stays at 1 and the renderer version stays at 2: no
+  envelope, report format or index field changed.
+
 ### Changed
 
 - **v0.8.2 — interactive viewer decision.** The viewer is deliberately declined and v0.8 closes
