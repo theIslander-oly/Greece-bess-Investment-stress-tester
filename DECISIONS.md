@@ -1,5 +1,23 @@
 # Decision log
 
+## 2026-09-02 — Make point-in-time feature joins revision-aware and whole-day atomic
+
+- **Decision:** Select one value per delivery interval from the latest revision published strictly before the declared effective cutoff; count and exclude later revisions; map only by half-open UTC containment; and exclude a whole delivery day when any declared variable-area pair is incomplete. Every emitted value has an audit row naming its source document, revision and raw-byte digest.
+- **Reason:** Selecting a current revision or retaining a partial day can leak future information or silently change the model's feature set. Whole-day atomicity and complete provenance make the causal claim executable.
+- **Consequence:** Publications at the cutoff are late, nothing is filled or imputed, hourly-to-quarter-hour use is labelled as a coarser broadcast, and finer features are refused without a declared aggregation rule. v0.9.2 is validated only on synthetic fixtures; real-data acceptance remains blocked on the three absent operator declarations.
+
+## 2026-09-02 — Treat manifest-local plotting as rendering, with a closed chart doorway
+
+- **Decision:** Permit deterministic inline SVG only for values already recorded inside the one verified manifest whose labelled block contains it. The initial closed mapping is `scenario_ensemble_range.path_ranges`.
+- **Reason:** Visual encoding can improve legibility without creating evidence, while an arbitrary plotting doorway could bypass the manifest-only contract.
+- **Consequence:** Renderer version 3 uses no script, network or external asset, opens no manifest-declared path, combines no manifests or bases, preserves labels and exclusions, and states unusable chart fields instead of inventing values.
+
+## 2026-09-02 — Keep performance claims attributable and reproducible
+
+- **Decision:** Every engineering timing names its workload and execution environment; provide an opt-in benchmark over deterministic synthetic prices that emits configuration, environment, solve paths and throughput.
+- **Reason:** An unattributed timing becomes folklore, while synthetic data makes engineering behavior reproducible without distributing official prices.
+- **Consequence:** The accepted-history 69-second decomposition remains attributed to run `33147448666`; synthetic benchmark output is engineering evidence only and changes no model assumption or investment conclusion.
+
 ## 2026-09-02 — Build v0.9.1 ingestion so that availability is per interval, and correct the step range
 
 - **Decision:** v0.9.1 lands the point-in-time ingestion path and the availability audit, and

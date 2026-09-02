@@ -1048,3 +1048,15 @@ PYTHONPATH=src python -m unittest discover -s tests -v
 ```
 
 No official prices or personal API credentials are required.
+
+
+### Build point-in-time features
+
+```bash
+greek-bess build-point-in-time-features prices.csv acceptance/fundamentals/features.csv \
+  --decision-cutoff config/decision_cutoff.json \
+  --decision-lead-minutes 30 --admitted-grades witnessed provider_declared \
+  --output acceptance/fundamentals/joined.csv
+```
+
+The cutoff, lead and evidence grades are required and have no defaults. The command writes the interval feature frame, a sibling revision/provenance audit and a summary, and exits `2` when any day is excluded. The committed example cutoff is refused. Outputs are private generated research artifacts and must not be committed.

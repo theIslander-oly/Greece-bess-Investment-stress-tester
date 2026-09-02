@@ -6,6 +6,11 @@ All notable project changes are documented here.
 
 ### Added
 
+- **v0.9.2: revision-aware point-in-time join.** Add `build-point-in-time-features` and its reusable join: every emitted interval value is the latest revision published strictly before the declared effective cutoff, every selected value has a source-document/revision/byte-digest audit row, later revisions are counted and excluded, coarser broadcasts are explicit, and an incomplete variable excludes the whole delivery day without fill or imputation. Synthetic tests cover cutoff ties, revision selection, provenance, permutation invariance, incomplete days, hourly-to-quarter-hour broadcast, quarantined grades and finer-resolution refusal. Real-data acceptance remains outstanding solely because the three operator declarations are absent; no real join, model, manifest or acceptance document was produced.
+
+- Document measured engineering scale with direct provenance and the opt-in deterministic synthetic dispatch benchmark; no analytical result changes.
+
+
 - **v0.9.1: point-in-time fundamentals ingestion and the availability audit.** The first v0.9
   code. `data/decision_cutoff.py` gives the declared gate-closure schedule a neutral home —
   moved verbatim out of the retained-but-unused ADMIE timing module, which re-exports it, so a
@@ -83,6 +88,9 @@ All notable project changes are documented here.
   ADMIE and are isolated as a separate track that no part of v0.9 depends on.
 
 ### Changed
+
+- Merge the deferred v0.8.x narrative for renderer-contract version 3: scenario-ensemble reports include deterministic, dependency-free inline SVGs of already-recorded path ranges, with labels, basis and exclusions retained and no new analytical quantity.
+
 
 - **Two corrections to the v0.9 source assessment, both verified in v0.9.1.** The assessment
   computed the required forecast-step range as 21-46 from the *Athens* delivery day; this

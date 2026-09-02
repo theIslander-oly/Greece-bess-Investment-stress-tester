@@ -10,6 +10,8 @@ leakage-safe causal forecast backtests.
 `greek-bess demo --output docs/sample_report.html`. It uses no token or official data and is
 not investment evidence, expected revenue, financial advice or a bankable study.
 
+**Rendered reports:** the deterministic renderer composes verified manifests into a self-contained aggregate HTML report and includes manifest-local inline SVG charts of already-recorded scenario-range values. Charts derive no analytical quantity, open no manifest-named file, and retain each result label, basis and exclusion. Public deployment of the accepted-replay aggregate report remains outstanding until its custody-gated Pages job succeeds.
+
 ## Accepted official-history findings
 
 These are **historical replay and backtest results, not expected revenue, a forecast or
@@ -52,11 +54,26 @@ Read this before interpreting any output:
 - **Illustrative inputs stay illustrative.** The example battery, degradation and finance
   configurations are placeholders. Any number computed from them is arithmetic, not evidence.
 
-**Current release:** `v0.9.1` — point-in-time fundamentals ingestion and the availability audit:
+**Current release:** `v0.9.2` — the synthetic-validated point-in-time join extends the ingestion and availability audit:
 one chosen source read by byte range, a typed feature table carrying the publication instant and
 byte digest behind every value, and a per-delivery-interval audit against a declared decision
 cutoff. Nothing it retrieves is accepted for forecasting, and no surface runs until the operator
 declares the cutoff, the decision lead and the sampling geography.
+
+
+## Measured engineering evidence
+
+The accepted official-history decomposition processed 74,663 intervals as 2,124 independent
+daily MILP solves in 69 seconds in GitHub Actions run `33147448666`; this was not a developer-workstation timing. It reconciled the daily-composed ceiling with a residual of EUR 0.000000 and found a maximum common-day ceiling spread of EUR 0.000000. See [the accepted decomposition](docs/official_annual_decomposition_2026-08-28.md).
+
+Dispatch uses an exact relaxation-first path: when the relaxed solution has no simultaneous charge and discharge, it is already integer-feasible and therefore optimal against the relaxation's upper bound. The proof and CI measurements are in [the v0.8.3 review response](docs/history/implementation_report_v0.8.3_review_response.md). Reproduce a labelled synthetic engineering benchmark with:
+
+```bash
+python scripts/benchmark_dispatch.py --days 366 --resolution-minutes 15 \
+  --seed 42 --negative-price-share 0.02
+```
+
+Its JSON records the environment, assumptions, solve paths and throughput. Synthetic benchmark results are engineering evidence only, never an investment conclusion.
 
 ## Quickstart
 
