@@ -47,6 +47,15 @@ sampling at declared grid nodes, radiation de-averaging, and one `RetrievalRecor
 retrieved. The fetcher, the HEAD reader and the decoder are injectable, so the suite exercises
 the client's logic rather than the provider's uptime.
 
+Two failure modes are refused rather than absorbed. An object that exists but carries no
+`Last-Modified` is named as such and not retried under the other key layout: an object that is
+there without a publication instant is a different fact from an object that is not there, and
+availability inferred from anything but the datum is the quarantined grade. And the declared
+points are resolved to flat grid indices once, from the first decoded message's grid header,
+with every later message checked against that grid — a step published on a different grid would
+otherwise be sampled at the right index of the wrong array, which is the only failure here that
+produces plausible-looking numbers.
+
 **`src/greek_bess/data/availability_audit.py`** — per-delivery-interval verdicts against the
 declared cutoff, the derived evidence grade, per-day statuses that each name a cause, and a
 summary carrying what the audit does and does not establish.
@@ -117,7 +126,7 @@ instant, or one input's digest, would have over-claimed availability and broken 
 ## Verification
 
 Ruff, mypy, pytest and the wheel build were run on the project's development interpreter with
-`eccodes` installed as a declared dependency. The suite grew from 403 tests to 513: four new test
+`eccodes` installed as a declared dependency. The suite grew from 403 tests to 520: four new test
 modules — `tests/test_decision_cutoff.py`, `tests/test_point_in_time.py`,
 `tests/test_availability_audit.py` and `tests/test_gfs.py` — plus the render fixture extension
 that the new manifest kind requires. Design Section 11 cases 5, 6, 9, 12, 13 and 24 are covered

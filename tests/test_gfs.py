@@ -425,6 +425,68 @@ class DeliveryDayTests(unittest.TestCase):
         )
 
 
+class GridConsistencyTests(unittest.TestCase):
+    """A step on a different grid is refused, not sampled at the right index of a wrong array."""
+
+    def test_a_message_on_another_grid_refuses_the_whole_day(self) -> None:
+        other = Grib2Grid(
+            ni=720,
+            nj=361,
+            first_latitude=90.0,
+            first_longitude=0.0,
+            latitude_increment=0.5,
+            longitude_increment=0.5,
+        )
+        calls: list[int] = []
+
+        def decode(payload: bytes, indices: Any) -> Grib2Message:
+            calls.append(1)
+            return Grib2Message(
+                name="TMP",
+                units="K",
+                step_type="instant",
+                start_step=0,
+                end_step=0,
+                grid=GRID if len(calls) < 4 else other,
+                samples=tuple(300.0 for _ in indices),
+            )
+
+        archive = _Archive()
+        client = NoaaGfsClient(
+            fetcher=archive.fetch, head_reader=archive.head, decoder=decode
+        )
+        with self.assertRaisesRegex(NoaaGfsError, "different grid"):
+            client.build_delivery_day_features(
+                date(2026, 8, 20), geography=GEOGRAPHY, variables=["temperature_2m"]
+            )
+
+
+class PublicationInstantTests(unittest.TestCase):
+    """The object's Last-Modified is the provider-declared availability instant."""
+
+    def test_an_http_date_is_read_as_an_aware_utc_instant(self) -> None:
+        archive = _Archive()
+        client = NoaaGfsClient(fetcher=archive.fetch, head_reader=archive.head)
+        head = client.head_step_object(date(2026, 8, 19), 24)
+        self.assertEqual(head.last_modified_utc.isoformat(), "2026-08-19T03:52:00+00:00")
+
+    def test_an_object_without_a_publication_instant_is_refused(self) -> None:
+        class _NoInstant(_Archive):
+            def head(self, url: str) -> dict[str, str]:
+                headers = super().head(url)
+                del headers["Last-Modified"]
+                return headers
+
+        archive = _NoInstant()
+        client = NoaaGfsClient(fetcher=archive.fetch, head_reader=archive.head)
+        # An object that exists but carries no publication instant is a different fact from an
+        # object that is not there, so it is named rather than retried under the other layout:
+        # availability inferred from anything but the datum is the quarantined grade, and the
+        # client does not manufacture one.
+        with self.assertRaisesRegex(NoaaGfsError, "does not manufacture one"):
+            client.head_step_object(date(2026, 8, 19), 24)
+
+
 class SecretHygieneTests(unittest.TestCase):
     """Design section 11, case 24, for a source that has no credential at all."""
 

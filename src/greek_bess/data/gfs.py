@@ -41,6 +41,7 @@ import re
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
+from email.utils import parsedate_to_datetime
 from pathlib import Path
 from typing import Any
 
@@ -604,6 +605,7 @@ class NoaaGfsClient:
             heads[step] = head
             indexes[step] = self.read_index(head)
         indices: dict[tuple[float, float], int] = {}
+        grid: Grib2Grid | None = None
 
         for step in steps:
             head = heads[step]
@@ -614,11 +616,16 @@ class NoaaGfsClient:
                         continue
                     entry = select_index_entry(indexes[step], name, level, step)
                     payload = self.fetch_message(head, entry)
-                    if not indices:
-                        probe = self._decoder(payload, ())
+                    if grid is None:
+                        # The declared points are resolved to flat indices once, from the first
+                        # message's own grid header. Every later message is then checked against
+                        # that grid rather than trusted: a step published on a different grid
+                        # would be sampled at the right index of the wrong array, which is the
+                        # one failure here that produces plausible numbers.
+                        grid = self._decoder(payload, ()).grid
                         indices = {
                             (point.latitude, point.longitude): grid_index(
-                                probe.grid, point.latitude, point.longitude
+                                grid, point.latitude, point.longitude
                             )
                             for point in geography.points
                         }
@@ -627,6 +634,13 @@ class NoaaGfsClient:
                         payload,
                         [indices[(point.latitude, point.longitude)] for point in ordered_points],
                     )
+                    if message.grid != grid:
+                        raise NoaaGfsError(
+                            f"{head.key} message {entry.message_number} is on a different grid "
+                            f"({message.grid}) from the one the declared points were resolved "
+                            f"against ({grid}); the day is refused rather than sampled at "
+                            "indices that mean something else"
+                        )
                     digest = sha256_bytes(payload)
                     messages[key] = _MessagePayload(
                         head=head,
@@ -751,14 +765,21 @@ def _object_head(key: str, url: str, headers: Mapping[str, str]) -> GfsObjectHea
         )
     if length is None:
         raise NoaaGfsError(f"{key}: the object carries no Content-Length header")
+    # parsedate_to_datetime is the parser HTTP-dates are specified against and returns an aware
+    # datetime; strptime with %Z accepts "GMT" but whether it attaches a timezone has varied, and
+    # a publication instant that is silently naive is exactly what this schema refuses.
     try:
-        published = pd.Timestamp(
-            datetime.strptime(last_modified, "%a, %d %b %Y %H:%M:%S %Z"), tz=UTC
-        )
-    except ValueError as exc:
+        parsed = parsedate_to_datetime(last_modified)
+    except (TypeError, ValueError) as exc:
         raise NoaaGfsError(
             f"{key}: Last-Modified {last_modified!r} is not an HTTP-date"
         ) from exc
+    if parsed.tzinfo is None:
+        raise NoaaGfsError(
+            f"{key}: Last-Modified {last_modified!r} carries no timezone, so it cannot be "
+            "compared with a declared decision cutoff"
+        )
+    published = pd.Timestamp(parsed).tz_convert(UTC)
     return GfsObjectHead(
         key=key,
         url=url,

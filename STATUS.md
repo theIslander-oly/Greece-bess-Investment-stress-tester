@@ -63,7 +63,7 @@ latter exiting `2` on any unaccepted day with its evidence still written.
 `fetch-fundamentals.yml` and `witness-fundamentals.yml` dispatch and schedule them.
 `contract.py` gains the `point_in_time_availability_audit` kind and `render.py` gains the
 checklist entries for the cutoff, the lead and the geography. The policy the code enforces is
-`docs/point_in_time_feature_contract.md`. Ruff, mypy, 513 tests and the wheel build are green.
+`docs/point_in_time_feature_contract.md`. Ruff, mypy, 520 tests and the wheel build are green.
 
 **What the phase corrected.** The source assessment computed the required forecast steps as 21-46
 from the *Athens* delivery day; this project's delivery day is the CET/CEST market day, which

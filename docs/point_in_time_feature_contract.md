@@ -148,7 +148,11 @@ Five source facts are enforced rather than documented:
    A missing predecessor is named, never assumed zero.
 5. **A declared sampling point must land on a grid node.** A point between nodes would have to be
    interpolated, and no interpolation rule is declared, so the refusal names the nearest node and
-   the operator adjusts the declaration deliberately.
+   the operator adjusts the declaration deliberately. The points are resolved to flat grid
+   indices once, from the first decoded message's own grid header, and every later message is
+   checked against that grid: a step published on a different grid would otherwise be sampled at
+   the right index of the wrong array, which is the one failure mode here that produces
+   plausible-looking numbers.
 
 *Corrected in implementation:* the source assessment computed the required forecast steps as
 **21–46** from the *Athens* delivery day. This project's delivery day is the **CET/CEST market
