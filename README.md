@@ -1167,7 +1167,19 @@ No official prices or personal API credentials are required.
 
 ```text
 src/greek_bess/
-  cli.py
+  cli/
+    _main.py          # parser assembly and the single dispatch point
+    _registry.py      # the Command record every subcommand declares
+    _support.py       # shared reading, writing and config helpers
+    admie.py
+    analysis.py
+    custody.py
+    dispatch.py
+    finance.py
+    forecast.py
+    ingest.py
+    manifests.py
+    stress.py
   data/
     admie.py
     admie_timing.py
