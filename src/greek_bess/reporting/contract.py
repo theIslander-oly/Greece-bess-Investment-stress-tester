@@ -33,6 +33,15 @@ one list everywhere would refuse honest arithmetic and teach a reader that the c
 Where the check does apply it reaches every key name at any depth, because a report renders
 nested keys as visible column headings. A summary that recorded a per-path table whose columns
 claimed a percentile would otherwise pass a top-level scan and reach a reader as a heading.
+
+Building and reading a manifest do not enforce the same list, and the split is deliberate.
+:func:`read_run_manifest` applies every check that is a property of the recorded content — the
+schema version, the closed registry, the basis cross-check, the standing-claim cross-check and
+the scoped distributional-term refusal — because a manifest reaching a consumer did not
+necessarily leave through :func:`build_run_manifest` on this machine or this version. It does
+not apply the guaranteed-key check, which is a promise about what a producing module recorded
+when it recorded it: refusing on read would reject a manifest that was correct when written and
+is still exactly what it says it is.
 """
 
 from __future__ import annotations
@@ -319,7 +328,26 @@ def write_run_manifest(path: Path, manifest: RunManifest) -> None:
 
 
 def read_run_manifest(path: Path) -> RunManifest:
-    """Read a manifest, refusing a schema version or result kind this code cannot honor."""
+    """Read a manifest, refusing one this code cannot honor exactly as it was recorded.
+
+    Reading refuses an unknown schema version, an unknown result kind, a basis disagreeing with
+    that kind, a malformed envelope — and the two claim checks that are properties of the
+    recorded content rather than guarantees about a producing module: a summary contradicting a
+    standing exclusion, and distributional vocabulary in a kind that forbids it.
+
+    Those two run on read as well as on build because this function is the doorway a report
+    renders through, and a manifest that reaches it did not necessarily leave through
+    :func:`build_run_manifest` on this machine or this version. Rendering a summary that says
+    ``is_probabilistic`` beside a standing exclusion reading "not a probability-calibrated
+    estimate" puts a contradiction in front of a reader, which is the outcome both checks exist
+    to prevent. Neither check can refuse a manifest this project recorded: building one already
+    applied both.
+
+    The guaranteed-key check deliberately does **not** run here. It is a promise about what a
+    producing module recorded at the time it recorded it, so applying it on read would refuse a
+    manifest that was correct when written and is still exactly what it says it is. A report
+    states an absent guaranteed key as not recorded instead.
+    """
 
     payload = json.loads(Path(path).read_text(encoding="utf-8"))
     if not isinstance(payload, Mapping):
@@ -360,6 +388,12 @@ def read_run_manifest(path: Path) -> RunManifest:
     summary = payload["summary"]
     if not isinstance(summary, Mapping):
         raise ReportContractError("Run manifest summary must be an object")
+    declared_inputs = payload.get("declared_inputs")
+    if declared_inputs is not None and not isinstance(declared_inputs, Mapping):
+        raise ReportContractError("Run manifest declared_inputs must be an object")
+    if kind.forbids_distributional_terms:
+        _refuse_distributional_terms(kind_id, summary)
+    _refuse_contradicted_standing_claims(kind_id, summary)
     return RunManifest(
         manifest_id=str(payload["manifest_id"]),
         result_kind=kind_id,

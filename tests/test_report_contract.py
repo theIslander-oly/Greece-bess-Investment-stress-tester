@@ -345,6 +345,56 @@ class RoundTripTests(unittest.TestCase):
                 read_run_manifest(path)
 
 
+class ReadPathClaimTests(unittest.TestCase):
+    """What reading refuses, and what it deliberately does not.
+
+    Building a manifest is not the only way one reaches a consumer: a manifest travels, and a
+    reader has only the file. The checks that are properties of the recorded content therefore
+    run on read as well, while the guaranteed-key check — a promise about what a producing
+    module recorded at the time — stays a record-time check so that a manifest written before a
+    kind guaranteed a key still verifies.
+    """
+
+    def _written(self, directory: str, manifest: dict[str, Any]) -> Path:
+        path = Path(directory) / "run.manifest.json"
+        path.write_text(json.dumps(manifest), encoding="utf-8")
+        return path
+
+    def test_a_summary_contradicting_a_standing_claim_is_refused_on_read(self) -> None:
+        manifest = _build(_dispatch_summary()).to_dict()
+        manifest["summary"]["is_probabilistic"] = True
+        with tempfile.TemporaryDirectory() as directory:
+            with self.assertRaisesRegex(ReportContractError, "contradicting the standing"):
+                read_run_manifest(self._written(directory, manifest))
+
+    def test_a_distributional_key_is_refused_on_read_for_a_kind_that_forbids_it(self) -> None:
+        manifest = _build(
+            _ensemble_summary(), kind_id="scenario_ensemble_range", manifest_id="ensemble-1"
+        ).to_dict()
+        manifest["summary"]["path_ranges"][0]["p95_margin_eur"] = 1.0
+        with tempfile.TemporaryDirectory() as directory:
+            with self.assertRaisesRegex(ReportContractError, "p95"):
+                read_run_manifest(self._written(directory, manifest))
+
+    def test_declared_inputs_that_are_not_an_object_are_refused_on_read(self) -> None:
+        manifest = _build(_dispatch_summary()).to_dict()
+        manifest["declared_inputs"] = ["prices.csv"]
+        with tempfile.TemporaryDirectory() as directory:
+            with self.assertRaisesRegex(ReportContractError, "declared_inputs must be an object"):
+                read_run_manifest(self._written(directory, manifest))
+
+    def test_a_manifest_missing_a_guaranteed_summary_key_still_reads(self) -> None:
+        """The record-time guarantee is not retroactively applied to a recorded manifest."""
+
+        manifest = _build(_dispatch_summary()).to_dict()
+        del manifest["summary"]["interval_count"]
+        with tempfile.TemporaryDirectory() as directory:
+            restored = read_run_manifest(self._written(directory, manifest))
+
+        self.assertNotIn("interval_count", restored.summary)
+        self.assertEqual(restored.result_kind, "perfect_foresight_dispatch")
+
+
 class CliTests(unittest.TestCase):
     def test_record_and_verify_round_trip_through_the_cli(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

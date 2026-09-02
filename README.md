@@ -10,8 +10,9 @@ on that replay core.
 This is not financial advice, an investment-grade forecast, a bankable revenue study or a
 substitute for legal, tax, grid-connection and market-access diligence.
 
-**Current release:** `v0.8.2` — a deterministic report renderer over verified run manifests,
-and only verified run manifests, now composing many of them into one indexed report.
+**Current release:** `v0.8.3` — a deterministic report renderer over verified run manifests,
+and only verified run manifests, composing many of them into one indexed report, with the
+completed-v0.8 review's corrections to the manifest doorway applied.
 
 ## What this tool cannot tell you
 
@@ -1210,7 +1211,14 @@ decision that keeps the manifest the sole doorway. v0.8.2 closes v0.8 with the s
 the interactive viewer was deliberately declined because it would duplicate a validated
 rendering surface, add a dependency and server lifecycle, and create no new evidence. Any future
 interactive proposal must identify a need the static report cannot meet and proceed as a
-separately approved milestone.
+separately approved milestone. The formal completed-v0.8 review then found four defects in the
+reporting layer and corrected them in v0.8.3: a verified manifest missing one of its kind's
+guaranteed summary keys crashed the renderer instead of stating the absence; a manifest whose
+summary contradicted a standing exclusion, or carried distributional vocabulary a kind forbids,
+was refused when recorded but not when read and rendered; a non-object `declared_inputs` raised
+an unhandled error rather than a contract refusal; and three distinct manifest IDs could reduce
+to two in-document anchors, so one index link led to another manifest's block. No analytical,
+dispatch, forecast, stress, degradation or finance behaviour changed.
 AI-generated explanations remain outside v0.8.
 Percentile outputs (P5/P50/P95) and loss probabilities were removed from the roadmap because
 the seasonal bootstrap resamples a non-stationary 2020-2026 history uniformly and therefore
@@ -1288,6 +1296,7 @@ ruff check . && mypy && pytest -v && python -m build --wheel
 - [Implementation report v0.8.0](docs/implementation_report_v0.8.0.md)
 - [Implementation report v0.8.1](docs/implementation_report_v0.8.1.md)
 - [Implementation report v0.8.2](docs/implementation_report_v0.8.2.md)
+- [Completed-v0.8 review](docs/implementation_report_v0.8.2_review.md)
 - [Current status](STATUS.md)
 - [Implementation plan](PLAN.md)
 - [Contributing guidance](CONTRIBUTING.md)

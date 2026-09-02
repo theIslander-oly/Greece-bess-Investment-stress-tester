@@ -190,6 +190,26 @@ def _manifest_path(directory: Path, kind: ResultKind, *, manifest_id: str | None
     return path
 
 
+def _manifest_at(path: Path, kind: ResultKind, manifest_id: str) -> Path:
+    """Write one manifest at an explicit path, so the manifest ID need not name the file.
+
+    Anchor collisions are a property of the IDs, and two IDs that differ only by case are
+    distinct manifests on any platform even where their file names would not be.
+    """
+
+    write_run_manifest(
+        path,
+        build_run_manifest(
+            _summary_for(kind),
+            kind_id=kind.kind_id,
+            manifest_id=manifest_id,
+            produced_by=f"{kind.kind_id}-command",
+            created_at_utc="2026-09-01T12:00:00+00:00",
+        ),
+    )
+    return path
+
+
 def _blocks(document: str) -> dict[str, str]:
     return {match.group("anchor"): match.group("body") for match in FIGURE_BLOCK.finditer(document)}
 
@@ -362,6 +382,32 @@ class LabelRetentionTests(unittest.TestCase):
             self.assertEqual([figure.is_headline for figure in report.figures], [False])
             self.assertEqual([figure.key for figure in report.figures], ["method"])
 
+    def test_a_verified_manifest_without_a_guaranteed_key_says_so_rather_than_crashing(
+        self,
+    ) -> None:
+        """The guaranteed-key check is a record-time promise, so a report can still meet one.
+
+        A manifest recorded before its kind guaranteed a key still verifies, by design. Reading
+        that key straight out of the summary would raise ``KeyError`` — an unhandled crash for
+        a manifest the report can describe honestly — so the absence is stated instead, and no
+        figure is recorded for a value that is not there.
+        """
+
+        with tempfile.TemporaryDirectory() as raw:
+            directory = Path(raw)
+            kind = RESULT_KINDS["perfect_foresight_dispatch"]
+            path = _manifest_path(directory, kind)
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            del payload["summary"]["interval_count"]
+            path.write_text(json.dumps(payload), encoding="utf-8")
+
+            report = render_report([path])
+
+            self.assertNotIn("interval_count", [figure.key for figure in report.figures])
+            block = _blocks(report.html)[_anchor("run-perfect_foresight_dispatch")]
+            self.assertIn("interval count", block)
+            self.assertIn("not recorded", block)
+
 
 class NoComputationTests(unittest.TestCase):
     """The renderer formats recorded values; it never derives one."""
@@ -516,6 +562,38 @@ class RefusalTests(unittest.TestCase):
             anchors = list(_blocks(report.html))
             self.assertEqual(len(anchors), 2)
             self.assertEqual(len(set(anchors)), 2)
+
+    def test_a_disambiguating_anchor_that_is_itself_taken_is_advanced(self) -> None:
+        """One unchecked suffix is not enough to keep anchors unique.
+
+        ``A``, ``A-2`` and ``a`` are three distinct manifests. The first and third reduce to the
+        same readable anchor, and the suffix that disambiguates the third is exactly the anchor
+        the second already holds — so the index link for one manifest would jump to another
+        manifest's block unless the suffixed anchor is checked too.
+        """
+
+        with tempfile.TemporaryDirectory() as raw:
+            directory = Path(raw)
+            kind = RESULT_KINDS["perfect_foresight_dispatch"]
+            paths = [
+                _manifest_at(directory / f"m{position}.manifest.json", kind, manifest_id)
+                for position, manifest_id in enumerate(("A", "A-2", "a"))
+            ]
+            report = render_report(paths)
+
+            blocks = _blocks(report.html)
+            self.assertEqual(len(blocks), 3)
+            for manifest_id in ("A", "A-2", "a"):
+                linked = re.search(
+                    r'<a href="#(?P<anchor>[^"]+)">' + re.escape(html_module.escape(manifest_id))
+                    + "</a>",
+                    report.html,
+                )
+                assert linked is not None
+                self.assertIn(
+                    f"<h3>{html_module.escape(manifest_id)}</h3>",
+                    blocks[linked.group("anchor")],
+                )
 
 
 class DeterminismTests(unittest.TestCase):

@@ -3,6 +3,27 @@
 This file records decisions that materially affect interpretation or reproducibility. Add a
 dated entry when a milestone changes scope, assumptions, data handling or validation.
 
+## 2026-09-02 — Check recorded content on read, and guaranteed keys only on record
+
+- **Decision:** `read_run_manifest` applies every check that is a property of a manifest's
+  recorded content — the schema version, the closed kind registry, the basis cross-check, the
+  standing-claim cross-check and the scoped distributional-term refusal. It deliberately does
+  **not** apply the guaranteed-key check, which stays a record-time check; a report states an
+  absent guaranteed key as not recorded instead of assuming it or refusing the manifest.
+- **Reason:** The completed-v0.8 review found the two content checks running only when a
+  manifest was built. A manifest travels, and a reader has only the file, so a summary declaring
+  `is_probabilistic` was refused at record time yet rendered — printed directly above the
+  standing exclusion "not a probability-calibrated estimate". Neither check can refuse a
+  manifest this project recorded, because building one already applied both, so moving them to
+  the doorway costs nothing and closes the gap. The guaranteed-key check is different in kind: it
+  is a promise about what a producing module recorded at the time it recorded it, and the
+  2026-09-01 amendment relies on it staying a record-time check so an ensemble manifest written
+  before `path_ranges` existed still verifies and still renders.
+- **Consequence:** v0.8.3 corrections. The manifest envelope, `schema_version`, renderer version,
+  report format and index fields are unchanged, and no recorded figure changes value. A manifest
+  that was hand-edited, truncated or produced elsewhere is now refused at the doorway with the
+  contract's own error rather than rendered or crashing the renderer.
+
 ## 2026-09-01 — Decline an interactive viewer and complete v0.8 with the static renderer
 
 - **Decision:** Do not add Streamlit or another local interactive viewer in v0.8. The indexed,

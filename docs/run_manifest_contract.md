@@ -100,8 +100,10 @@ greek-bess verify-run-manifest dispatch.manifest.json
 ```
 
 `record-run-manifest` refuses a summary that lacks its label or its kind's guaranteed keys.
-`verify-run-manifest` refuses a manifest from an unknown schema version or result kind, and one
-whose declared basis disagrees with its kind.
+`verify-run-manifest` refuses a manifest from an unknown schema version or result kind, one
+whose declared basis disagrees with its kind, one whose summary contradicts a standing exclusion
+or carries distributional vocabulary its kind forbids, and one whose `declared_inputs` is not an
+object. See the 2 September 2026 amendment for why the guaranteed-key check is not among them.
 
 ## Amendment, 1 September 2026 (v0.8.1)
 
@@ -122,6 +124,32 @@ and the report says plainly that such a manifest records no per-path ranges.
 the top-level names. The scoping to those kinds is unchanged and still load-bearing for the
 reasons above; the depth changed because a report renders a nested key as a visible column
 heading, and a top-level scan would clear a per-path table whose headings claimed a percentile.
+
+## Amendment, 2 September 2026 (v0.8.3)
+
+The completed-v0.8 review found that two of the contract's checks ran only when a manifest was
+built. Recorded in `DECISIONS.md` under *"Check recorded content on read, and guaranteed keys
+only on record"*.
+
+**Reading now applies every check that is a property of the recorded content.** In addition to
+the schema version, the closed registry and the basis cross-check, `read_run_manifest` applies
+the standing-claim cross-check and, for a kind that declares it, the distributional-term
+refusal — and refuses a `declared_inputs` that is not an object, which previously raised an
+unhandled error. A manifest travels, and a reader has only the file: a summary declaring
+`is_probabilistic` was refused when recorded yet read and rendered, placing that claim in a
+report directly above the standing exclusion "not a probability-calibrated estimate". Neither
+check can refuse a manifest this project recorded, because building one already applied both.
+
+**The guaranteed-key check stays a record-time check.** It is a promise about what a producing
+module recorded at the time it recorded it, not a property of the file, and the 1 September
+amendment above depends on it staying that way: an ensemble manifest written before
+`path_ranges` existed still verifies and still renders. Because a report may therefore meet a
+manifest without one of its kind's guaranteed keys, the renderer states that key as not recorded
+by the same route it states any other absent value. It previously read the key straight out of
+the summary and raised `KeyError`.
+
+The envelope is unchanged, so `schema_version` stays at 1 and every manifest recorded earlier
+still reads and still renders.
 
 ## What this does not do
 
