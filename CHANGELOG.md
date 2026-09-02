@@ -4,6 +4,30 @@ All notable project changes are documented here.
 
 ## [Unreleased]
 
+### Added
+
+- **v0.9 is open: a point-in-time fundamentals forecast benchmark.** `docs/v0.9_design.md` is the
+  design of record for the one open analytic question in the forecasting layer — whether an
+  independently validated exogenous input improves realized settled dispatch value over
+  price-history models alone. It specifies a typed point-in-time feature schema carrying a
+  publication instant, a retrieval instant, a source document, a revision and a byte digest per
+  value; a declared decision cutoff and decision lead with no defaults, where a publication at the
+  cutoff is late; graded availability evidence in which witnessed and provider-declared are
+  admissible and never merged, and assumed is quarantined; a revision-aware as-of join whose audit
+  table names the revision behind every feature value and whose days are complete or excluded by
+  named cause; an ablation of the two existing model families with and without the accepted
+  features under identical hyperparameters, refit cadence and splits; a settled dispatch
+  comparison on common days under an identical battery and a common perfect-foresight ceiling; and
+  three new manifest kinds to carry the result. `config/decision_cutoff.example.json` and
+  `config/fundamentals_geography.example.json` ship the two declaration formats with placeholder
+  references, and a test keeps both parseable by the reader that will read the real declaration
+  and refused as declarations while the placeholders remain. Documentation and configuration only:
+  no source code, dependency, workflow or data source, and no accepted figure or analytical
+  behaviour changed. The choice of data source is not made: the design's external facts are
+  labelled as inferences until the v0.9.0 spike verifies them. The 2026-09-01 removal of ADMIE
+  load and RES forecasts from scope is not reopened; ENTSO-E's Greek forecasts originate from
+  ADMIE and are isolated as a separate track that no part of v0.9 depends on.
+
 ### Changed
 
 - **The README now leads with the accepted official-history findings.** A compact, fully
