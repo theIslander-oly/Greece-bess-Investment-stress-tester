@@ -28,6 +28,17 @@ CANONICAL_COLUMNS = [
 SUPPORTED_SOURCES = frozenset({"entsoe", "henex", "synthetic"})
 SUPPORTED_DURATIONS_HOURS = frozenset({0.25, 1.0})
 
+# Timestamp columns are normalized to one resolution so that two frames holding the
+# same history compare equal regardless of how they were built. Without this, a
+# frame from `generate_synthetic_prices` carries microseconds, because that is what
+# `Timestamp.now` returns, while the same frame written to a canonical CSV and read
+# back carries nanoseconds, because that is what `to_datetime` parses into, and the
+# two are unequal despite describing identical instants. Nanoseconds are the target
+# because widening to them is exact from any coarser unit, whereas narrowing would
+# silently truncate; every market and retrieval timestamp is far inside the
+# nanosecond representable range.
+CANONICAL_TIME_UNIT = "ns"
+
 
 class CanonicalSchemaError(ValueError):
     """Raised when normalized market data violates the canonical schema."""
@@ -63,6 +74,7 @@ def ensure_canonical(frame: pd.DataFrame, *, allow_empty: bool = True) -> pd.Dat
     for column in ("delivery_start_market", "delivery_start_greece"):
         if not isinstance(result[column].dtype, pd.DatetimeTZDtype):
             raise CanonicalSchemaError(f"{column} must be timezone-aware")
+        result[column] = result[column].dt.as_unit(CANONICAL_TIME_UNIT)
 
     result["duration_hours"] = pd.to_numeric(result["duration_hours"], errors="raise")
     result["price_eur_per_mwh"] = pd.to_numeric(result["price_eur_per_mwh"], errors="coerce")
@@ -137,7 +149,7 @@ def _as_utc(series: pd.Series, name: str) -> pd.Series:
     parsed = pd.to_datetime(series, utc=True, errors="coerce")
     if parsed.isna().any():
         raise CanonicalSchemaError(f"{name} contains invalid timestamps")
-    return parsed
+    return parsed.dt.as_unit(CANONICAL_TIME_UNIT)
 
 
 def _normalize_flags(value: object) -> list[str]:
