@@ -349,9 +349,10 @@ plan it as one whenever the host is refused.
     as the evidence the move changed nothing), `data/point_in_time.py`, `data/gfs.py`,
     `data/availability_audit.py`, `cli/fundamentals.py` with `fetch-fundamentals` and
     `audit-feature-availability`, `fetch-fundamentals.yml`, `witness-fundamentals.yml`, the
-    `point_in_time_availability_audit` manifest kind and three renderer checklist entries. The
-    witness workflow is scheduled from today so that witnessed days accumulate by v0.9.5;
-    witnessed days arrive one per day and cannot be backfilled.
+    `point_in_time_availability_audit` manifest kind, and two renderer checklist entries
+    covering all three declarations. The witness workflow is scheduled from today so that
+    witnessed days accumulate by v0.9.5; witnessed days arrive one per day and cannot be
+    backfilled.
     - Availability is established **per delivery interval**, never per day: upload order is not
       monotone in forecast step, so one step's availability says nothing about another's, and one
       late step makes the day `incomplete_before_cutoff` rather than a shorter day.

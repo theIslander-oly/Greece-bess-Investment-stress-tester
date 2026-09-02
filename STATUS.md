@@ -30,7 +30,7 @@ matrix, with no analytical result changed
 point-in-time fundamentals forecast benchmark, with its design recorded, its two declaration
 formats committed as refused examples and its source-selection spike run and recorded — NOAA GFS
 0.25° forecast vintages chosen from the 00 UTC cycle of D-1 for delivery days from 27 February
-2021, with 118 accepted delivery days carrying no feature and the EEX fallback not selected — ; and
+2021, with 118 accepted delivery days carrying no feature and the EEX fallback not selected; and
 v0.9.1 has landed the first v0.9 code — the declared decision cutoff in a neutral module, the
 typed point-in-time feature schema, the NOAA GFS client reading single GRIB2 messages by byte
 range, the per-delivery-interval availability audit, two commands, a fetch workflow, a daily
