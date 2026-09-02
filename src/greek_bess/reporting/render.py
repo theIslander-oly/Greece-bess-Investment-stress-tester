@@ -274,6 +274,18 @@ DECLARATION_CHECKLIST: tuple[DeclarationRequirement, ...] = (
         records_a_result_with="greek-bess fetch-fundamentals --geography <geography.json>",
     ),
     DeclarationRequirement(
+        input_name="Price-regime bands of a forecast benchmark",
+        must_declare=(
+            "the ascending price levels the reported slices are cut at, in EUR/MWh. There is "
+            "no default, because which regimes are worth separating is the judgment being made"
+        ),
+        decision="Slice benchmark accuracy at declared price regimes, never at inferred ones",
+        decided_on="2026-09-02",
+        records_a_result_with=(
+            "greek-bess benchmark-fundamentals-forecast --price-regime-bands <edges>"
+        ),
+    ),
+    DeclarationRequirement(
         input_name="Scenario set of an ensemble",
         must_declare=(
             "every scenario, by name, in a manifest. There is no default scenario set and no "

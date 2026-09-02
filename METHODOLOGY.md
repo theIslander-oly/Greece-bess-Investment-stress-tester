@@ -126,6 +126,45 @@ the same physical and terminal-energy constraints.
 MAE, RMSE, bias, median absolute error, WAPE, correlation and negative-price detection are
 reported. MAPE is excluded because zero and negative prices make it misleading.
 
+### 4.1 Fundamentals ablation
+
+The v0.9.3 ablation answers one question — whether an independently validated exogenous input
+improves a forecast — by holding everything else fixed. The control arm is the accepted ML
+benchmark unchanged: the same two model families on the same calendar and price-history feature
+set. The challenger arm is the same two families, the same fixed hyperparameters, the same seed
+and the same refit cadence, with the accepted point-in-time feature columns appended. Both arms
+walk forward through the same loop and refit on the same days, so a difference between them can
+come only from the information the fit sees.
+
+Both arms are measured on one calendar. The evaluation set is the intersection of delivery days
+complete for every naive baseline, for the control arm and for the challenger, and the control is
+re-measured on that reduced calendar rather than credited with days the challenger could not be
+run on. The control's metrics on its own unreduced calendar are recorded alongside, so the cost
+of the reduction is visible rather than implied. A day missing any accepted feature is excluded
+from every arm by the join's own named cause; its rows are dropped from the challenger's fit and
+the dropped-interval count is recorded. No exogenous value is ever imputed: the pipeline's
+imputer exists for the price-lag warm-up gaps, and the walk-forward loop refuses to fit or
+predict when a column declared complete is not.
+
+Within each arm the reported model is chosen on validation RMSE alone. Test metrics never select,
+and the feature set, the split and the cutoff are never revised after a test run — any such
+revision is a new benchmark under a new decision entry. Accuracy is additionally reported on
+declared slices of the held-out days: by delivery year, by market-clock interval of day, by
+declared price regime and by resolution era. The price-regime bands are declared, because which
+price levels are worth separating is a judgment.
+
+A benchmark identifies its inputs rather than describing them. It declares the digest of the
+joined feature frame it fits on, the cutoff schedule, the decision lead and the admitted evidence
+grades, and refuses to run unless every one equals what the join recorded and the frame hashes to
+the digest its summary states. A run that admits the quarantined `assumed` grade, or whose common
+held-out days do not cover a complete meteorological season of quarter-hour deliveries, is
+labelled exploratory and carries the suffix saying so; the manifest contract refuses a summary
+that admits the quarantined grade while declaring itself otherwise.
+
+Price error is the secondary measure here and is reported because it explains a mechanism. The
+primary measure is realized settled dispatch value, which the ablation does not compute; that
+comparison is a separate surface.
+
 ## 5. Degradation
 
 Each battery cohort ages separately through additive calendar and equivalent-cycle fade.

@@ -39,9 +39,15 @@ from ..data.point_in_time import (
     write_point_in_time_csv,
 )
 from ..data.provenance import RetrievalRecord, utc_now_iso
+from ..forecast.fundamentals import (
+    FundamentalsBenchmarkConfig,
+    generate_fundamentals_benchmark,
+)
 from ..forecast.point_in_time_join import join_point_in_time_features
 from ._registry import Command
 from ._support import (
+    _add_ml_arguments,
+    _ml_config_from_args,
     _read_canonical_csv,
     _read_decision_cutoff_schedule,
     _read_sampling_geography,
@@ -262,6 +268,66 @@ def run_build_point_in_time_features(args: argparse.Namespace) -> int:
     return 0 if result.summary["excluded_day_count"] == 0 else 2
 
 
+def configure_benchmark_fundamentals_forecast(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("prices", type=Path, help="Canonical price CSV of realized prices")
+    parser.add_argument(
+        "--features", required=True, type=Path,
+        help="Interval feature frame written by build-point-in-time-features",
+    )
+    parser.add_argument(
+        "--feature-summary", type=Path,
+        help="Join summary JSON; defaults beside the feature frame",
+    )
+    parser.add_argument(
+        "--feature-set-sha256", required=True,
+        help=(
+            "The feature-set digest this benchmark claims to run on. It is declared rather "
+            "than adopted so that a result names one accepted feature table"
+        ),
+    )
+    parser.add_argument("--decision-cutoff", required=True, type=Path)
+    parser.add_argument("--decision-lead-minutes", required=True, type=int)
+    parser.add_argument(
+        "--admitted-grades", nargs="+", required=True, choices=EVIDENCE_GRADES,
+        help="Evidence grades this benchmark admits; they must equal the join's own",
+    )
+    parser.add_argument(
+        "--price-regime-bands", nargs="+", required=True, type=float,
+        help=(
+            "Ascending upper edges of the reported price-regime slices, in EUR/MWh. There is "
+            "no default: which price levels are worth separating is a judgment"
+        ),
+    )
+    _add_ml_arguments(parser)
+    parser.add_argument("--output", required=True, type=Path, help="Two-arm forecast CSV")
+    parser.add_argument("--summary", type=Path, help="Benchmark JSON; defaults beside the CSV")
+
+
+def run_benchmark_fundamentals_forecast(args: argparse.Namespace) -> int:
+    summary_source = args.feature_summary or args.features.with_suffix(".summary.json")
+    join_summary = json.loads(summary_source.read_text(encoding="utf-8"))
+    schedule = _read_decision_cutoff_schedule(args.decision_cutoff)
+    config = FundamentalsBenchmarkConfig(
+        ml=_ml_config_from_args(args),
+        feature_set_sha256=args.feature_set_sha256,
+        decision_cutoff_schedule_id=schedule.schedule_id,
+        decision_lead_minutes=args.decision_lead_minutes,
+        evidence_grades_admitted=tuple(args.admitted_grades),
+        price_regime_bands=tuple(args.price_regime_bands),
+    )
+    result = generate_fundamentals_benchmark(
+        _read_canonical_csv(args.prices),
+        pd.read_csv(args.features),
+        join_summary,
+        config,
+    )
+    summary_path = args.summary or args.output.with_suffix(".summary.json")
+    _write_plain_csv(result.forecasts, args.output)
+    _write_json(result.summary, summary_path)
+    print(json.dumps(result.summary, indent=2))
+    return 0
+
+
 COMMANDS: tuple[Command, ...] = (
     Command(
         name="fetch-fundamentals",
@@ -280,6 +346,15 @@ COMMANDS: tuple[Command, ...] = (
         ),
         configure=configure_build_point_in_time_features,
         run=run_build_point_in_time_features,
+    ),
+    Command(
+        name="benchmark-fundamentals-forecast",
+        help=(
+            "Run the price-history control and the fundamentals challenger over identical "
+            "days, models, hyperparameters and refit cadence, selecting on validation only"
+        ),
+        configure=configure_benchmark_fundamentals_forecast,
+        run=run_benchmark_fundamentals_forecast,
     ),
     Command(
         name="audit-feature-availability",

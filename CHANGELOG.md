@@ -6,6 +6,33 @@ All notable project changes are documented here.
 
 ### Added
 
+- **v0.9.3: the fundamentals forecast ablation.** Add `benchmark-fundamentals-forecast` and
+  `forecast/fundamentals.py`: a control arm of the two existing model families on calendar and
+  price-history features, and a challenger arm of the same two families with the accepted
+  point-in-time columns appended, sharing the walk-forward loop, the fixed hyperparameters, the
+  seed, the refit cadence and the delivery days, so only the information differs. `ml.py` gains
+  the one parameter that makes this possible — `_walk_forward_predict(..., feature_columns=...)`,
+  with `require_non_null` naming the columns that must be complete wherever the model reads them
+  — and a regression asserts the control arm reproduces `generate_ml_forecasts` bit for bit,
+  refit logs included. Both arms are measured on the intersection of days complete for every
+  baseline and both arms, the control is re-measured on that reduced calendar with its unreduced
+  metrics recorded alongside, and a day missing any accepted feature leaves every arm by the
+  join's own named cause, its rows dropped from the challenger's fit and counted, never imputed.
+  Accuracy is sliced by delivery year, market-clock interval of day, declared price regime and
+  resolution era; `--price-regime-bands` is required and has no default, and the renderer's
+  landing checklist names it. The benchmark identifies rather than describes its inputs: the join
+  summary now records a `feature_set_sha256` over the joined frame, and the run refuses unless
+  the digest, the cutoff schedule, the decision lead and the admitted evidence grades all equal
+  what the join recorded. `reporting/contract.py` gains the `fundamentals_forecast_benchmark`
+  kind on the `historical_forecast_backtest` basis, plus a check — applied on record and on read,
+  so a hand-edited manifest cannot pass — refusing any summary that admits the quarantined
+  `assumed` availability grade while declaring itself not exploratory. A run whose common
+  held-out days do not cover a complete meteorological season of quarter-hour deliveries is
+  labelled exploratory and carries the suffix saying so. Validated entirely on synthetic
+  fixtures: the three operator declarations are still absent, so no accepted feature table, no
+  benchmark figure, no manifest and no acceptance document was produced, and no accepted figure
+  or analytical behaviour changed
+
 - **v0.9.2: revision-aware point-in-time join.** Add `build-point-in-time-features` and its reusable join: every emitted interval value is the latest revision published strictly before the declared effective cutoff, every selected value has a source-document/revision/byte-digest audit row, later revisions are counted and excluded, coarser broadcasts are explicit, and an incomplete variable excludes the whole delivery day without fill or imputation. Synthetic tests cover cutoff ties, revision selection, provenance, permutation invariance, incomplete days, hourly-to-quarter-hour broadcast, quarantined grades and finer-resolution refusal. Real-data acceptance remains outstanding solely because the three operator declarations are absent; no real join, model, manifest or acceptance document was produced.
 
 - Document measured engineering scale with direct provenance and the opt-in deterministic synthetic dispatch benchmark; no analytical result changes.

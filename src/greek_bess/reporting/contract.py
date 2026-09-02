@@ -233,6 +233,29 @@ def _kinds() -> dict[str, ResultKind]:
         # lifts nothing. `forbids_distributional_terms` stays unset for the same reason the
         # ADMIE audit leaves it unset: this summary's `median_decision_time_lead_minutes` is a
         # statistic about a publisher, not a claim about the distribution of outcomes.
+        # No `forbids_distributional_terms`: this benchmark's honest metrics are a mean error
+        # and a median absolute error, which are statistics about a model rather than claims
+        # about the distribution of investment outcomes. The summary instead declares the three
+        # standing negatives itself, which the contract cross-checks on build and on read.
+        ResultKind(
+            "fundamentals_forecast_benchmark",
+            "historical_forecast_backtest",
+            "Leakage-safe walk-forward ablation of point-in-time exogenous features against "
+            "price-history models on identical held-out days.",
+            (
+                "result_label",
+                "ablation_arms",
+                "feature_set_sha256",
+                "decision_cutoff_schedule_id",
+                "decision_lead_minutes",
+                "evidence_grades_admitted",
+                "common_day_count",
+                "excluded_days_by_cause",
+                "metrics",
+                "selected_challenger",
+                "is_exploratory",
+            ),
+        ),
         ResultKind(
             "point_in_time_availability_audit",
             "data_acceptance_evidence",
@@ -331,6 +354,7 @@ def build_run_manifest(
     if kind.forbids_distributional_terms:
         _refuse_distributional_terms(kind_id, summary)
     _refuse_contradicted_standing_claims(kind_id, summary)
+    _refuse_unlabelled_quarantined_evidence(kind_id, summary)
 
     if declared_inputs is not None and not isinstance(declared_inputs, Mapping):
         raise ReportContractError("declared_inputs must be a mapping when supplied")
@@ -364,11 +388,12 @@ def read_run_manifest(path: Path) -> RunManifest:
     """Read a manifest, refusing one this code cannot honor exactly as it was recorded.
 
     Reading refuses an unknown schema version, an unknown result kind, a basis disagreeing with
-    that kind, a malformed envelope — and the two claim checks that are properties of the
+    that kind, a malformed envelope — and the three claim checks that are properties of the
     recorded content rather than guarantees about a producing module: a summary contradicting a
-    standing exclusion, and distributional vocabulary in a kind that forbids it.
+    standing exclusion, distributional vocabulary in a kind that forbids it, and a summary that
+    admits the quarantined ``assumed`` availability grade without declaring itself exploratory.
 
-    Those two run on read as well as on build because this function is the doorway a report
+    Those three run on read as well as on build because this function is the doorway a report
     renders through, and a manifest that reaches it did not necessarily leave through
     :func:`build_run_manifest` on this machine or this version. Rendering a summary that says
     ``is_probabilistic`` beside a standing exclusion reading "not a probability-calibrated
@@ -427,6 +452,7 @@ def read_run_manifest(path: Path) -> RunManifest:
     if kind.forbids_distributional_terms:
         _refuse_distributional_terms(kind_id, summary)
     _refuse_contradicted_standing_claims(kind_id, summary)
+    _refuse_unlabelled_quarantined_evidence(kind_id, summary)
     return RunManifest(
         manifest_id=str(payload["manifest_id"]),
         result_kind=kind_id,
@@ -472,6 +498,31 @@ def _nested_key_names(payload: Any) -> list[str]:
         for item in payload:
             names.extend(_nested_key_names(item))
     return names
+
+
+def _refuse_unlabelled_quarantined_evidence(kind_id: str, summary: Mapping[str, Any]) -> None:
+    """Refuse a result that admits the quarantined evidence grade without saying so.
+
+    ``assumed`` availability — inferred from a regulatory deadline or a nominal latency rather
+    than from the datum — is admissible only in an explicitly labelled exploratory run that is
+    never recorded as accepted (decision entry 2026-09-02). A manifest that admits it while
+    declaring ``is_exploratory: false`` asserts the opposite of what its own inputs allow, and
+    a hand-edited summary is exactly the case this check exists for, so it runs on read as
+    well as on build.
+    """
+
+    admitted = summary.get("evidence_grades_admitted")
+    if not isinstance(admitted, (list, tuple)) or "assumed" not in {
+        str(grade) for grade in admitted
+    }:
+        return
+    if summary.get("is_exploratory") is not True:
+        raise ReportContractError(
+            f"Result kind {kind_id} admits the quarantined 'assumed' evidence grade while "
+            f"declaring is_exploratory={summary.get('is_exploratory')!r}. Availability "
+            "inferred from a deadline rather than from the datum is usable only in a run "
+            "labelled exploratory, and never as accepted evidence"
+        )
 
 
 def _refuse_contradicted_standing_claims(kind_id: str, summary: Mapping[str, Any]) -> None:

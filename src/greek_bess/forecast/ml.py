@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import asdict, dataclass
 from datetime import date, timedelta
 from typing import Any, cast
@@ -316,7 +317,34 @@ def _walk_forward_predict(
     target_days: list[date],
     model_name: str,
     config: MLForecastConfig,
+    *,
+    feature_columns: Sequence[str] = FEATURE_COLUMNS,
+    require_non_null: Sequence[str] = (),
 ) -> tuple[pd.Series, list[dict[str, Any]]]:
+    """Refit on a cadence and predict each target day from prior days only.
+
+    ``feature_columns`` exists so that an ablation can hold everything else fixed — the same
+    loop, the same cadence, the same models and the same seed — and vary only the columns the
+    fit sees. Its default is ``FEATURE_COLUMNS``, so every existing caller is unchanged.
+
+    ``require_non_null`` names columns that must be complete wherever the model reads them.
+    The pipeline's ``SimpleImputer`` exists for the price-lag warm-up gaps and must never
+    silently invent an exogenous feature value; an absent feature excludes its day rather than
+    acquiring a training-set median.
+    """
+
+    columns = list(dict.fromkeys(feature_columns))
+    if not columns:
+        raise MLForecastInputError("At least one feature column is required")
+    missing = [name for name in columns if name not in feature_table.columns]
+    if missing:
+        raise MLForecastInputError(f"Feature table is missing columns: {', '.join(missing)}")
+    required = list(dict.fromkeys(require_non_null))
+    unknown = [name for name in required if name not in columns]
+    if unknown:
+        raise MLForecastInputError(
+            f"Columns required to be complete are not model inputs: {', '.join(unknown)}"
+        )
     predictions: dict[pd.Timestamp, float] = {}
     refit_log: list[dict[str, Any]] = []
     fitted_model: Any = None
@@ -340,9 +368,12 @@ def _walk_forward_predict(
                     f"{model_name} needs at least {config.min_training_days} training "
                     f"days before {target_day}; found {training_day_count}"
                 )
+            _refuse_null_features(
+                training, required, f"{model_name} training rows before {target_day}"
+            )
             fitted_model = _make_model(model_name, config)
             fitted_model.fit(
-                training.loc[:, FEATURE_COLUMNS],
+                training.loc[:, columns],
                 training["actual_price_eur_per_mwh"].to_numpy(dtype=float),
             )
             last_refit_day = target_day
@@ -357,12 +388,36 @@ def _walk_forward_predict(
             )
 
         target = feature_table.loc[feature_table["market_day"].eq(target_day)]
-        predicted = fitted_model.predict(target.loc[:, FEATURE_COLUMNS])
+        if target.empty:
+            # A day the caller withheld from this arm's table. The refit cadence above is
+            # deliberately still evaluated, so both arms of an ablation refit on identical
+            # days even when one of them has no rows to predict.
+            continue
+        _refuse_null_features(target, required, f"{model_name} target day {target_day}")
+        predicted = fitted_model.predict(target.loc[:, columns])
         predictions.update(
             zip(target["delivery_start_utc"], predicted.astype(float), strict=True)
         )
 
     return pd.Series(predictions, dtype=float), refit_log
+
+
+def _refuse_null_features(
+    frame: pd.DataFrame, columns: list[str], where: str
+) -> None:
+    if not columns:
+        return
+    null_counts = {
+        name: int(frame[name].isna().sum())
+        for name in columns
+        if bool(frame[name].isna().any())
+    }
+    if null_counts:
+        listed = ", ".join(f"{name}={count}" for name, count in sorted(null_counts.items()))
+        raise MLForecastInputError(
+            f"Missing feature values reached {where}: {listed}. A feature that is absent "
+            "excludes its delivery day; it is never imputed"
+        )
 
 
 def _make_model(model_name: str, config: MLForecastConfig) -> Any:

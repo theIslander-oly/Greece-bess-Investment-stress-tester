@@ -1,5 +1,44 @@
 # Decision log
 
+## 2026-09-02 — Vary one thing in the fundamentals ablation, and identify the feature set
+
+- **Decision:** v0.9.3 compares the accepted price-history models against the same models with
+  the accepted point-in-time columns appended, sharing the walk-forward loop, the fixed
+  hyperparameters, the seed, the refit cadence and the delivery days. `ml.py` gains one parameter
+  (`feature_columns`, defaulting to `FEATURE_COLUMNS`, with `require_non_null` beside it) rather
+  than a second loop, and a regression asserts the control arm reproduces `generate_ml_forecasts`
+  bit for bit. The join records `feature_set_sha256` over the joined interval frame, and the
+  benchmark refuses to run unless the digest, the cutoff schedule, the decision lead and the
+  admitted evidence grades all equal what the join recorded.
+- **Reason:** An ablation whose arms differ in more than the information cannot attribute its own
+  result, and a benchmark that adopts whatever feature set it is handed cannot be read without
+  its input. Both failures produce believable numbers, which is what makes them worth refusing
+  mechanically rather than by convention.
+- **Consequence:** Both arms are measured on the intersection of days complete for every baseline
+  and both arms, with the control's unreduced metrics recorded alongside so the reduction is
+  visible; a day missing any accepted feature leaves every arm by the join's named cause, its
+  rows dropped from the challenger's fit and counted, never imputed; selection stays on
+  validation RMSE, and the feature set, split and cutoff are never revised after a test run.
+  v0.9.3 is validated only on synthetic fixtures, so no accepted figure changed and no benchmark
+  figure exists.
+
+## 2026-09-02 — Declare the price-regime bands, and make the exploratory label executable
+
+- **Decision:** `--price-regime-bands` is required with no default, is recorded with the run, and
+  appears in the renderer's landing checklist. A benchmark run is exploratory when the join
+  recorded itself exploratory, when the quarantined `assumed` grade is admitted, or when the
+  common held-out days do not cover a complete meteorological season of quarter-hour deliveries —
+  where a season counts only if every one of its calendar days is present. The manifest contract
+  refuses, on record and on read, any summary that admits `assumed` while declaring itself not
+  exploratory.
+- **Reason:** Which price levels are worth separating is a judgment, and gate G4 of the v0.9
+  design is only a gate if something evaluates it. A partial-season threshold would itself be a
+  judgmental default; erring toward the exploratory label costs nothing a general conclusion is
+  entitled to.
+- **Consequence:** A run that falls short is labelled exploratory, carries the suffix and
+  supports no general conclusion whatever its numbers say. A hand-edited manifest claiming
+  otherwise is refused by the doorway a report renders through, so the whole report refuses.
+
 ## 2026-09-02 — Apply grade admission after revision selection
 
 - **Decision:** The v0.9.2 review makes the strict pre-cutoff as-of selection first and judges

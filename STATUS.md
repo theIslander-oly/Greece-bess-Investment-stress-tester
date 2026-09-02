@@ -1,6 +1,6 @@
 # Project status
 
-**Version:** 0.9.2
+**Version:** 0.9.3
 **Updated:** 2 September 2026
 **Status:** Official multi-year operational acceptance and HEnEx-to-ENTSO-E cross-source
 reconciliation passed; encrypted custody copies published and the private key exercised;
@@ -42,7 +42,42 @@ audit, validated only on synthetic fixtures while the same declarations remain a
 (`docs/history/implementation_report_v0.9.2.md`); its completed review corrected grade admission
 to occur after latest-revision selection and corrected the per-value supersession count, with no
 real-data or analytical result affected
-(`docs/history/implementation_report_v0.9.2_review.md`)
+(`docs/history/implementation_report_v0.9.2_review.md`); and v0.9.3 has landed the fundamentals
+ablation itself — a control arm that is the accepted ML benchmark unchanged, a challenger arm of
+the same models with the accepted point-in-time columns appended, both on identical days,
+hyperparameters, seed and refit cadence, with the feature set identified by digest rather than
+described, a missing feature excluding its day from every arm rather than being imputed, and an
+executable exploratory rule — again on synthetic fixtures alone, and again producing no benchmark
+figure because the same three declarations are still absent
+(`docs/history/implementation_report_v0.9.3.md`)
+
+## v0.9.3 — the ablation is built; it has still measured nothing
+
+`benchmark-fundamentals-forecast` and `forecast/fundamentals.py` implement the two-arm
+comparison. The control arm is the accepted ML benchmark unchanged — a regression asserts it
+reproduces `generate_ml_forecasts` bit for bit, refit logs included — and the challenger arm is
+the same two model families with the accepted point-in-time columns appended, sharing the
+walk-forward loop, the fixed hyperparameters, the seed, the refit cadence and the target days.
+`ml.py` changed by one parameter to make that possible, and by one more to refuse a fit or a
+prediction that would read an absent exogenous value.
+
+Both arms are measured on the intersection of days complete for every baseline and both arms;
+the control's metrics on its own unreduced calendar are recorded alongside so the reduction is
+visible. A delivery day missing any accepted feature is excluded from every arm by the join's own
+named cause, its rows dropped from the challenger's fit and counted, and never imputed. Accuracy
+is sliced by delivery year, market-clock interval of day, declared price regime and resolution
+era; the bands are declared, have no default and now appear in the renderer's landing checklist.
+
+The benchmark identifies its inputs instead of describing them: the join records a
+`feature_set_sha256` over the joined frame, and the run refuses unless that digest, the cutoff
+schedule, the decision lead and the admitted evidence grades all equal what the join recorded.
+`fundamentals_forecast_benchmark` joins the manifest registry, and a third claim check — applied
+on record and on read — refuses any summary that admits the quarantined `assumed` grade while
+declaring itself not exploratory, so a hand-edited manifest refuses the whole report.
+
+The three operator declarations still do not exist. No accepted feature table exists, so no
+benchmark figure, manifest or acceptance document was produced, and the ablation has measured
+nothing about weather, Greek prices or battery value. Every test is synthetic.
 
 ## v0.9.2 — point-in-time join complete on synthetic fixtures
 

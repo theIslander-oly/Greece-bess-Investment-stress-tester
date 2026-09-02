@@ -249,9 +249,14 @@ def join_point_in_time_features(
         )
         if not audit.empty
         else 0,
-        "price_input_sha256": _frame_digest(price_frame),
-        "feature_input_sha256": _frame_digest(feature_rows),
-        "audit_sha256": _frame_digest(audit),
+        "price_input_sha256": frame_digest(price_frame),
+        "feature_input_sha256": frame_digest(feature_rows),
+        # The identity of the feature set a downstream benchmark actually fits on: the joined
+        # interval frame, excluded days and all. It is recorded here rather than recomputed by
+        # the benchmark so that an acceptance document can name one digest, and a benchmark
+        # manifest that names a different one is refused instead of quietly reinterpreted.
+        "feature_set_sha256": frame_digest(output),
+        "audit_sha256": frame_digest(audit),
         "establishes_only_point_in_time_selection": True,
         "data_accepted": False,
     }
@@ -306,7 +311,9 @@ def _audit_row(
     }
 
 
-def _frame_digest(frame: pd.DataFrame) -> str:
+def frame_digest(frame: pd.DataFrame) -> str:
+    """Digest a frame by its recorded content, independent of dtype and column order."""
+
     records = frame.astype(object).where(pd.notna(frame), None).to_dict(orient="records")
     payload = json.dumps(records, sort_keys=True, default=str, separators=(",", ":"))
     return hashlib.sha256(payload.encode()).hexdigest()
