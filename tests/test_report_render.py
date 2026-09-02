@@ -409,6 +409,58 @@ class LabelRetentionTests(unittest.TestCase):
             self.assertIn("not recorded", block)
 
 
+class InlineSvgChartTests(unittest.TestCase):
+    """The chart is deterministic rendering of one manifest's recorded values."""
+
+    def _render_ensemble(self, mutate: Any | None = None) -> Any:
+        with tempfile.TemporaryDirectory() as raw:
+            path = _manifest_path(Path(raw), RESULT_KINDS["scenario_ensemble_range"])
+            if mutate is not None:
+                payload = json.loads(path.read_text(encoding="utf-8"))
+                mutate(payload)
+                path.write_text(json.dumps(payload), encoding="utf-8")
+            return render_report([path])
+
+    def test_identical_manifest_produces_byte_identical_inline_svg(self) -> None:
+        first = self._render_ensemble()
+        second = self._render_ensemble()
+
+        self.assertEqual(first.html, second.html)
+        self.assertIn('<svg class="manifest-chart"', first.html)
+        self.assertNotIn("<script", first.html)
+
+    def test_chart_retains_the_manifest_label_basis_and_exclusions_in_its_block(self) -> None:
+        report = self._render_ensemble()
+        block = _blocks(report.html)[_anchor("run-scenario_ensemble_range")]
+        label = _summary_for(RESULT_KINDS["scenario_ensemble_range"])["result_label"]
+
+        self.assertIn('<svg class="manifest-chart"', block)
+        self.assertIn(label, block)
+        self.assertIn(BASIS_WORDING["synthetic_scenario"], block)
+        for exclusion in STANDING_EXCLUSIONS:
+            self.assertIn(exclusion, block)
+
+    def test_missing_guaranteed_chart_key_states_absence(self) -> None:
+        def remove_ranges(payload: dict[str, Any]) -> None:
+            del payload["summary"]["path_ranges"]
+
+        report = self._render_ensemble(remove_ranges)
+        block = _blocks(report.html)[_anchor("run-scenario_ensemble_range")]
+
+        self.assertNotIn('<svg class="manifest-chart"', block)
+        self.assertIn("records no usable <code>path_ranges</code> value", block)
+
+    def test_non_object_chart_field_states_absence(self) -> None:
+        def replace_ranges(payload: dict[str, Any]) -> None:
+            payload["summary"]["path_ranges"] = "not an object sequence"
+
+        report = self._render_ensemble(replace_ranges)
+        block = _blocks(report.html)[_anchor("run-scenario_ensemble_range")]
+
+        self.assertNotIn('<svg class="manifest-chart"', block)
+        self.assertIn("records no usable <code>path_ranges</code> value", block)
+
+
 class NoComputationTests(unittest.TestCase):
     """The renderer formats recorded values; it never derives one."""
 
