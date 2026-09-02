@@ -1,5 +1,20 @@
 # Decision log
 
+## 2026-09-02 — Commit one reproducible synthetic-only demonstration report
+
+- **Decision:** Add `greek-bess demo` and commit `docs/sample_report.html` as the sole exception
+  to the rule that generated research outputs stay outside Git.
+- **Reason:** The installed CLI is the portable project interface on every supported platform;
+  using its existing `Command` registry avoids making a Make installation a second prerequisite
+  and reduces the path from clone to a complete result to one command. The sample lets a reader
+  inspect the output without an ENTSO-E token, official data or a local run.
+- **Controls:** The report is built only from deterministic synthetic prices and illustrative
+  assumptions, and every block retains its result label, synthetic basis and standing
+  exclusions. `greek-bess demo --output docs/sample_report.html` regenerates it, and an automated
+  byte-for-byte test prevents the committed artifact from drifting from current behaviour.
+- **Consequence:** No official or user data, secret, investment output or unsupported evidence is
+  committed. Other generated reports remain excluded from Git.
+
 This file records decisions that materially affect interpretation or reproducibility. Add a
 dated entry when a milestone changes scope, assumptions, data handling or validation.
 

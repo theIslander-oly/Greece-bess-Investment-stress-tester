@@ -5,6 +5,11 @@ provenance-verified official Greek DAM prices against an explicitly configured s
 battery and compares a historical perfect-foresight gross-margin upper bound with
 leakage-safe causal forecast backtests.
 
+**See the output immediately:** open the
+[synthetic-only sample report](docs/sample_report.html), or regenerate it from a clone with
+`greek-bess demo --output docs/sample_report.html`. It uses no token or official data and is
+not investment evidence, expected revenue, financial advice or a bankable study.
+
 ## Accepted official-history findings
 
 These are **historical replay and backtest results, not expected revenue, a forecast or
@@ -58,6 +63,20 @@ deterministic synthetic series the repository generates for demonstrations.
 
 ```bash
 python -m pip install -e .
+
+greek-bess demo
+```
+
+That single command generates a labelled synthetic year, solves the daily perfect-foresight
+ceiling, applies a declared 30% spread compression about each daily mean, solves the stressed
+path, evaluates illustrative one-year unlevered project-finance screening arithmetic, records
+every result under the manifest contract and composes them into `demo-report.html`. It normally
+finishes in well under one minute. The committed
+[sample](docs/sample_report.html) is byte-checked against this command by the test suite.
+
+The equivalent first two stages can be run individually:
+
+```bash
 
 greek-bess generate-synthetic \
   --start-day 2025-01-01 --end-day 2026-01-01 \

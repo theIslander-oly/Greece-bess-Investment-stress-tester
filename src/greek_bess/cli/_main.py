@@ -27,6 +27,7 @@ from . import (
     admie,
     analysis,
     custody,
+    demo,
     dispatch,
     finance,
     forecast,
@@ -40,6 +41,7 @@ from ._registry import Command
 # which follows the order of the workflow rather than the alphabet: retrieve a
 # history, record and render it, optimize against it, forecast, then stress.
 COMMAND_MODULES = (
+    demo,
     ingest,
     admie,
     manifests,

@@ -39,6 +39,13 @@ All notable project changes are documented here.
 
 ### Added
 
+- **One-command synthetic demonstration.** `greek-bess demo` runs synthetic generation,
+  daily-composed perfect-foresight dispatch, declared daily-mean spread compression, stressed
+  dispatch, illustrative one-year finance screening, manifest recording for every result and
+  indexed report rendering. The committed synthetic-only sample report is linked from the
+  README and a regression test requires byte-for-byte regeneration, so the exception for this
+  generated public demonstration cannot become stale.
+
 - **Property-based tests over the market calendar.** Delivery days across 2015-2035 at both
   resolutions are generated rather than enumerated, asserting that a market day is contiguous in
   UTC, spans exactly one local midnight-to-midnight, has one of only three legal lengths and
