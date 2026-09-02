@@ -377,6 +377,43 @@ class RealSummaryTests(unittest.TestCase):
         self.assertFalse(RESULT_KINDS["perfect_foresight_dispatch"].forbids_distributional_terms)
 
 
+class AcceptedReplayPublicationWorkflowTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.workflow = Path(".github/workflows/render-accepted-replay-report.yml").read_text(
+            encoding="utf-8"
+        )
+
+    def test_pages_publication_cannot_run_until_the_refusal_gated_render_job_passes(self) -> None:
+        publish = self.workflow.split("\n  publish:\n", maxsplit=1)[1]
+
+        self.assertIn("    needs: render\n", publish)
+        self.assertIn("      pages: write\n", publish)
+        self.assertIn("      id-token: write\n", publish)
+        self.assertIn("uses: actions/deploy-pages@v4", publish)
+
+    def test_pages_artifact_contains_only_the_aggregate_report_and_index(self) -> None:
+        publish = self.workflow.split("\n  publish:\n", maxsplit=1)[1]
+
+        self.assertIn(
+            "cp report/accepted_replay_report.html site/accepted-replay/index.html", publish
+        )
+        self.assertIn(
+            "site/accepted-replay/accepted_replay_report.index.json\\n"
+            "site/accepted-replay/index.html",
+            publish,
+        )
+        self.assertNotIn("cp report/manifests", publish)
+        self.assertNotIn("cp report/source_custody_verification", publish)
+
+    def test_complete_evidence_bundle_remains_a_private_actions_artifact(self) -> None:
+        render = self.workflow.split("\n  publish:\n", maxsplit=1)[0]
+
+        self.assertIn("report/manifests/*.manifest.json", render)
+        self.assertIn("report/source_custody_verification.json", render)
+        self.assertIn("retention-days: 90", render)
+
+
 class RoundTripTests(unittest.TestCase):
     def test_a_manifest_round_trips(self) -> None:
         manifest = _build(_dispatch_summary(), declared_inputs={"prices": "history.csv"})
