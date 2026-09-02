@@ -10,12 +10,19 @@ with two commands, two workflows, one manifest kind, two renderer checklist entr
 dependency. Nothing here accepts a value, admits a source to a benchmark or changes an accepted
 figure.
 
-It also closes the source spike's one open residual. `eccodes` is declared in `pyproject.toml`
-for the first time, so CI installs and imports it on the `actions/setup-python` images rather
-than on the two locally built interpreters the spike used; `tests/test_gfs.py` asks the binding
-for its library version, which is the assertion that closes it. A failure there would have
-returned the source choice to the G0 branch and sent the EEX fallback for the spike it has never
-had.
+It also closes the source spike's one open residual, and that is now a result rather than a plan.
+`eccodes` is declared in `pyproject.toml` for the first time, so CI installs and imports it on the
+`actions/setup-python` images rather than on the two locally built interpreters the spike used.
+CI run `33630855958` passed on 2 September 2026 on both matrix entries, `validate (3.12)` and
+`validate (3.13)`, each running install, Ruff, mypy, the suite under coverage and the wheel build
+as separate gating steps. Two things follow from that and the workflow's step order: `eccodes` is
+a hard runtime dependency, so the install step could not have succeeded without resolving it on
+the runner image, and
+`tests/test_gfs.py::DecoderTests::test_the_binding_reports_its_library_version` imports the
+binding and asserts a version string, so a decoder that installed but would not load could not
+have reached the wheel-build step. A failure on either count would have returned the source choice
+to the G0 branch and sent the EEX fallback for the spike it has never had; neither occurred, and
+the fallback stays unselected and unassessed.
 
 ## What landed
 

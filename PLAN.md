@@ -127,9 +127,14 @@ The plan below is therefore organised by what each item waits on, not by milesto
   3.13.12 in the development environment, not on the `actions/setup-python` images. The first CI
   run of v0.9.1, which is where `eccodes` is first declared in `pyproject.toml`, closes it. A
   failure there returns the source choice to the G0 branch, and the fallback would then need the
-  spike it has not had. v0.9.1 landed that declaration on 2 September 2026 and
-  `tests/test_gfs.py` asks the binding for its ecCodes library version, so the residual is closed
-  by whichever interpreters CI runs rather than by assertion here.
+  spike it has not had. **Closed on 2 September 2026.** v0.9.1 landed the declaration and CI run
+  `33630855958` passed on both `actions/setup-python` images — `validate (3.12)` and
+  `validate (3.13)`, each through install, Ruff, mypy, the suite and the wheel build. `eccodes` is
+  a hard runtime dependency, so the install step could not have succeeded without resolving it on
+  the runner, and `tests/test_gfs.py::DecoderTests::test_the_binding_reports_its_library_version`
+  imports the binding and asserts a version, so a decoder that installed but would not load could
+  not have reached the wheel-build step. G0 is not triggered on this ground either, and the EEX
+  fallback remains unselected and unassessed.
 
 ### Resolved on 1 September 2026: the v0.8 scope decision
 

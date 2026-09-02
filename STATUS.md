@@ -65,6 +65,13 @@ latter exiting `2` on any unaccepted day with its evidence still written.
 checklist entries for the cutoff, the lead and the geography. The policy the code enforces is
 `docs/point_in_time_feature_contract.md`. Ruff, mypy, 520 tests and the wheel build are green.
 
+**The source spike's one open residual is closed.** It was the last thing v0.9.0 left unresolved:
+the GRIB2 decoder had been proven on two locally built interpreters, not on the
+`actions/setup-python` images the CI matrix uses, and a failure there would have returned the v0.9
+source choice to the G0 branch and sent the unassessed EEX fallback for a spike of its own. v0.9.1
+is where `eccodes` is first declared in `pyproject.toml`, and CI run `33630855958` passed on both
+images on 2 September 2026. The source choice of 2 September 2026 stands on this ground.
+
 **What the phase corrected.** The source assessment computed the required forecast steps as 21-46
 from the *Athens* delivery day; this project's delivery day is the CET/CEST market day, which
 begins an hour later, so the range a market day needs is **22-47**. The client derives the step
