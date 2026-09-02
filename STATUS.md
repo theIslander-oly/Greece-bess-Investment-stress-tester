@@ -28,6 +28,14 @@ replacing the CLI's 30-branch chain, a README quickstart, coverage measurement a
 matrix, with no analytical result changed
 (`docs/history/implementation_report_v0.8.3_review_response.md`)
 
+## Documentation — accepted findings now lead the README
+
+The repository landing page now opens with the recorded per-delivery-year official-history
+findings and places the unchanged limitations immediately after them. The detailed command
+catalogue is now `docs/command_reference.md`. This is a presentation-only change; no accepted
+figure, analytical behavior, scope or dependency changed
+(`docs/history/implementation_report_readme_findings_first_2026-09-02.md`).
+
 **Standing position, 2 September 2026:** the approved `PROMPT.md` scope is implemented, v0.7
 was re-verified on the unchanged v0.7.11 implementation (Ruff, mypy, 301 tests, clean wheel
 build), and v0.8 is complete through v0.8.3, its completed scope formally reviewed. The interactive viewer was declined: it would add a
