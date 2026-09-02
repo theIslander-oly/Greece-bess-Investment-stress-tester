@@ -75,13 +75,12 @@ The plan below is therefore organised by what each item waits on, not by milesto
 
 ### Waiting on a workflow dispatch
 
-- **The first report from the accepted replay.** `Render a report from the accepted replay`
-  landed on 2 September 2026 and has never been run. The v0.8 renderer is validated against
-  synthetic manifests and real module summaries, which is not the same as having rendered one
-  report from the accepted 2020-2026 history. Dispatch it against the accepted decomposition run
-  `33147448666`; the evidence document follows the run, not the workflow. This is the last mile
-  of a delivered feature rather than new scope: no source behaviour, dependency, contract or
-  report format changed, and the workflow computes nothing.
+- **Public deployment of the accepted-replay report.** Render run `33609809770` successfully
+  exercised the v0.8 renderer against accepted decomposition run `33147448666`, passed custody
+  and manifest gates, and produced the private report artifact. The Pages job landed afterward,
+  so a new dispatch against the same decomposition run is still required before publication.
+  This is the last mile of a delivered feature rather than new scope: no source behaviour,
+  dependency, contract or report format changes, and the workflow computes nothing.
 
 ### Waiting on an operator declaration
 
@@ -123,13 +122,9 @@ The plan below is therefore organised by what each item waits on, not by milesto
   the EEX fallback is not selected and stays unassessed. The archive turned out to be reachable
   from a working checkout, so the spike was a local run rather than a workflow dispatch; the
   plan's assumption to the contrary is corrected below.
-- **One residual stays open and closes itself.** The decoder was proven on CPython 3.12.3 and
-  3.13.12 in the development environment, not on the `actions/setup-python` images. The first CI
-  run of v0.9.1, which is where `eccodes` is first declared in `pyproject.toml`, closes it. A
-  failure there returns the source choice to the G0 branch, and the fallback would then need the
-  spike it has not had. v0.9.1 landed that declaration on 2 September 2026 and
-  `tests/test_gfs.py` asks the binding for its ecCodes library version, so the residual is closed
-  by whichever interpreters CI runs rather than by assertion here.
+- **The ecCodes CI-image residual is closed.** Green CI on merged main commit `38ca0bc` installed
+  the declared `eccodes` dependency on the `actions/setup-python` images, and
+  `tests/test_gfs.py` exercised the binding and library version. G0 was not triggered.
 
 ### Resolved on 1 September 2026: the v0.8 scope decision
 
@@ -366,7 +361,7 @@ plan it as one whenever the host is refused.
       path was exercised end to end against the live archive once during development for one
       delivery day; that is evidence the pipeline works, not an accepted figure, and nothing from
       it is committed.
-  - [ ] v0.9.2 — The point-in-time join and its audit table: one feature value per delivery
+  - [x] v0.9.2 — The point-in-time join and its audit table: one feature value per delivery
     interval, selected as the latest revision published strictly before the cutoff, with later
     revisions counted and excluded, every value traceable to a source document, revision and byte
     digest, and a day either complete or excluded by named cause. Nothing is forward-filled,

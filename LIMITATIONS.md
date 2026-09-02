@@ -273,3 +273,8 @@
   storage value, and spread transformations are the economically first-order sensitivity.
 - Shocked paths are not forecasts, expected prices, investment evidence or dispatch/finance
   results. No likelihood, percentile, loss metric or ranking is attached to them.
+
+
+## Point-in-time join limitations
+
+Passing the v0.9.2 join establishes only that the selected synthetic-test value obeyed the declared as-of rule and is traceable to identified bytes. It does not establish that a real feature is correct, representative of Greece, available under a defensible market cutoff, accepted for forecasting or useful for settled battery value. The three real operator declarations are absent, so no real join result, model, manifest or acceptance document exists. Coarser containment is an explicit broadcast rather than interpolation; finer-to-coarser aggregation remains refused. ADMIE-originated forecasts remain excluded by every route.

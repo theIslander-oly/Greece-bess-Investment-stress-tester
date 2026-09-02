@@ -1,6 +1,6 @@
 # Project status
 
-**Version:** 0.9.1
+**Version:** 0.9.2
 **Updated:** 2 September 2026
 **Status:** Official multi-year operational acceptance and HEnEx-to-ENTSO-E cross-source
 reconciliation passed; encrypted custody copies published and the private key exercised;
@@ -19,8 +19,7 @@ manifests, and only verified run manifests, into self-contained static reports, 
 many of them into one indexed report that computes nothing across them; v0.8.2 has declined
 an interactive viewer and completed v0.8 with that single deterministic presentation surface;
 the completed-v0.8 review has passed after correcting four reporting-layer defects in
-v0.8.3, none of which changes an analytical result; and a workflow now renders an accepted
-decomposition run into one indexed report, awaiting its first dispatch; and an external review of
+v0.8.3, none of which changes an analytical result; and render run `33609809770` accepted the first aggregate report from decomposition run `33147448666`; public Pages deployment remains outstanding because the required re-dispatch could not be started from the unauthenticated working environment; and an external review of
 v0.8.3 has been answered on the engineering items it raised — a relaxation-first dispatch solve
 that is exact by construction, property-based tests over the market calendar that found and fixed
 a canonical timestamp-resolution defect, closed-form dispatch checks, a subcommand registry
@@ -37,7 +36,21 @@ range, the per-delivery-interval availability audit, two commands, a fetch workf
 witness workflow and one new manifest kind, with `eccodes` as the single new dependency — while
 accepting nothing and leaving every surface blocked on three operator declarations
 (`docs/v0.9_design.md`, `docs/fundamentals_source_assessment_2026-09-02.md`,
-`docs/point_in_time_feature_contract.md`, `docs/history/implementation_report_v0.9.1.md`)
+`docs/point_in_time_feature_contract.md`, `docs/history/implementation_report_v0.9.1.md`);
+and v0.9.2 now adds the revision-aware, whole-day-atomic as-of join and per-value provenance
+audit, validated only on synthetic fixtures while the same declarations remain absent
+(`docs/history/implementation_report_v0.9.2.md`)
+
+## v0.9.2 — point-in-time join complete on synthetic fixtures
+
+The revision-aware as-of join and `build-point-in-time-features` command are implemented. For every delivery interval the join selects the latest revision published strictly before the declared effective cutoff, counts and excludes later revisions, and emits an audit row carrying the source document, revision and byte digest. Missing coverage excludes the whole day by named cause; nothing is forward-filled, interpolated or imputed. Equal and coarser-broadcast resolution relations are explicit, and a finer feature is refused without an aggregation rule. The implementation is tested entirely against synthetic fixtures.
+
+The three operator declarations still do not exist. Consequently every real reader and workflow remains refusing, no real join result, model, manifest or acceptance document was produced, and the dispatched-run acceptance criterion remains outstanding for that reason and no other. The scheduled witness workflow cannot produce a witnessed day while its guard refuses; each refused scheduled target day is permanently lost from the witnessed subset. Exact run IDs and target days could not be verified from this unauthenticated checkout, so none are invented here.
+
+## Documentation debt cleared from v0.8.x
+
+The shared records now describe renderer version 3's deterministic manifest-local SVG charts and the rendered aggregate report capability, plus the attributable accepted-history timing and opt-in synthetic dispatch benchmark. The chart and engineering staging files are removed. The publication staging record remains deliberately pending because the required Pages deployment has not succeeded.
+
 
 ## v0.9.1 — ingestion and the availability audit are built; nothing runs yet
 

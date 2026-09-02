@@ -39,8 +39,10 @@ from ..data.point_in_time import (
     write_point_in_time_csv,
 )
 from ..data.provenance import RetrievalRecord, utc_now_iso
+from ..forecast.point_in_time_join import join_point_in_time_features
 from ._registry import Command
 from ._support import (
+    _read_canonical_csv,
     _read_decision_cutoff_schedule,
     _read_sampling_geography,
     _sibling_path,
@@ -227,6 +229,39 @@ def run_audit_feature_availability(args: argparse.Namespace) -> int:
     return 0 if audit.summary["availability_accepted"] else 2
 
 
+def configure_build_point_in_time_features(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("prices", type=Path, help="Canonical price CSV defining delivery intervals")
+    parser.add_argument("features", type=Path, help="Point-in-time feature CSV with all revisions")
+    parser.add_argument("--decision-cutoff", required=True, type=Path)
+    parser.add_argument("--decision-lead-minutes", required=True, type=int)
+    parser.add_argument(
+        "--admitted-grades", nargs="+", required=True, choices=EVIDENCE_GRADES,
+        help="Evidence grades admitted by this run; there is no default",
+    )
+    parser.add_argument("--exploratory", action="store_true")
+    parser.add_argument("--output", required=True, type=Path, help="Joined interval feature CSV")
+    parser.add_argument("--audit", type=Path, help="Per-value revision-selection audit CSV")
+    parser.add_argument("--summary", type=Path, help="Join summary JSON")
+
+
+def run_build_point_in_time_features(args: argparse.Namespace) -> int:
+    result = join_point_in_time_features(
+        _read_canonical_csv(args.prices),
+        read_point_in_time_csv(args.features),
+        schedule=_read_decision_cutoff_schedule(args.decision_cutoff),
+        decision_lead_minutes=args.decision_lead_minutes,
+        admitted_grades=tuple(args.admitted_grades),
+        exploratory=args.exploratory,
+    )
+    audit_path = args.audit or _sibling_path(args.output, ".audit.csv")
+    summary_path = args.summary or args.output.with_suffix(".summary.json")
+    _write_plain_csv(result.feature_frame, args.output)
+    _write_plain_csv(result.audit_table, audit_path)
+    _write_json(result.summary, summary_path)
+    print(json.dumps(result.summary, indent=2))
+    return 0 if result.summary["excluded_day_count"] == 0 else 2
+
+
 COMMANDS: tuple[Command, ...] = (
     Command(
         name="fetch-fundamentals",
@@ -236,6 +271,15 @@ COMMANDS: tuple[Command, ...] = (
         ),
         configure=configure_fetch_fundamentals,
         run=run_fetch_fundamentals,
+    ),
+    Command(
+        name="build-point-in-time-features",
+        help=(
+            "Select strictly pre-cutoff feature revisions, emit one value per price interval, "
+            "and record a provenance audit without filling excluded days"
+        ),
+        configure=configure_build_point_in_time_features,
+        run=run_build_point_in_time_features,
     ),
     Command(
         name="audit-feature-availability",

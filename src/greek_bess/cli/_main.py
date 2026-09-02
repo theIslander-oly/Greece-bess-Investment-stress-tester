@@ -19,6 +19,7 @@ from ..data.henex_daily import HenexDailyError
 from ..data.http import OfficialDataDownloadError
 from ..data.point_in_time import PointInTimeSchemaError
 from ..dispatch import DispatchInputError, DispatchSolveError
+from ..forecast.point_in_time_join import PointInTimeJoinError
 from ..reporting import ReportContractError
 from ..stress import (
     AvailabilityInputError,
@@ -79,6 +80,7 @@ HANDLED_ERRORS = (
     DecisionCutoffError,
     FeatureAvailabilityError,
     PointInTimeSchemaError,
+    PointInTimeJoinError,
     NoaaGfsError,
     OfficialDataDownloadError,
     BootstrapInputError,

@@ -1,6 +1,6 @@
 # Point-in-time feature contract
 
-**Status:** the executable policy behind v0.9.1, landed 2 September 2026. It states Sections 4
+**Status:** the executable policy behind v0.9.1 ingestion and the v0.9.2 join, landed 2 September 2026. It states Sections 4
 and 5 of `docs/v0.9_design.md` in the form the code enforces, and it is the document to read
 before adding a feature source, a variable or a grade. The design remains the design of record;
 where this document is more specific, it is because implementation settled something the design
@@ -181,3 +181,10 @@ each contributing message listed separately in the retrieval manifest.
 The audit summary carries these four statements in its own output, alongside
 `establishes_only_availability: true` and `quarantine_lifted: false`, so the limits travel with
 the evidence rather than living only here.
+
+
+## 7. Decision-time revision selection and join audit
+
+`join_point_in_time_features` validates canonical complete price days and this feature schema, resolves the supplied schedule and lead for each day, and selects the latest revision published strictly before the effective cutoff. Revision and document identifiers break publication-time ties deterministically; rows at or after the cutoff are counted and excluded. Each price interval maps by containment of its UTC start in the selected feature interval. Coarser broadcasts are labelled, finer features require a separately declared aggregation rule, and incomplete coverage excludes the whole day with a named cause.
+
+Every emitted value has exactly one audit row carrying its source document, revision, raw-byte digest, publication/retrieval/issue instants, effective grade, cutoff margin and resolution relation. No price appears in that audit. No missing value is filled. Passing this join establishes only point-in-time selection and traceability, not feature acceptance or forecasting skill.
