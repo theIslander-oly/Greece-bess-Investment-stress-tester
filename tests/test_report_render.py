@@ -166,6 +166,22 @@ GUARANTEED_VALUES: dict[str, Any] = {
     "metrics": {"test": {"ridge": {"rmse_eur_per_mwh": 12.5}}},
     "selected_challenger": "ridge_fundamentals",
     "is_exploratory": True,
+    "comparison_methods": ["ridge", "ridge_fundamentals"],
+    "common_backtest_day_count": 42,
+    "perfect_foresight_margin_eur": 98765.4,
+    "dispatch_ranking": [
+        {"rank": 1, "method": "ridge_fundamentals", "realized_margin_eur": 71000.0},
+        {"rank": 2, "method": "ridge", "realized_margin_eur": 70000.0},
+    ],
+    "incremental_realized_margin_eur": [
+        {
+            "comparison_id": "ridge_fundamentals_vs_ridge",
+            "challenger_method": "ridge_fundamentals",
+            "reference_method": "ridge",
+            "incremental_realized_margin_eur": 1000.0,
+            "days_challenger_settled_higher": 25,
+        }
+    ],
 }
 
 FIGURE_BLOCK = re.compile(

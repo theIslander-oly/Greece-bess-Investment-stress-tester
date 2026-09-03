@@ -1,14 +1,21 @@
-"""Point-in-time fundamentals retrieval and the availability audit.
+"""The point-in-time fundamentals surfaces: retrieval, audit, join, ablation and settlement.
 
-Both commands take declarations the repository refuses to supply. ``fetch-fundamentals`` needs a
-sampling geography; ``audit-feature-availability`` needs a decision-cutoff schedule and a
-decision lead. Neither has a default, an environment fallback or an "obvious" value, and the
-committed examples are refused by name so that copying one into a run cannot turn a placeholder
-into evidence.
+Every command here takes declarations the repository refuses to supply. ``fetch-fundamentals``
+needs a sampling geography; the audit, the join and the two benchmarks need a decision-cutoff
+schedule and a decision lead; the forecast benchmark needs its price-regime bands; the dispatch
+comparison needs the arms it is settling. None has a default, an environment fallback or an
+"obvious" value, and the committed examples are refused by name so that copying one into a run
+cannot turn a placeholder into evidence.
 
-Every output is private. A retrieved GRIB2 message, a feature table and an audit CSV are
-provider content or derived research output; they belong in an ignored path or a workflow
-artifact, never in a commit.
+The five commands form one chain, and each refuses to be run out of order rather than filling
+in what an earlier stage did not produce: retrieval writes every revision, the audit judges
+availability without reading a value, the join selects the decision-time revision and digests
+the frame, the forecast ablation refuses any input whose digest and declarations differ from
+the join's, and the dispatch comparison settles exactly the days that ablation recorded.
+
+Every output is private. A retrieved GRIB2 message, a feature table, an audit CSV and a settled
+schedule are provider content or derived research output; they belong in an ignored path or a
+workflow artifact, never in a commit.
 """
 
 from __future__ import annotations
@@ -20,6 +27,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from ..backtest.fundamentals_dispatch import backtest_fundamentals_dispatch
 from ..data.availability_audit import audit_feature_availability
 from ..data.gfs import (
     FIRST_HOURLY_DELIVERY_DAY,
@@ -48,10 +56,12 @@ from ._registry import Command
 from ._support import (
     _add_ml_arguments,
     _ml_config_from_args,
+    _read_battery_config,
     _read_canonical_csv,
     _read_decision_cutoff_schedule,
     _read_sampling_geography,
     _sibling_path,
+    _write_dispatch_csv,
     _write_json,
     _write_plain_csv,
 )
@@ -328,6 +338,57 @@ def run_benchmark_fundamentals_forecast(args: argparse.Namespace) -> int:
     return 0
 
 
+def configure_benchmark_fundamentals_dispatch(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("prices", type=Path, help="Canonical price CSV of realized prices")
+    parser.add_argument("--config", required=True, type=Path, help="Battery JSON")
+    parser.add_argument(
+        "--forecasts", required=True, type=Path,
+        help="Two-arm forecast CSV written by benchmark-fundamentals-forecast",
+    )
+    parser.add_argument(
+        "--forecast-summary", type=Path,
+        help="Forecast benchmark summary JSON; defaults beside the forecast CSV",
+    )
+    parser.add_argument(
+        "--methods", nargs="+", required=True,
+        help=(
+            "The arms to settle. There is no default set: a comparison states which arms it "
+            "settled, and every challenger must be named beside its own control"
+        ),
+    )
+    parser.add_argument(
+        "--output", required=True, type=Path,
+        help="Settled interval dispatch CSV, one block per comparison method",
+    )
+    parser.add_argument("--daily-output", type=Path, help="Daily CSV; defaults beside --output")
+    parser.add_argument(
+        "--paired-differences", type=Path,
+        help="Paired daily difference CSV; defaults beside --output",
+    )
+    parser.add_argument("--summary", type=Path, help="Comparison JSON; defaults beside --output")
+
+
+def run_benchmark_fundamentals_dispatch(args: argparse.Namespace) -> int:
+    summary_source = args.forecast_summary or args.forecasts.with_suffix(".summary.json")
+    benchmark_summary = json.loads(summary_source.read_text(encoding="utf-8"))
+    result = backtest_fundamentals_dispatch(
+        _read_canonical_csv(args.prices),
+        _read_battery_config(args.config),
+        pd.read_csv(args.forecasts),
+        benchmark_summary,
+        methods=args.methods,
+    )
+    daily_path = args.daily_output or _sibling_path(args.output, ".daily.csv")
+    paired_path = args.paired_differences or _sibling_path(args.output, ".paired.csv")
+    summary_path = args.summary or args.output.with_suffix(".summary.json")
+    _write_dispatch_csv(result.interval_schedules, args.output)
+    _write_plain_csv(result.daily_results, daily_path)
+    _write_plain_csv(result.paired_differences, paired_path)
+    _write_json(result.summary, summary_path)
+    print(json.dumps(result.summary, indent=2))
+    return 0
+
+
 COMMANDS: tuple[Command, ...] = (
     Command(
         name="fetch-fundamentals",
@@ -355,6 +416,15 @@ COMMANDS: tuple[Command, ...] = (
         ),
         configure=configure_benchmark_fundamentals_forecast,
         run=run_benchmark_fundamentals_forecast,
+    ),
+    Command(
+        name="benchmark-fundamentals-dispatch",
+        help=(
+            "Settle every named ablation arm over the identical held-out common days, under "
+            "one battery and one realized price series, and record the incremental margin"
+        ),
+        configure=configure_benchmark_fundamentals_dispatch,
+        run=run_benchmark_fundamentals_dispatch,
     ),
     Command(
         name="audit-feature-availability",

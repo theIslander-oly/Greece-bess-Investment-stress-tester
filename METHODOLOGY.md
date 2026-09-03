@@ -162,8 +162,44 @@ labelled exploratory and carries the suffix saying so; the manifest contract ref
 that admits the quarantined grade while declaring itself otherwise.
 
 Price error is the secondary measure here and is reported because it explains a mechanism. The
-primary measure is realized settled dispatch value, which the ablation does not compute; that
-comparison is a separate surface.
+primary measure is realized settled dispatch value, computed by the settled comparison of section
+4.2 rather than by the ablation itself.
+
+### 4.2 Settled fundamentals dispatch comparison
+
+The v0.9.4 comparison answers the question the project actually asks: on the same delivery days,
+under the same battery and the same realized prices, did the fundamentals-augmented model settle
+more value than the identical model on price history alone? Price error and settled value are
+reported together and neither substitutes for the other; the accepted evidence shows they can
+disagree, since `rolling_mean` has a worse RMSE than `ridge` and captures more value.
+
+Each named arm is planned from its own forecast through the same daily solve the accepted ML
+dispatch benchmark uses, and settled at the realized prices of the same intervals. The evaluation
+set is the held-out subset of the days the ablation recorded as common to every baseline and both
+arms; the comparison never widens that set and never re-derives it. A method column carrying a
+gap on one of those days contradicts the record and is refused rather than excluded, because an
+exclusion at this stage would give two arms different calendars.
+
+Equivalence is asserted and recorded, not assumed. One battery configuration plans every arm, its
+terminal SOC must equal its initial SOC so that every day starts and ends in the same energy
+state, one realized price series settles every arm, and the perfect-foresight ceiling is checked
+identical across arms to an absolute tolerance of `1e-6` EUR. A spread above that is refused by
+naming the two arms and their ceilings. What every arm shared — the battery parameters, the
+terminal-energy convention, the settled interval range, the common-day identity and its digest,
+the shared ceiling, and the feature-set identity carried from the ablation — is written into the
+summary as `equivalent_basis`.
+
+The incremental figure is recorded by the producing module, never derived downstream: for each
+challenger the difference against its own control on the common days, and separately against each
+named baseline. The paired daily differences are written per comparison and per delivery day, and
+the summary records their sign counts, their total and the largest daily gain and shortfall. No
+interval, dispersion or significance statistic is computed from them. A dependence-preserving
+option exists — a moving-block bootstrap of the paired differences, or a Diebold-Mariano-type
+comparison — and either would be a statement about the sampling variability of a statistic rather
+than a market probability; adopting one is a separate decision with its own wording, not a side
+effect of this milestone. A challenger that settles less than its control is recorded under the
+same labels as one that settles more, and the exploratory label is carried verbatim from the
+ablation, which this comparison can neither strengthen nor retire.
 
 ## 5. Degradation
 

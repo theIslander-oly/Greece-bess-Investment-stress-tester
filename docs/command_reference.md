@@ -1093,3 +1093,46 @@ never imputed, and the summary records the count per cause. A run whose common h
 not cover a complete meteorological season of quarter-hour deliveries is labelled exploratory and
 carries the suffix saying so. Outputs are private generated research artifacts and must not be
 committed.
+
+
+### Settle the ablation into euro
+
+```bash
+greek-bess benchmark-fundamentals-dispatch prices.csv \
+  --config config/battery.json \
+  --forecasts acceptance/fundamentals/benchmark.csv \
+  --methods rolling_mean ensemble ridge ridge_fundamentals \
+  --output acceptance/fundamentals/settled.csv
+```
+
+Plans each named arm from its own forecast and settles all of them at the same realized prices,
+then records the incremental margin of every challenger over its own control. This is the primary
+comparison of the milestone; the forecast benchmark's RMSE explains the mechanism but does not
+decide, because the project's own accepted evidence shows price error and settled value disagree.
+
+`--methods` is required and has no default: a comparison states which arms it settled. Every
+challenger must be named beside its own control, and the command refuses a challenger named
+alone — comparing it against anything but the identical model on price history alone is not the
+ablation. Naming baselines as well adds a second set of incremental rows, recorded separately
+from the control comparison.
+
+The forecast benchmark's summary is read from beside the forecast CSV unless `--forecast-summary`
+names it, and the comparison carries that run's feature-set digest, cutoff schedule, decision
+lead, admitted evidence grades and exploratory label forward rather than restating them. The
+settled days are exactly the held-out days the ablation recorded as common to every baseline and
+both arms: a gap on one of those days contradicts the record and is refused rather than excluded,
+and a table whose held-out common day count disagrees with its own summary is refused as well.
+
+The comparison refuses to run unless it is like for like. One battery configuration plans every
+arm, its terminal SOC must equal its initial SOC, and the perfect-foresight ceiling is asserted
+identical across arms to `1e-6` EUR — a spread above that is reported by naming the two arms and
+their ceilings, never reconciled. What every arm shared is written into the summary as
+`equivalent_basis` so a reader need not take the equivalence on trust.
+
+Four artifacts are written: the settled interval schedule for every method, the daily results, the
+paired daily differences per comparison, and the summary. The paired differences carry both
+settled margins and their difference for every common day, and the summary records the sign counts
+and the total. No interval, dispersion or significance statistic is derived from them: they are a
+series of historical outcomes on one period, not a sample from a distribution this project claims
+to know. A challenger that settles less than its control is recorded exactly as one that settles
+more. Outputs are private generated research artifacts and must not be committed.

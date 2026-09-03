@@ -12,6 +12,12 @@ from .forecast_dispatch import (
     ForecastDispatchInputError,
     backtest_forecast_dispatch,
 )
+from .fundamentals_dispatch import (
+    FUNDAMENTALS_DISPATCH_BENCHMARK_LABEL,
+    FundamentalsDispatchBenchmarkResult,
+    FundamentalsDispatchInputError,
+    backtest_fundamentals_dispatch,
+)
 from .ml_dispatch import (
     ML_DISPATCH_BENCHMARK_LABEL,
     MLDispatchBenchmarkResult,
@@ -27,6 +33,10 @@ __all__ = [
     "ForecastDispatchBacktestResult",
     "ForecastDispatchInputError",
     "backtest_forecast_dispatch",
+    "FUNDAMENTALS_DISPATCH_BENCHMARK_LABEL",
+    "FundamentalsDispatchBenchmarkResult",
+    "FundamentalsDispatchInputError",
+    "backtest_fundamentals_dispatch",
     "ML_DISPATCH_BENCHMARK_LABEL",
     "MLDispatchBenchmarkResult",
     "backtest_ml_dispatch_benchmark",

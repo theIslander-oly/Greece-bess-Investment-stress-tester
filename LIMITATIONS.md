@@ -311,3 +311,38 @@ selection effect is not corrected and cannot be from within the run.
 The exploratory rule is deliberately strict: a meteorological season counts only when every one
 of its days is a common held-out quarter-hour day. A run that falls short is labelled exploratory
 and supports no general conclusion, whatever its numbers say.
+
+## Settled fundamentals dispatch limitations
+
+The v0.9.4 comparison is validated entirely on synthetic fixtures and has produced no figure, for
+the same single reason as v0.9.1 through v0.9.3: the decision cutoff, the decision lead and the
+sampling geography are undeclared, so no accepted feature table exists to benchmark against.
+Nothing here is evidence about weather, about Greek prices or about battery value.
+
+What the comparison could establish once run on an accepted table is narrower than it may look.
+It measures euro settled on one held-out period, under one battery, one declared cutoff and one
+feature set, against a market history that almost entirely predates operating battery
+competition. Storage units entered the Greek Day-Ahead and Intraday Markets only in April 2026,
+so an incremental margin measured here describes what the information would have been worth in a
+market without batteries, not what it will be worth in one with them.
+
+An incremental margin is a difference of two numbers that each carry the standing exclusions, and
+the difference carries them too. It is not expected revenue, not a rate per day or per MW, and
+not transferable to a different battery, cutoff or period. The paired daily differences are
+published so a reader can inspect them directly; their sign counts and total are recorded, and no
+sampling-variability, dispersion or significance statistic is derived from them. One split of a
+non-stationary history is one draw, and a positive total on it is not evidence that the sign
+would recur.
+
+The comparison inherits every limitation of the ablation that produced its forecasts, including
+the non-random reduction to days both arms can be run on and the exploratory label, which it
+carries verbatim and can neither strengthen nor retire. It settles only what the forecast
+benchmark recorded, so a defect upstream is a defect here.
+
+The dispatch itself is the project's standing model and no more: perfect price-taking acceptance
+of every planned quantity, no bid acceptance, no imbalance exposure, no intraday or balancing
+participation, no revenue stacking, and a terminal state restored at the end of every market day.
+The terminal-SOC convention is required for the arms to be comparable at all, and it is a
+modelling choice rather than an operating strategy: a real unit is not obliged to end each day
+where it started, and a comparison run under a different convention would produce different
+increments. No finance or degradation state is coupled to this comparison, by design.

@@ -54,22 +54,38 @@ Read this before interpreting any output:
 - **Illustrative inputs stay illustrative.** The example battery, degradation and finance
   configurations are placeholders. Any number computed from them is arithmetic, not evidence.
 
-**Current release:** `v0.9.3` — the fundamentals ablation now runs on top of the synthetic-validated
-point-in-time pipeline: one chosen source read by byte range, a typed feature table carrying the
-publication instant and byte digest behind every value, a per-delivery-interval audit against a
-declared decision cutoff, a revision-aware as-of join, and a two-arm forecast benchmark that holds
-the models, hyperparameters, seed, refit cadence and delivery days fixed and varies only the
-information. Nothing it retrieves is accepted for forecasting, and no surface runs until the
-operator declares the cutoff, the decision lead and the sampling geography.
+**Current release:** `v0.9.4` — the fundamentals ablation now runs end to end on top of the
+synthetic-validated point-in-time pipeline: one chosen source read by byte range, a typed feature
+table carrying the publication instant and byte digest behind every value, a per-delivery-interval
+audit against a declared decision cutoff, a revision-aware as-of join, a two-arm forecast
+benchmark that holds the models, hyperparameters, seed, refit cadence and delivery days fixed and
+varies only the information, and a settled dispatch comparison that answers the question the
+project actually asks. Nothing it retrieves is accepted for forecasting, and no surface runs until
+the operator declares the cutoff, the decision lead and the sampling geography.
 
-v0.9.3 adds `benchmark-fundamentals-forecast`: a control arm on calendar and price-history
+v0.9.3 added `benchmark-fundamentals-forecast`: a control arm on calendar and price-history
 features and a challenger arm with the accepted point-in-time columns appended, both measured on
 the days complete for every baseline and both arms, with the challenger chosen on validation RMSE
 alone. A delivery day missing any accepted feature leaves every arm by named cause and is never
 imputed, the benchmark refuses to run unless it names the same feature set, cutoff and evidence
 grades the join recorded, and a run whose held-out coverage does not span a complete
-meteorological season of quarter-hour days is labelled exploratory. It is validated on synthetic
-fixtures only; no real feature table exists, so no benchmark figure has been produced.
+meteorological season of quarter-hour days is labelled exploratory.
+
+v0.9.4 adds `benchmark-fundamentals-dispatch`, which settles those forecasts into euro. Price
+error is the secondary question here and settled value the primary one, because this repository's
+own accepted evidence shows the two disagree — `rolling_mean` has a worse RMSE than `ridge` and
+captures more value. Every named arm is planned from its own forecast and settled at the same
+realized prices, over exactly the held-out days the ablation recorded as common to every baseline
+and both arms, under one battery whose terminal SOC must equal its initial SOC. The comparison
+records what it shared as an `equivalent_basis` and asserts one perfect-foresight ceiling across
+arms rather than assuming it; the incremental margin of each challenger over its own control is
+computed by the producing module and never derived by a report, and the paired daily differences
+and their sign counts are written beside it. No interval or significance statistic is derived from
+those differences: they are a series of historical outcomes on one period. A challenger that
+settles less than its control is recorded exactly as one that settles more.
+
+Both benchmarks are validated on synthetic fixtures only; no real feature table exists, so no
+benchmark figure has been produced.
 
 
 ## Measured engineering evidence
@@ -439,7 +455,12 @@ seed and refit cadence, with the model chosen on validation RMSE alone. The benc
 feature set by digest and refuses to run unless the cutoff, the lead and the admitted evidence
 grades equal what the join recorded; a day missing any accepted feature leaves every arm by named
 cause instead of being imputed; and a run whose held-out coverage does not span a complete
-meteorological season of quarter-hour days is labelled exploratory.
+meteorological season of quarter-hour days is labelled exploratory. v0.9.4 closed the chain with
+`benchmark-fundamentals-dispatch`, which plans every named arm from its own forecast and settles
+all of them at the same realized prices over exactly the days the ablation recorded, asserts one
+perfect-foresight ceiling across arms, records the shared comparison basis, and computes the
+incremental margin and the paired daily differences in the module that owns that basis rather
+than leaving a report to subtract two figures.
 **No surface runs yet**: the decision cutoff, the
 decision lead and the sampling geography are operator declarations with no defaults, the
 committed examples are refused by name, and until all three exist nothing is retrieved, no day is
