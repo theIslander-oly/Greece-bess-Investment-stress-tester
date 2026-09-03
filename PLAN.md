@@ -448,13 +448,20 @@ plan it as one whenever the host is refused.
   - 74,662 of 74,663 intervals match exactly; one 29 October 2023 interval differs by
     EUR 0.01/MWh; neither source omits an interval the other publishes.
 - [x] Record the accepted HEnEx source versions, retrieval date and raw hashes.
-- [~] Record the ENTSO-E retrieval metadata and raw-response hashes. The reconciliation
-  artifact from run `33073631530` carries them and is covered by the same custody procedure;
-  the operator upload remains outstanding. **That artifact expires 3 September 2026 at 12:50 UTC
-  and has no replacement:** a refresh dispatched on 1 September (run `33489364087`) was refused by
-  the workflow guard because `ENTSOE_SECURITY_TOKEN` is no longer configured as a repository
-  secret. Restoring the secret is an operator action; the encrypted upload of the existing
-  artifact needs no secret and is what preserves the evidence in the meantime.
+- [x] Record the ENTSO-E retrieval metadata and raw-response hashes. The reconciliation
+  artifact from run `33073631530` carries them and is covered by the same custody procedure.
+  **The encrypted upload is complete and the source artifact has now lapsed as scheduled**
+  (3 September 2026, 12:50 UTC): run `33497084006` encrypted it on 1 September and published
+  `henex-entsoe-reconciliation.tar.gz.age` in release `custody-2026-09-01`, and the decryption
+  drill of the same day recovered it while the source still existed. The earlier wording, that
+  "the operator upload remains outstanding", was stale from before that run and is corrected
+  here rather than left to read as an open gap.
+  - [ ] **Operator action, intended 3 September 2026:** restore `ENTSOE_SECURITY_TOKEN` as a
+    repository secret and re-run the HEnEx/ENTSO-E reconciliation. A refresh dispatched on
+    1 September (run `33489364087`) was refused by the workflow guard because the secret is not
+    configured, so no ENTSO-E retrieval can currently be refreshed or re-verified against the
+    live source. The encrypted copy preserves the evidence either way; the re-run replaces a
+    lapsed artifact with a current one and is not needed to keep what was already accepted.
 - [x] Run and accept the 2020-2025 HEnEx annual archives live.
 - [x] Run and accept the incremental 2026 HEnEx daily retrieval live.
   - Workflow run `32971677163` completed both retrieval stages successfully.
@@ -496,8 +503,12 @@ plan it as one whenever the host is refused.
   - [x] **Decryption drill, run 1 September 2026.** The operator decrypted the reconciliation
     copy and recovered an archive of the expected size, while the source artifacts still existed
     and a failure would have been recoverable. The private key opens the published copies.
-  - [ ] Second copy under separate control. One release is one failure domain, and this is
-    outside the repository's knowledge either way.
+  - [x] Second copy under separate control: **judged unnecessary and closed as an accepted
+    risk** on 3 September 2026, rather than left open indefinitely (decision entry of that day).
+    One release remains one failure domain; the operator holds the private key, the decryption
+    drill proved the copies open, and the residual exposure is loss of the GitHub release itself.
+    A second copy would be outside the repository's knowledge either way, so an unchecked item
+    here could never have been verified as done.
 - [x] Add a per-calendar-year decomposition of the accepted replay (annual perfect-foresight
   ceiling and forecast capture), since aggregate 2020-2026 margins conceal regime dependence
   such as the 2022 gas-crisis year.

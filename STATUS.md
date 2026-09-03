@@ -314,9 +314,12 @@ Encrypted copies of both accepted artifacts were published the same day and the 
 exercised, so the accepted evidence is recoverable. The ADMIE forecast quarantine is closed by
 removing ADMIE load and RES forecasts from scope (decision entry 2026-09-01).
 
-Two operator items remain. A second custody copy under separate control does not exist, and one
-release is one failure domain. `ENTSOE_SECURITY_TOKEN` is no longer configured, so the
-reconciliation cannot be re-run; its accepted evidence is safe in the custody copy and only
+Custody is now recorded as complete. The second copy under separate control was closed on
+3 September 2026 as an accepted risk rather than left open: one release remains one failure
+domain, and the residual exposure is loss of the GitHub release itself (decision entry of that
+day). One operator item remains: `ENTSOE_SECURITY_TOKEN` is not configured, so no ENTSO-E
+retrieval can be refreshed or re-verified against the live source; restoring it and re-running
+the reconciliation is intended. Its accepted evidence is safe in the custody copy and only
 regeneration is blocked. Live market endpoints are reachable only from GitHub Actions runners, so every
 live acceptance step is a workflow dispatch rather than a command in a checkout. See `PLAN.md`.
 
@@ -631,8 +634,8 @@ live acceptance step is a workflow dispatch rather than a command in a checkout.
 
 - Accepted official artifacts are to be stored as encrypted assets on a release in this private
   repository, and are already fingerprinted by price-free custody records committed under
-  `docs/custody/`. A committed record is a fingerprint, not a durable copy: the operator upload is
-  not verified complete in the repository record, so custody is not recorded as complete.
+  `docs/custody/`. A committed record is a fingerprint, not a durable copy; the encrypted upload
+  that makes it one was completed on 1 September 2026 and is recorded below.
 - A custody record holds per-file digests and content-level invariants of the normalized
   series, including a digest of the interval and price series that is independent of CSV
   formatting, column order and float repr.
@@ -655,15 +658,20 @@ live acceptance step is a workflow dispatch rather than a command in a checkout.
   `custody-2026-09-01` on 1 September 2026: `greek-dam-official-history.tar.gz.age`
   (1,312,353 B, ciphertext SHA-256 `3fa76c75…0329bf`) and
   `henex-entsoe-reconciliation.tar.gz.age` (1,672,921 B, `43c5b07b…0ae431`). The reconciliation
-  copy is the only surviving form of that evidence once its source artifact expires
-  3 September 2026.
+  copy is the only surviving form of that evidence: its source artifact lapsed on schedule at
+  12:50 UTC on 3 September 2026, and with `ENTSOE_SECURITY_TOKEN` unconfigured it cannot be
+  regenerated.
 - **The key was exercised the same day**, while the source artifacts still existed and a failure
   would have been recoverable. The operator decrypted the reconciliation copy and recovered an
   archive of the expected size, so the private key opens the published copies. With the
   pre-encryption verification and age's authenticated encryption, that composes into the full
   claim: the stored copies are recoverable and are the accepted artifacts.
-- **One gap remains, and it is not bookkeeping:** the second copy under separate control does not
-  exist. One release is one failure domain. Until it does, custody is not recorded as complete.
+- **The second copy under separate control was judged unnecessary and the item closed** on
+  3 September 2026 (decision entry of that day). One release remains one failure domain and the
+  residual exposure is named rather than implied: losing the GitHub release loses the ciphertext.
+  The item was closed rather than carried indefinitely because it was unverifiable from inside
+  this repository by construction — a copy under separate control is somewhere the repository
+  cannot see, so the box could never have been ticked on evidence.
 - The `Publish encrypted custody copies` workflow now performs the download, verification,
   encryption and release upload inside Actions, so the operator's remaining part is generating
   one age key pair and supplying the public recipient. An age recipient can encrypt and cannot

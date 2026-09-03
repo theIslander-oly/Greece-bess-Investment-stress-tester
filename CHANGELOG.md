@@ -4,6 +4,20 @@ All notable project changes are documented here.
 
 ## [Unreleased]
 
+### Changed
+
+- **Custody and ENTSO-E records corrected to match the evidence.** The parallel-track item
+  recording ENTSO-E retrieval metadata and raw-response hashes is marked complete: its "the
+  operator upload remains outstanding" wording predated run `33497084006`, which encrypted the
+  reconciliation artifact into release `custody-2026-09-01` on 1 September, and the decryption
+  drill that followed. The source artifact from run `33073631530` lapsed on schedule at
+  12:50 UTC on 3 September 2026 with its evidence already preserved. The "second copy under
+  separate control" item is closed as an accepted risk rather than carried indefinitely: it was
+  unverifiable from inside the repository by construction, and the residual exposure — one
+  release is one failure domain — is now stated rather than left implied. Restoring
+  `ENTSOE_SECURITY_TOKEN` and re-running the reconciliation is recorded as an intended operator
+  action. Records only; no code, no analytical behaviour and no accepted figure changed
+
 ### Added
 
 - **v0.9.4: the settled fundamentals dispatch comparison.** Add

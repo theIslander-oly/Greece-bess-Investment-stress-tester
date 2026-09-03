@@ -1,5 +1,41 @@
 # Decision log
 
+## 2026-09-03 — Accept one encrypted custody release as the durable copy, and say so
+
+- **Decision:** The custody item "second copy under separate control" is closed as an accepted
+  risk rather than left open. Release `custody-2026-09-01` holds both encrypted artifacts, the
+  operator holds the private key, and the decryption drill of 1 September recovered the
+  reconciliation copy while the source artifact still existed. No second copy is required before
+  any acceptance run proceeds.
+- **Reason:** The item was unverifiable from inside the repository by construction: a copy under
+  separate control is, by definition, somewhere this repository cannot see, so an unchecked box
+  could never have become a checked one on evidence. Leaving it open indefinitely misreports a
+  deliberate judgment as an outstanding task, which is the failure mode this log exists to
+  prevent. The residual exposure is named instead of implied: one release is one failure domain,
+  and losing the GitHub release loses the ciphertext.
+- **Consequence:** Gate G9 of the v0.9 design — the feature table must be custodied before the
+  acceptance run — is unaffected: it concerns the feature table, not the number of copies of the
+  price history. If the residual exposure is ever judged unacceptable, restoring a second copy is
+  a new operator action under a new entry, not a reopening of this one.
+
+## 2026-09-03 — Correct the stale ENTSO-E custody wording rather than carry it forward
+
+- **Decision:** The parallel-track item recording ENTSO-E retrieval metadata and raw-response
+  hashes is marked complete. Its previous wording — "the operator upload remains outstanding" —
+  predated run `33497084006` of 1 September, which encrypted the reconciliation artifact and
+  published it, and the decryption drill that followed. The source artifact from run
+  `33073631530` lapsed on schedule at 12:50 UTC on 3 September 2026 with its evidence already
+  preserved. Restoring `ENTSOE_SECURITY_TOKEN` and re-running the reconciliation is recorded
+  separately as an intended operator action.
+- **Reason:** A record that reads as an open gap where none exists is as misleading as one that
+  claims completeness it does not have. The correction is stated rather than made silently,
+  because the earlier text was the project's own account of its evidence and a reader who saw
+  both versions is entitled to know which is right and why.
+- **Consequence:** The token remains unconfigured until the operator restores it, so no ENTSO-E
+  retrieval can currently be refreshed or re-verified against the live source. That is a
+  limitation on future verification, not on what was already accepted: the reconciliation's
+  74,662-of-74,663 interval agreement stands on the evidence recorded at the time.
+
 ## 2026-09-03 — Settle the ablation on the days it recorded, and refuse a gap rather than exclude it
 
 - **Decision:** `benchmark-fundamentals-dispatch` settles exactly the held-out delivery days the
