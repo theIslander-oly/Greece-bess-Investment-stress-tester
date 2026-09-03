@@ -1136,3 +1136,7 @@ and the total. No interval, dispersion or significance statistic is derived from
 series of historical outcomes on one period, not a sample from a distribution this project claims
 to know. A challenger that settles less than its control is recorded exactly as one that settles
 more. Outputs are private generated research artifacts and must not be committed.
+
+## Custody-gated fundamentals benchmark
+
+Dispatch `.github/workflows/benchmark-fundamentals.yml` only after a dated acceptance document is committed. Supply accepted official-history and feature-table run IDs, the accepted feature-set SHA-256, and the acceptance-document SHA-256. The workflow re-audits before benchmarking, records and verifies all v0.9 manifests, renders the generic report, and uploads interval evidence privately.

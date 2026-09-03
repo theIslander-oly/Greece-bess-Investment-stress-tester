@@ -63,3 +63,9 @@ is derived from these rows.
 | Challenger / reference realized margin | Each arm's settled gross margin for that day, planned from its own forecast and settled at the same realized prices |
 | Realized margin difference | Challenger minus reference, in EUR. Signed; a negative value is a challenger that settled less |
 | Perfect-foresight margin | That day's ceiling, identical for both arms by assertion rather than by assumption |
+
+## v0.9 acceptance identities
+
+- `accepted_feature_set_sha256`: exact digest admitted by the dated acceptance document and required in benchmark-manifest declared inputs.
+- `is_exploratory`: true unless common held-out quarter-hour coverage contains every day of at least one complete meteorological season; also true whenever `assumed` evidence is explicitly admitted.
+- `resolution_relation = broadcast_coarser_feature`: one native hourly feature repeated over four quarter-hour market intervals; never interpolation.

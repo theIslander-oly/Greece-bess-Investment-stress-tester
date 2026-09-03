@@ -1016,3 +1016,7 @@ exercised the same day. The ADMIE publication-timing audit, workflow and policy 
 2026-08-31 and are retained as unused: ADMIE load and RES forecasts were removed from scope on
 2026-09-01, so that acceptance is not pending but withdrawn. The per-year decomposition surface and workflow landed on 2026-08-27 and its official run
 was accepted on 2026-08-28, so that track is complete.
+
+## v0.9.5 — official-run engineering prepared; official acceptance remains external
+
+The custody-gated manual workflow, reusable acceptance and benchmark structures, accepted-digest manifest refusal, and generic renderer coverage are complete. It fixes zero-minute lead, the three declared GFS variables, the 1 October 2025 quarter-hour test boundary, structural bands 0/50/100/200, admissible grades, and the unchanged 50 MW / 100 MWh battery. It refuses to benchmark before acceptance and keeps all interval evidence private. No official run, finding, count, digest, or investment conclusion is recorded by this engineering milestone.

@@ -1,0 +1,199 @@
+name: Benchmark point-in-time fundamentals
+
+on:
+  workflow_dispatch:
+    inputs:
+      history_run_id:
+        description: Accepted official-history run ID
+        required: true
+        type: string
+      feature_run_id:
+        description: Accepted feature-table run ID
+        required: true
+        type: string
+      accepted_feature_set_sha256:
+        description: Feature-set SHA-256 named by the committed acceptance document
+        required: true
+        type: string
+      acceptance_document_sha256:
+        description: SHA-256 of the committed dated acceptance document
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  acceptance-before-benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      HISTORY_RUN_ID: ${{ inputs.history_run_id }}
+      FEATURE_RUN_ID: ${{ inputs.feature_run_id }}
+      ACCEPTED_FEATURE_SET_SHA256: ${{ inputs.accepted_feature_set_sha256 }}
+      ACCEPTANCE_DOCUMENT_SHA256: ${{ inputs.acceptance_document_sha256 }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install .
+
+      - name: Guard every pre-registered declaration
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(cat config/decision_lead_minutes.txt)" = "0"
+          python - <<'PY'
+          import hashlib, json, os
+          from pathlib import Path
+          schedule=json.loads(Path("config/decision_cutoff.json").read_text())
+          assert schedule["schedule_id"] == "greek-dam-gate-closure-2026-09-03"
+          geography=json.loads(Path("config/fundamentals_geography.json").read_text())
+          assert len(geography["points"]) == 3
+          digest=os.environ["ACCEPTED_FEATURE_SET_SHA256"]
+          assert len(digest) == 64 and all(c in "0123456789abcdef" for c in digest)
+          documents=list(Path("docs").glob("fundamentals_acceptance_*.md"))
+          assert len(documents) == 1, "exactly one committed dated acceptance document is required"
+          actual=hashlib.sha256(documents[0].read_bytes()).hexdigest()
+          assert actual == os.environ["ACCEPTANCE_DOCUMENT_SHA256"]
+          assert digest in documents[0].read_text(), "acceptance document does not name feature digest"
+          PY
+
+      - name: Download accepted official price history
+        uses: actions/download-artifact@v4
+        with:
+          name: greek-dam-official-history
+          run-id: ${{ env.HISTORY_RUN_ID }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: artifacts/greek-dam-official-history
+      - name: Download accepted feature table
+        uses: actions/download-artifact@v4
+        with:
+          name: point-in-time-fundamentals
+          run-id: ${{ env.FEATURE_RUN_ID }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: artifacts/accepted-fundamentals-feature-table
+
+      - name: Verify price-history and feature-table custody before reading either artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          .github/scripts/custody_step.sh greek-dam-official-history "$HISTORY_RUN_ID" \
+            "Fetch official Greek market history" "" auto
+          .github/scripts/custody_step.sh accepted-fundamentals-feature-table "$FEATURE_RUN_ID" \
+            "Benchmark point-in-time fundamentals" "" auto
+          test ! -f custody/verification_failed
+
+      - name: Prepare inputs without printing private contents
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p private/results
+          greek-bess merge-canonical \
+            artifacts/greek-dam-official-history/henex_archived_prices.csv \
+            artifacts/greek-dam-official-history/henex_daily_prices.csv \
+            --output private/results/prices.csv >/dev/null
+          PRICE=private/results/prices.csv
+          FEATURES=$(find artifacts/accepted-fundamentals-feature-table -name features.csv -type f -print -quit)
+          test -n "$FEATURES"
+          echo "PRICE=$PRICE" >> "$GITHUB_ENV"; echo "FEATURES=$FEATURES" >> "$GITHUB_ENV"
+
+      - name: Re-run availability acceptance audit before any benchmark
+        shell: bash
+        run: |
+          mkdir -p private/audit private/results private/manifests private/report
+          set +e
+          greek-bess audit-feature-availability "$FEATURES" \
+            --decision-cutoff config/decision_cutoff.json --decision-lead-minutes 0 \
+            --variables dswrf_surface temperature_2m wind_speed_10m --area GR \
+            --start-day 2021-02-27 --end-day 2026-08-25 \
+            --output private/audit/delivery_days.csv \
+            --observations private/audit/observations.csv \
+            --summary private/audit/availability.summary.json
+          status=$?
+          set -e
+          test "$status" = 0 || test "$status" = 2
+
+      - name: Build admissible feature set and enforce digest and complete-season classification
+        shell: bash
+        run: |
+          set -euo pipefail
+          greek-bess build-point-in-time-features "$PRICE" "$FEATURES" \
+            --decision-cutoff config/decision_cutoff.json --decision-lead-minutes 0 \
+            --admitted-grades witnessed provider_declared \
+            --output private/results/features.csv --audit private/audit/join.csv \
+            --summary private/results/features.summary.json || test "$?" = 2
+          python - <<'PY'
+          import hashlib,json,os
+          from pathlib import Path
+          s=json.loads(Path('private/results/features.summary.json').read_text())
+          assert s['feature_set_sha256'] == os.environ['ACCEPTED_FEATURE_SET_SHA256']
+          # Every day of DJF 2025-26 must be common or the downstream result is exploratory.
+          excluded={str(x['market_day']) for x in s['delivery_days'] if x['status'] != 'complete'}
+          import pandas as pd
+          winter={str(x.date()) for x in pd.date_range('2025-12-01','2026-02-28',tz='UTC')}
+          complete=not (winter & excluded)
+          Path('private/results/run_classification.json').write_text(json.dumps({
+            'is_exploratory': not complete,
+            'rule': 'exploratory unless every day of one complete meteorological season is common'
+          },indent=2)+'\n')
+          PY
+
+      - name: Run fixed forecast benchmark only from the accepted digest
+        shell: bash
+        run: |
+          greek-bess benchmark-fundamentals-forecast "$PRICE" \
+            --features private/results/features.csv \
+            --feature-summary private/results/features.summary.json \
+            --feature-set-sha256 "$ACCEPTED_FEATURE_SET_SHA256" \
+            --decision-cutoff config/decision_cutoff.json --decision-lead-minutes 0 \
+            --admitted-grades witnessed provider_declared --price-regime-bands 0 50 100 200 \
+            --validation-start-day 2024-10-01 --test-start-day 2025-10-01 \
+            --output private/results/forecasts.csv --summary private/results/forecast.summary.json
+
+      - name: Run fixed settled dispatch comparison
+        shell: bash
+        run: |
+          greek-bess benchmark-fundamentals-dispatch "$PRICE" \
+            --config examples/battery_50mw_100mwh.json \
+            --forecasts private/results/forecasts.csv \
+            --forecast-summary private/results/forecast.summary.json \
+            --methods ridge ridge_fundamentals hist_gradient_boosting hist_gradient_boosting_fundamentals \
+            --output private/results/dispatch.csv --daily-output private/results/dispatch.daily.csv \
+            --paired-differences private/results/dispatch.paired.csv \
+            --summary private/results/dispatch.summary.json
+
+      - name: Record verify and generically render every applicable manifest
+        shell: bash
+        run: |
+          printf '{"accepted_feature_set_sha256":"%s"}\n' "$ACCEPTED_FEATURE_SET_SHA256" > private/declared_inputs.json
+          record () { greek-bess record-run-manifest "$1" --result-kind "$2" --manifest-id "$3" \
+            --produced-by "$4" --declared-inputs private/declared_inputs.json --output "private/manifests/$3.json" >/dev/null; }
+          record private/audit/availability.summary.json point_in_time_availability_audit availability audit-feature-availability
+          record private/results/forecast.summary.json fundamentals_forecast_benchmark forecast benchmark-fundamentals-forecast
+          record private/results/dispatch.summary.json fundamentals_dispatch_benchmark dispatch benchmark-fundamentals-dispatch
+          for manifest in private/manifests/*.json; do greek-bess verify-run-manifest "$manifest" >/dev/null; done
+          greek-bess render-report private/manifests/*.json --output private/report/fundamentals.html >/dev/null
+
+      - name: Upload private evidence bundle
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fundamentals-acceptance-and-benchmark-private
+          path: private/
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Write artifact index and interpretation labels only
+        shell: bash
+        run: |
+          cat >> "$GITHUB_STEP_SUMMARY" <<'EOF'
+          ## Private fundamentals evidence
+          - Artifact: `fundamentals-acceptance-and-benchmark-private`
+          - Contents: interval tables, audits, manifests, classification, and generic report.
+          - Perfect foresight is a gross-margin upper bound only.
+          - Historical research output; not expected revenue, financial advice, a bankable forecast, or an investment-grade study.
+          EOF

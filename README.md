@@ -54,7 +54,7 @@ Read this before interpreting any output:
 - **Illustrative inputs stay illustrative.** The example battery, degradation and finance
   configurations are placeholders. Any number computed from them is arithmetic, not evidence.
 
-**Current release:** `v0.9.4` — the fundamentals ablation now runs end to end on top of the
+**Current release:** `v0.9.5` — the fundamentals ablation now runs end to end on top of the
 synthetic-validated point-in-time pipeline: one chosen source read by byte range, a typed feature
 table carrying the publication instant and byte digest behind every value, a per-delivery-interval
 audit against a declared decision cutoff, a revision-aware as-of join, a two-arm forecast
@@ -559,3 +559,7 @@ Per-release implementation reports and release notes live in
 
 Copyright is reserved. See [LICENSE](LICENSE). The repository is available for viewing,
 educational evaluation and portfolio demonstration; reuse requires prior permission.
+
+## v0.9 official-run preparation
+
+Version 0.9.5 adds a manually dispatched, custody-gated fundamentals acceptance and benchmark workflow. A dated acceptance record must name the exact accepted feature-set digest before a benchmark manifest can be recorded. The generic renderer has been exercised on all three v0.9 manifest kinds; it computes no result. Official execution remains a post-merge external action and synthetic evidence supports machinery only. Reusable structures are under `docs/templates/`.

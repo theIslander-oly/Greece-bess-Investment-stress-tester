@@ -1429,3 +1429,9 @@ dated entry when a milestone changes scope, assumptions, data handling or valida
 - **Decision:** Include explicit CAPEX, OPEX, augmentation, decommissioning and residual value,
   but exclude tax, debt, subsidies and working capital.
 - **Reason:** Those layers require project-specific evidence and jurisdiction-specific advice.
+
+## 2026-09-03 — v0.9.5 acceptance must precede benchmark recording
+
+**Decision:** A fundamentals forecast or settled-dispatch manifest must carry an `accepted_feature_set_sha256` declared input equal to the producing summary's feature-set identity. The manual workflow verifies both official-history and feature-table custody, re-runs availability and join audits, and only then benchmarks. The existing custody implementation is parameterized; no second independently controlled copy is required.
+
+**Reason:** Ordering expressed only in prose can be bypassed by a hand-written manifest. Digest equality makes the accepted input identity executable while leaving arithmetic in producing modules.

@@ -38,6 +38,11 @@ on:
         required: false
         default: "33073631530"
         type: string
+      feature_run_id:
+        description: Run ID holding accepted-fundamentals-feature-table; empty skips it
+        required: false
+        default: ""
+        type: string
 
 permissions:
   contents: write
@@ -52,6 +57,7 @@ jobs:
       RELEASE_TAG: ${{ inputs.release_tag }}
       HISTORY_RUN_ID: ${{ inputs.history_run_id }}
       RECONCILIATION_RUN_ID: ${{ inputs.reconciliation_run_id }}
+      FEATURE_RUN_ID: ${{ inputs.feature_run_id }}
 
     steps:
       - name: Refuse anything that is not an age recipient
@@ -104,6 +110,15 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           path: artifacts/henex-entsoe-reconciliation
 
+      - name: Download the accepted feature-table artifact
+        if: ${{ env.FEATURE_RUN_ID != '' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: point-in-time-fundamentals
+          run-id: ${{ env.FEATURE_RUN_ID }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: artifacts/accepted-fundamentals-feature-table
+
       - name: Verify every artifact against its committed custody record
         shell: bash
         run: |
@@ -115,6 +130,10 @@ jobs:
             .github/scripts/custody_step.sh \
               henex-entsoe-reconciliation "$RECONCILIATION_RUN_ID" \
               "Reconcile HEnEx and ENTSO-E prices" "" auto
+          fi
+          if [[ -n "$FEATURE_RUN_ID" ]]; then
+            .github/scripts/custody_step.sh accepted-fundamentals-feature-table \
+              "$FEATURE_RUN_ID" "Benchmark point-in-time fundamentals" "" auto
           fi
           if [[ -f custody/verification_failed ]]; then
             echo "An artifact does not match its committed custody record; refusing to publish it."
