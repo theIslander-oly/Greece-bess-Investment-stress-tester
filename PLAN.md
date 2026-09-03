@@ -541,7 +541,7 @@ plan it as one whenever the host is refused.
 - [ ] **The official run, in this fixed order and no other.** The engineering above merged on
   3 September 2026, so nothing here waits on a branch any more:
   1. Dispatch `Fetch point-in-time fundamentals` over the declared window and read its
-     availability audit. *Never dispatched; this is where the track currently stands.*
+     availability audit. *Measured but not yet run against the declared window — see v0.9.6.*
   2. Check the complete-season preflight, which decides whether the run is labelled exploratory
      before any result is seen rather than after.
   3. Record and verify custody of the accepted feature table through
@@ -551,3 +551,35 @@ plan it as one whenever the host is refused.
      (`docs/templates/fundamentals_acceptance.md`).
   5. Dispatch `Benchmark point-in-time fundamentals` from that digest, and commit its result
      regardless of sign (`docs/templates/fundamentals_benchmark.md`).
+
+## v0.9.6 — the declared window becomes retrievable
+
+The first dispatch of the retrieval surface was a measurement, and it found the official run
+impossible as designed: **72.1 s per delivery day** (run `33760441164`, 30 days in 36 minutes)
+is **40.2 hours** across the pre-registered 2,006-day window against a six-hour per-job ceiling,
+and **83 MB per delivery day** retained is **163 GB** against roughly 14 GB of runner disk.
+Nothing but a dispatched run could have shown this; every earlier v0.9 milestone was validated
+on synthetic fixtures.
+
+- [x] Stop retaining raw GRIB2 messages in the retrieval workflow. The retrieval manifest
+  already records each message's digest, byte count and source URL, so the messages are not what
+  the evidence rests on. This removes the disk ceiling outright.
+- [x] Tile the window into slices retrieved in parallel — 23 slices of about 1 h 50 m at 90
+  delivery days each — leaving the retrieval client untouched, because making it concurrent
+  would change how an evidence path talks to the provider.
+- [x] `combine-feature-tables`, which refuses anything that is not a tiling: an overlap rather
+  than deduplicating it, a gap by name, and slices disagreeing on source, variable set or
+  declared geography by naming the fields that differ.
+- [x] Read feature tables with round-trip float precision wherever a digest is taken over them.
+  The default parser is accurate to one unit in the last place, which no result here can see,
+  but a digest has no tolerance and the acceptance gate is a digest.
+- [ ] **The declared window is still not retrieved.** The 30-day dispatch is a measurement, not
+  an accepted feature table.
+
+**The window is never shortened to fit a runner.** The split, the boundary and the source are
+pre-registered; trimming the window to make a job fit would be revising a declaration to suit an
+operational constraint, which is exactly the move the pre-registration exists to prevent.
+
+**A `workflow_dispatch` workflow must be on the default branch to be triggerable.** The sharded
+retrieval and the acceptance preflight are therefore not dispatchable until they merge, and that
+merge is the gate in front of every remaining step of the official run.

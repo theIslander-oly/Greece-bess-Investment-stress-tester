@@ -6,6 +6,38 @@ All notable project changes are documented here.
 
 ### Added
 
+- **v0.9.6: the declared window becomes retrievable.** The first dispatch of
+  `Fetch point-in-time fundamentals` (run `33760441164`) measured what the surface costs:
+  **72.1 seconds per delivery day**, and 83 MB per delivery day of GRIB2 messages when
+  `--raw-dir` retains them. Against the pre-registered 2,006-day window that is **40.2 hours**
+  of retrieval against a six-hour per-job ceiling, and **163 GB** against roughly 14 GB of
+  runner disk — two hard failures that only a dispatched run could reveal, because the surface
+  had only ever been exercised on synthetic fixtures. The window is pre-registered and is not
+  shortened to fit a runner. Instead the workflow stops retaining raw messages, which the
+  retrieval manifest already identifies by digest and byte count, and tiles the window into
+  slices retrieved in parallel and recombined — 23 slices of about 1 h 50 m at 90 days each.
+  The retrieval client is untouched: making it concurrent would change how an evidence path
+  talks to the provider. Add `combine-feature-tables` and `data/feature_shards.py`, which hold
+  the invariant that makes the recombination checkable rather than assumed — the slices must
+  **tile** the window, covering every delivery day exactly once. An overlap is refused rather
+  than deduplicated, because two retrievals of one day are two revisions of one observation and
+  choosing between them is the point-in-time join's decision under a declared cutoff; a gap is
+  refused by name; and slices disagreeing on source, variable set or declared geography are
+  refused by naming the fields that differ. The combined summary records every slice and its own
+  retrieval instant and the combined manifest carries every document from every slice, so any
+  one slice can be re-retrieved alone.
+
+### Fixed
+
+- **A digest that depended on how many times a table had been copied.** The point-in-time
+  feature table is written exactly but was read back with pandas' default float parser, which is
+  accurate only to within one unit in the last place. The observed relative difference was 2e-16
+  — far below anything meteorological or monetary this project reports — but the feature set is
+  identified downstream by a SHA-256 over its own values, and a digest has no tolerance, so a
+  table written, read and written again digested differently from the one the retrieval
+  produced. Both readers that feed a digested frame now parse with round-trip precision. No
+  analytical result changes; one digest computation becomes stable that was not.
+
 - **v0.9.5 record corrections.** No source, test, workflow or configuration behaviour changed.
   The v0.9.5 merge had appended its documentation below the closing sections of `STATUS.md`,
   `CHANGELOG.md`, `README.md` and `PLAN.md` rather than into the structures those files already

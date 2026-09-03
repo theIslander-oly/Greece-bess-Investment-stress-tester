@@ -54,7 +54,7 @@ Read this before interpreting any output:
 - **Illustrative inputs stay illustrative.** The example battery, degradation and finance
   configurations are placeholders. Any number computed from them is arithmetic, not evidence.
 
-**Current release:** `v0.9.5` — the fundamentals ablation now runs end to end on top of the
+**Current release:** `v0.9.6` — the fundamentals ablation now runs end to end on top of the
 synthetic-validated point-in-time pipeline: one chosen source read by byte range, a typed feature
 table carrying the publication instant and byte digest behind every value, a per-delivery-interval
 audit against a declared decision cutoff, a revision-aware as-of join, a two-arm forecast
@@ -586,6 +586,7 @@ Per-release implementation reports and release notes live in
 - [Implementation report v0.9.5 official-run preparation](docs/history/implementation_report_v0.9.5.md)
 - [Dated-document templates](docs/templates/)
 - [v0.9.5 record corrections](docs/history/implementation_report_record_corrections_2026-09-03.md)
+- [Implementation report v0.9.6 sharded retrieval](docs/history/implementation_report_v0.9.6.md)
 - [Current status](STATUS.md)
 - [Implementation plan](PLAN.md)
 - [Contributing guidance](CONTRIBUTING.md)

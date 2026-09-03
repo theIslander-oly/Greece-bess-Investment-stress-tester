@@ -29,6 +29,7 @@ import pandas as pd
 
 from ..backtest.fundamentals_dispatch import backtest_fundamentals_dispatch
 from ..data.availability_audit import audit_feature_availability
+from ..data.feature_shards import combine_feature_shards
 from ..data.gfs import (
     FIRST_HOURLY_DELIVERY_DAY,
     GFS_VARIABLES,
@@ -186,6 +187,64 @@ def run_fetch_fundamentals(args: argparse.Namespace) -> int:
     return 0
 
 
+def configure_combine_feature_tables(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "shards",
+        nargs="+",
+        type=Path,
+        help=(
+            "Point-in-time feature CSVs retrieved by fetch-fundamentals, each beside its own "
+            "summary; they must tile one window, covering every delivery day exactly once"
+        ),
+    )
+    parser.add_argument("--output", required=True, type=Path, help="Combined feature CSV")
+    parser.add_argument("--manifest", type=Path, help="Combined retrieval manifest JSON")
+    parser.add_argument("--summary", type=Path, help="Combined retrieval summary JSON")
+
+
+def run_combine_feature_tables(args: argparse.Namespace) -> int:
+    created_at = utc_now_iso()
+    features, summary, records = combine_feature_shards(
+        list(args.shards), created_at_utc=created_at
+    )
+    write_point_in_time_csv(features, args.output)
+
+    manifest_path = args.manifest or _sibling_path(args.output, ".retrieval_manifest.json")
+    _write_json(
+        {
+            "schema_version": 1,
+            "created_at_utc": created_at,
+            "files": records,
+        },
+        manifest_path,
+    )
+    coverage = feature_coverage(features)
+    _write_plain_csv(coverage, _sibling_path(args.output, ".coverage.csv"))
+
+    summary_path = args.summary or args.output.with_suffix(".summary.json")
+    _write_json(summary, summary_path)
+    print(
+        json.dumps(
+            {
+                key: summary[key]
+                for key in (
+                    "result_label",
+                    "source",
+                    "variables",
+                    "start_day",
+                    "end_day",
+                    "shard_count",
+                    "built_day_count",
+                    "feature_row_count",
+                    "document_count",
+                )
+            },
+            indent=2,
+        )
+    )
+    return 0
+
+
 def configure_audit_feature_availability(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("features", type=Path, help="Point-in-time feature CSV")
     parser.add_argument(
@@ -327,7 +386,9 @@ def run_benchmark_fundamentals_forecast(args: argparse.Namespace) -> int:
     )
     result = generate_fundamentals_benchmark(
         _read_canonical_csv(args.prices),
-        pd.read_csv(args.features),
+        # Round-trip precision for the same reason the feature reader uses it: this frame
+        # is checked against the digest the join recorded, and a digest has no tolerance.
+        pd.read_csv(args.features, float_precision="round_trip"),
         join_summary,
         config,
     )
@@ -425,6 +486,15 @@ COMMANDS: tuple[Command, ...] = (
         ),
         configure=configure_benchmark_fundamentals_dispatch,
         run=run_benchmark_fundamentals_dispatch,
+    ),
+    Command(
+        name="combine-feature-tables",
+        help=(
+            "Combine point-in-time feature shards that tile one window into one table, "
+            "refusing any overlap, gap or mixed retrieval identity"
+        ),
+        configure=configure_combine_feature_tables,
+        run=run_combine_feature_tables,
     ),
     Command(
         name="audit-feature-availability",

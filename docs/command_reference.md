@@ -451,7 +451,6 @@ greek-bess fetch-fundamentals \
   --geography config/fundamentals_geography.json \
   --start-day 2026-08-01 \
   --end-day 2026-08-31 \
-  --raw-dir data/raw/noaa_gfs \
   --output acceptance/fundamentals/features.csv \
   --manifest acceptance/fundamentals/retrieval_manifest.json
 ```
@@ -468,8 +467,56 @@ cutoff. Delivery days before 27 February 2021 carry no feature — the product i
 then — and are excluded by named cause rather than filled from a coarser resolution. A window
 holding no usable day is refused rather than written as an empty table.
 
-Everything this command writes is private: the retrieved GRIB2 messages, the feature table, its
+`--raw-dir` retains every retrieved GRIB2 message and is optional. It is useful over a short
+window and unaffordable over the declared one — the measured 83 MB per delivery day is about
+163 GB across 2,006 days — so the retrieval workflow omits it and relies on the retrieval
+manifest, which records the digest and byte count of every message each value was decoded from.
+
+Everything this command writes is private: any retained GRIB2 messages, the feature table, its
 coverage table, its retrieval manifest and its summary. None of it is committed.
+
+### Combine point-in-time feature shards
+
+The declared v0.9 window cannot be retrieved in one job. The first dispatched retrieval, run
+`33760441164` on 3 September 2026, took 36 minutes for 30 delivery days — **72 seconds per
+delivery day**, because the source is read as one HTTPS round trip per forecast step. The
+declared window is 2,006 delivery days, so one job would need roughly **40 hours** against a
+per-job ceiling of six, and would retain about **163 GB** if it kept its raw messages. The
+window is pre-registered and may not be shortened, so it is retrieved in slices instead:
+
+```bash
+greek-bess combine-feature-tables \
+  shards/features_0.csv shards/features_1.csv shards/features_2.csv \
+  --output acceptance/fundamentals/features.csv \
+  --manifest acceptance/fundamentals/retrieval_manifest.json
+```
+
+This is sound only because a delivery day is retrieved independently of every other one: the
+client reads that day's own forecast cycle and derives nothing from a neighbour. The command
+holds the invariant that makes the recombination checkable rather than assumed — the slices must
+**tile** the window, covering every delivery day exactly once — and it refuses anything else:
+
+- **An overlap is refused, never deduplicated.** Two retrievals of one delivery day are two
+  revisions of the same observation, and choosing between them is the point-in-time join's
+  decision under a declared cutoff, not a concatenation's.
+- **A gap is refused**, naming the missing span. A silently short window is indistinguishable
+  downstream from a provider that published nothing.
+- **Slices that disagree on the source, the variable set or the declared geography are refused**,
+  naming the fields that differ, because combining them would give one column two meanings.
+- A slice without its retrieval summary is refused; a shard is combined on the evidence of what
+  it retrieved, not on a CSV happening to sit beside it.
+
+The combined table is exactly what a single retrieval of the whole window would have written:
+the test suite asserts the equality on synthetic fixtures, and it was checked on real retrieved
+NOAA GFS data before the surface was adopted. The combined summary records every slice, its
+window and its own retrieval instant, so a reader who doubts the table can re-retrieve any one
+slice on its own, and the combined retrieval manifest carries every document digest and byte
+count from every slice.
+
+Feature tables are read with round-trip float precision wherever a digest is taken over them.
+The parser default is accurate to within one unit in the last place, which is far below anything
+meteorological or monetary this project reports — but the feature set is identified downstream by
+a SHA-256 over its own values, and a digest has no tolerance.
 
 ### Audit point-in-time feature availability
 

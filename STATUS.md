@@ -1,6 +1,6 @@
 # Project status
 
-**Version:** 0.9.5
+**Version:** 0.9.6
 **Updated:** 3 September 2026
 **Status:** Official multi-year operational acceptance and HEnEx-to-ENTSO-E cross-source
 reconciliation passed; encrypted custody copies published and the private key exercised;
@@ -66,6 +66,50 @@ audit, custody record, acceptance document or benchmark run has been executed ag
 data (`docs/history/implementation_report_v0.9.5.md`)
 
 On 3 September 2026 the operator approved the pre-run declarations: a two-regime cutoff, zero-minute lead, one pre-test-vintage wind-capacity geography, structural price bands and the fixed quarter-hour test boundary. The declaration record quantifies the hourly-to-quarter-hour transfer and adds a separate illustrative 25 MW / 100 MWh battery without changing the v0.9 comparison battery. This records no feature acceptance or result. Primary sources must still accompany acceptance evidence, and availability audit, custody and data acceptance must precede any official benchmark (`docs/fundamentals_declarations_2026-09-03.md`).
+
+## v0.9.6 — the declared window is now retrievable; it has still not been retrieved
+
+The first dispatch of `Fetch point-in-time fundamentals` was not an official run; it was a
+measurement, and it found that the official run as designed could not complete. Run
+`33760441164` retrieved 30 delivery days in 36 minutes — **72.1 seconds per delivery day**,
+because the source is one HTTPS round trip per forecast step and the retrieval is sequential by
+construction. A local two-day retrieval measured **83 MB per delivery day** of GRIB2 messages.
+Against the pre-registered 2,006-day window those rates are **40.2 hours** of retrieval against
+a six-hour per-job ceiling, and **163 GB** of retained messages against roughly 14 GB of runner
+disk. Both are hard failures rather than slow successes, and neither could be seen before the
+workflow was dispatched, because every earlier v0.9 milestone was validated on synthetic
+fixtures alone.
+
+The window is pre-registered and was not shortened to fit a runner; shortening it would be
+revising a declaration to fit an operational constraint. Two things changed instead. The
+retrieval workflow stopped retaining raw messages, which the retrieval manifest already
+identifies by digest, byte count and source URL. And the window is now tiled into slices
+retrieved in parallel and recombined by `combine-feature-tables` — 23 slices of about 1 hour
+50 minutes at 90 delivery days each. The retrieval client itself is untouched: making it
+concurrent would change how an evidence path talks to the provider, which is a change to the
+evidence rather than to its schedule.
+
+Recombination is checkable rather than assumed. The slices must **tile** the window, covering
+every delivery day exactly once; an overlap is refused rather than deduplicated, because two
+retrievals of one day are two revisions of one observation and choosing between them is the
+join's decision under a declared cutoff; a gap is refused by name; and slices disagreeing on
+source, variable set or declared geography are refused by naming the fields that differ. Two
+delivery days retrieved separately and recombined are exactly the table one retrieval of both
+wrote, every float included, with the same 200 documents and the same 166,460,222 bytes.
+
+Combining exposed one defect that was already there. The feature table is written exactly but
+was read back with pandas' default float parser, accurate only to within one unit in the last
+place — 2e-16 relative, far below anything this project reports, but the feature set is
+identified by a SHA-256 over its own values and a digest has no tolerance. A table written, read
+and written again digested differently from the one the retrieval produced, which would have
+made the v0.9 acceptance gate depend on how many times a table had been copied. Both readers
+that feed a digested frame now parse with round-trip precision. No analytical result changed
+(`docs/history/implementation_report_v0.9.6.md`).
+
+**Nothing official has been retrieved.** The 30-day dispatch was a measurement and is not an
+accepted feature table; no availability finding against official data, custody record,
+acceptance document or benchmark figure exists. Every figure this project reports still comes
+from the accepted price history alone.
 
 ## v0.9.5 — the official-run machinery is complete; the official run has not started
 
@@ -1060,6 +1104,11 @@ declared window and read its availability audit; check the complete-season prefl
 whether the run is exploratory; record and verify custody of the resulting feature table; commit
 a dated acceptance document naming the accepted feature-set digest; then dispatch
 `Benchmark point-in-time fundamentals` from that digest and commit its result regardless of sign.
-None of it has been started: the fetch workflow has never run. Until it does, the project's
-reported figures come from the accepted price history alone, and the fundamentals question is
-unanswered rather than answered negatively.
+
+Since v0.9.6 that order is executable, which it was not before: the retrieval of the declared
+window needed forty hours in a six-hour job until it was tiled into slices. The first step has
+still not been taken against the declared window — only a 30-day measurement has been retrieved
+— and the two new workflow surfaces reach a dispatchable state only once they are on the default
+branch, because a `workflow_dispatch` workflow must live there to be triggerable. Until the run
+happens, the project's reported figures come from the accepted price history alone, and the
+fundamentals question is unanswered rather than answered negatively.
