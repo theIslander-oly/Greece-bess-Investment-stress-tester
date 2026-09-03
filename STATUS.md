@@ -58,6 +58,8 @@ fourth time on synthetic fixtures alone and for the fourth time producing no fig
 same three declarations are still absent
 (`docs/history/implementation_report_v0.9.4.md`)
 
+On 3 September 2026 the operator approved the pre-run declarations: a two-regime cutoff, zero-minute lead, one pre-test-vintage wind-capacity geography, structural price bands and the fixed quarter-hour test boundary. The declaration record quantifies the hourly-to-quarter-hour transfer and adds a separate illustrative 25 MW / 100 MWh battery without changing the v0.9 comparison battery. This records no feature acceptance or result. Primary sources must still accompany acceptance evidence, and availability audit, custody and data acceptance must precede any official benchmark (`docs/fundamentals_declarations_2026-09-03.md`).
+
 ## v0.9.4 — the ablation now settles into euro; it has still measured nothing
 
 `benchmark-fundamentals-dispatch` and `backtest/fundamentals_dispatch.py` complete the v0.9

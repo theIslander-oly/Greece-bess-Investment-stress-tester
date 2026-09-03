@@ -25,3 +25,10 @@ The v0.9 point-in-time feature path reads its declarations through
 example by name**. Copying an example into `config/decision_cutoff.json`,
 `config/fundamentals_geography.json` or `config/decision_lead_minutes.txt` without replacing its
 placeholder therefore stops the run rather than turning a placeholder into evidence.
+
+
+The operator-approved v0.9 declarations are `decision_cutoff.json`,
+`decision_lead_minutes.txt` and `fundamentals_geography.json`. Their basis, limitations and
+pre-registered benchmark choices are recorded in
+`docs/fundamentals_declarations_2026-09-03.md`. Committing a declaration does not accept a feature
+table or validate its cited primary evidence; those are separate v0.9.5 gates.

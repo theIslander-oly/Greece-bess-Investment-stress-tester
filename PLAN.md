@@ -412,6 +412,11 @@ plan it as one whenever the host is refused.
   - [ ] v0.9.5 — Manifest and report integration and the official acceptance run: a data
     acceptance document before any benchmark document, and no benchmark manifest declaring a
     feature-set digest that no acceptance document names.
+    - [x] Research declarations pre-registered on 3 September 2026, before any test run: the
+      two-regime cutoff, zero lead, wind-capacity geography, structural price bands, fixed
+      quarter-hour test boundary and separate 25 MW / 100 MWh example
+      (`docs/fundamentals_declarations_2026-09-03.md`). Primary sources still have to accompany
+      acceptance evidence; no official feature table or benchmark result exists.
   - **A negative result is a result.** If fundamentals do not improve settled value, that is
     recorded under the same labels; the cutoff, the split and the feature set are never revised
     after seeing test results. Any such revision is a new benchmark under a new decision entry.

@@ -1,0 +1,19 @@
+{
+  "schedule_id": "greek-dam-gate-closure-2026-09-03",
+  "regimes": [
+    {
+      "effective_from_delivery_day": "2020-11-01",
+      "closure_day_offset": -1,
+      "closure_local_time": "12:00:00",
+      "closure_timezone": "Europe/Athens",
+      "reference": "Operator declaration dated 2026-09-03. HEnEx isolated Greek DAM trading schedule effective 2020-11-01 through 2020-12-15: order gate closure 12:00 Europe/Athens on D-1. Primary rulebook text must be retained with the acceptance evidence; the repository tooling cannot verify this declared rule."
+    },
+    {
+      "effective_from_delivery_day": "2020-12-16",
+      "closure_day_offset": -1,
+      "closure_local_time": "12:00:00",
+      "closure_timezone": "Europe/Brussels",
+      "reference": "Operator declaration dated 2026-09-03. Single Day-Ahead Coupling operating procedure following Greece's SDAC go-live for delivery day 2020-12-16: order-book gate closure 12:00 CET/CEST on D-1. The 15-minute MTU go-live for delivery day 2025-10-01 did not change this closure. Primary procedure text and effective-date notices must be retained with the acceptance evidence; the repository tooling cannot verify this declared rule."
+    }
+  ]
+}
