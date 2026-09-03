@@ -458,6 +458,7 @@ class FundamentalsManifestTests(unittest.TestCase):
             kind_id="fundamentals_forecast_benchmark",
             manifest_id="synthetic-fundamentals-benchmark",
             produced_by="tests",
+            declared_inputs={"accepted_feature_set_sha256": self.summary["feature_set_sha256"]},
         )
         self.assertEqual(manifest.basis, "historical_forecast_backtest")
         self.assertEqual(manifest.result_label, self.summary["result_label"])
@@ -510,6 +511,7 @@ class FundamentalsManifestTests(unittest.TestCase):
             kind_id="fundamentals_forecast_benchmark",
             manifest_id="synthetic-fundamentals-benchmark",
             produced_by="tests",
+            declared_inputs={"accepted_feature_set_sha256": self.summary["feature_set_sha256"]},
         )
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "manifest.json"

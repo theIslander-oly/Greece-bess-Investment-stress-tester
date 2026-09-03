@@ -141,7 +141,10 @@ GUARANTEED_VALUES: dict[str, Any] = {
     "scenario_count": 2,
     "scenario_names": ["baseline", "declared_outage"],
     "scenarios": ENSEMBLE_SCENARIOS,
-    "equivalent_basis": ENSEMBLE_EQUIVALENT_BASIS,
+    "equivalent_basis": {
+        **ENSEMBLE_EQUIVALENT_BASIS,
+        "feature_set_identity": {"feature_set_sha256": "f" * 64},
+    },
     "path_count": 2,
     "path_ranges": ENSEMBLE_PATH_RANGES,
     "operating_margin_case": "illustrative_supplied_operating_margin",
@@ -213,12 +216,16 @@ def _summary_for(kind: ResultKind) -> dict[str, Any]:
 
 def _manifest_path(directory: Path, kind: ResultKind, *, manifest_id: str | None = None) -> Path:
     identifier = manifest_id or f"run-{kind.kind_id}"
+    declared_inputs = {}
+    if kind.kind_id in {"fundamentals_forecast_benchmark", "fundamentals_dispatch_benchmark"}:
+        declared_inputs["accepted_feature_set_sha256"] = "f" * 64
     manifest = build_run_manifest(
         _summary_for(kind),
         kind_id=kind.kind_id,
         manifest_id=identifier,
         produced_by=f"{kind.kind_id}-command",
         created_at_utc="2026-09-01T12:00:00+00:00",
+        declared_inputs=declared_inputs,
     )
     path = directory / f"{identifier}.manifest.json"
     write_run_manifest(path, manifest)

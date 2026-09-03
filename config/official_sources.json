@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "reviewed_on": "2026-09-02",
+  "reviewed_on": "2026-09-03",
   "sources": [
     {
       "source_id": "henex_dam_results",
@@ -61,7 +61,8 @@
         "do not present derived values as unaltered NOAA data"
       ],
       "selected_on": "2026-09-02",
-      "assessment": "docs/fundamentals_source_assessment_2026-09-02.md"
+      "assessment": "docs/fundamentals_source_assessment_2026-09-02.md",
+      "custody_policy": "accepted feature table uses established byte-digest record/verify and encrypted-copy paths; no independently controlled second copy required"
     }
   ]
 }

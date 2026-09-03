@@ -377,6 +377,7 @@ def build_run_manifest(
         _refuse_distributional_terms(kind_id, summary)
     _refuse_contradicted_standing_claims(kind_id, summary)
     _refuse_unlabelled_quarantined_evidence(kind_id, summary)
+    _refuse_unaccepted_feature_set(kind_id, summary, declared_inputs or {})
 
     if declared_inputs is not None and not isinstance(declared_inputs, Mapping):
         raise ReportContractError("declared_inputs must be a mapping when supplied")
@@ -475,6 +476,7 @@ def read_run_manifest(path: Path) -> RunManifest:
         _refuse_distributional_terms(kind_id, summary)
     _refuse_contradicted_standing_claims(kind_id, summary)
     _refuse_unlabelled_quarantined_evidence(kind_id, summary)
+    _refuse_unaccepted_feature_set(kind_id, summary, declared_inputs or {})
     return RunManifest(
         manifest_id=str(payload["manifest_id"]),
         result_kind=kind_id,
@@ -486,6 +488,34 @@ def read_run_manifest(path: Path) -> RunManifest:
         summary=dict(summary),
         declared_inputs=dict(payload.get("declared_inputs") or {}),
     )
+
+
+def _refuse_unaccepted_feature_set(
+    kind_id: str, summary: Mapping[str, Any], declared_inputs: Mapping[str, Any]
+) -> None:
+    """Require benchmark manifests to name the feature digest accepted upstream."""
+
+    if kind_id not in {
+        "fundamentals_forecast_benchmark",
+        "fundamentals_dispatch_benchmark",
+    }:
+        return
+    recorded = summary.get("feature_set_sha256")
+    if kind_id == "fundamentals_dispatch_benchmark":
+        basis = summary.get("equivalent_basis")
+        identity = basis.get("feature_set_identity") if isinstance(basis, Mapping) else None
+        recorded = identity.get("feature_set_sha256") if isinstance(identity, Mapping) else None
+    accepted = declared_inputs.get("accepted_feature_set_sha256")
+    if not isinstance(accepted, str) or len(accepted) != 64:
+        raise ReportContractError(
+            f"Result kind {kind_id} has no accepted_feature_set_sha256 in declared_inputs; "
+            "a benchmark manifest cannot precede feature-table acceptance"
+        )
+    if recorded != accepted:
+        raise ReportContractError(
+            f"Result kind {kind_id} names feature set {recorded!r}, not the accepted digest "
+            f"{accepted!r}"
+        )
 
 
 def _refuse_distributional_terms(kind_id: str, summary: Mapping[str, Any]) -> None:

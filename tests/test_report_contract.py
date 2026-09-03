@@ -81,6 +81,23 @@ class RegistryTests(unittest.TestCase):
 
 
 class BuildTests(unittest.TestCase):
+    def test_a_fundamentals_benchmark_cannot_name_an_unaccepted_digest(self) -> None:
+        summary = {
+            "result_label": "Synthetic forecast benchmark; not investment evidence.",
+            "ablation_arms": {}, "feature_set_sha256": "a" * 64,
+            "decision_cutoff_schedule_id": "declared", "decision_lead_minutes": 0,
+            "evidence_grades_admitted": ["witnessed"], "common_day_count": 90,
+            "excluded_days_by_cause": {}, "metrics": {}, "selected_challenger": "ridge",
+            "is_exploratory": False,
+        }
+        with self.assertRaisesRegex(ReportContractError, "accepted_feature_set_sha256"):
+            build_run_manifest(summary, kind_id="fundamentals_forecast_benchmark",
+                               manifest_id="synthetic", produced_by="test")
+        with self.assertRaisesRegex(ReportContractError, "not the accepted digest"):
+            build_run_manifest(summary, kind_id="fundamentals_forecast_benchmark",
+                               manifest_id="synthetic", produced_by="test",
+                               declared_inputs={"accepted_feature_set_sha256": "b" * 64})
+
     def test_a_manifest_carries_the_summary_verbatim_and_the_standing_exclusions(self) -> None:
         summary = _dispatch_summary(horizon_start_utc="2026-01-01T00:00:00+00:00")
         manifest = _build(summary).to_dict()

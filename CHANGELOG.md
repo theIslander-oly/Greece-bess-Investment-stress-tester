@@ -1218,3 +1218,17 @@ All notable project changes are documented here.
 - DST-safe UTC, market-clock and Greece-clock timestamps.
 - Data quality and official-source comparison tools.
 - Deterministic, clearly labelled synthetic fixtures for tests and demos.
+
+## [0.9.5] — 2026-09-03
+
+### Added
+- Custody-gated fundamentals acceptance/benchmark workflow and dated-document templates.
+- Manifest refusal linking every fundamentals benchmark to an accepted feature-set digest.
+- Generic-render regression and synthetic review artifact for all v0.9 result kinds.
+
+### Changed
+- Feature-table custody now uses the established record, verify, and encrypted-copy paths.
+- Documentation records the fixed split, declarations, private-artifact boundary, and post-merge official-run order.
+
+### Validation
+- Engineering is validated with synthetic fixtures only; no official feature table or result is committed.

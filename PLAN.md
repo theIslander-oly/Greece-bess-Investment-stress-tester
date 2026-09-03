@@ -516,3 +516,11 @@ plan it as one whenever the host is refused.
     verification passed, every per-year figure reconciles with the previously accepted
     aggregates, and the evidence is recorded in
     `docs/official_annual_decomposition_2026-08-28.md`.
+
+## v0.9.5 — acceptance and report integration
+
+- [x] Parameterize the established custody paths for the accepted feature-table artifact.
+- [x] Add the manual acceptance-before-benchmark workflow and fixed-declaration guards.
+- [x] Require benchmark manifests to match an accepted feature-set digest.
+- [x] Exercise the generic renderer for all three v0.9 kinds and add dated-document templates.
+- [ ] After merge: fetch/audit, complete-season preflight, custody record/verification, commit acceptance, then benchmark and commit its result regardless of sign.

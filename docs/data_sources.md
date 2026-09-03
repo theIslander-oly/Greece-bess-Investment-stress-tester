@@ -52,3 +52,7 @@ version, normalized row count, UTC coverage, resolution and quality-check result
 ADMIE manifests keep publication time separate from delivery coverage. Forecast candidate files
 remain classified `requires_pre_auction_timing_validation` until their historical publication
 sequence is proven to precede the relevant HEnEx bid deadline.
+
+## Accepted-feature custody boundary
+
+NOAA GFS remains a candidate until retrieval, parser/schema/provenance, revision, completeness, units/ranges, DST/resolution, publication cutoff, grades, exclusions, and custody all pass in a dated acceptance record. The accepted feature table uses the same byte-digest record/verify and encrypted-copy machinery as other accepted official artifacts. ADMIE-originated forecasts remain excluded through every route.

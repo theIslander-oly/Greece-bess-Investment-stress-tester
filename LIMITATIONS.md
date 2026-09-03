@@ -346,3 +346,7 @@ The terminal-SOC convention is required for the arms to be comparable at all, an
 modelling choice rather than an operating strategy: a real unit is not obliged to end each day
 where it started, and a comparison run under a different convention would produce different
 increments. No finance or degradation state is coupled to this comparison, by design.
+
+## v0.9.5 transfer and execution limitations
+
+Training and validation are entirely hourly, while the fixed test beginning 1 October 2025 is entirely quarter-hour. Hourly GFS values are broadcast across four test intervals and cannot represent within-hour weather variation. Wind-capacity weights proxy irradiance and temperature imperfectly. An official result remains exploratory unless common held-out quarter-hour days contain every day of a complete meteorological season. Custody and data acceptance establish identity and suitability, not forecast skill, future source stability, expected revenue, or investment value.
