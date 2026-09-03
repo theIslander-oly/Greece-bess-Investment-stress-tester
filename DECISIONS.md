@@ -1,5 +1,17 @@
 # Decision log
 
+## 2026-09-03 — Declare the v0.9 cutoff, geography, bands and test boundary
+
+- **Decision:** Use D-1 12:00 Europe/Athens from delivery day 1 November 2020 and D-1 12:00 Europe/Brussels from 16 December 2020, with zero decision lead and no new regime at the quarter-hour transition; sample three exact GFS nodes weighted by renormalised 31 December 2023 wind capacity; use price edges `0, 50, 100, 200` EUR/MWh; and fix the test start at 1 October 2025.
+- **Reason:** The regimes represent the isolated Greek DAM and SDAC periods; the pre-test geography has one sourced basis; structural bands do not learn from test outcomes; and the fixed boundary evaluates the full accepted quarter-hour era.
+- **Consequence:** Training and validation are entirely hourly while test is entirely quarter-hour, and hourly GFS values are broadcast across four test intervals. This limitation must be prominent. The primary market-rule and capacity documents must accompany acceptance evidence, and any contradiction stops acceptance rather than revising a benchmark after its result is seen.
+
+## 2026-09-03 — Pre-flight the complete winter and add a separate Greek-scale example
+
+- **Decision:** Audit all 90 days of winter 2025-26 before assigning the benchmark's exploratory label, and add an illustrative 25 MW / 100 MWh battery with a one-equivalent-cycle daily limit beside the unchanged 50 MW / 100 MWh comparison battery.
+- **Reason:** Winter is the only complete quarter-hour meteorological season under the accepted endpoint. A 25/100 unit reflects a four-hour awarded Greek configuration; its cycle cap remains a modeling convention.
+- **Consequence:** One missing or late required value leaves the run exploratory and is never repaired. The new battery supports sensitivity work only and does not change v0.9 comparability or constitute a project design or recommendation.
+
 ## 2026-09-03 — Settle the ablation on the days it recorded, and refuse a gap rather than exclude it
 
 - **Decision:** `benchmark-fundamentals-dispatch` settles exactly the held-out delivery days the

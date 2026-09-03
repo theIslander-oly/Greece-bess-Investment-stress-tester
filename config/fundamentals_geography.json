@@ -1,0 +1,25 @@
+{
+  "geography_id": "greek-wind-capacity-regions-2023-12-31",
+  "area": "GR",
+  "points": [
+    {
+      "point_id": "sterea-ellada-evia-boeotia",
+      "latitude": 38.5,
+      "longitude": 23.5,
+      "weight": 0.661569532602
+    },
+    {
+      "point_id": "peloponnese-arcadia-laconia",
+      "latitude": 37.5,
+      "longitude": 22.25,
+      "weight": 0.18436237738
+    },
+    {
+      "point_id": "east-macedonia-thrace-rodopi",
+      "latitude": 41.0,
+      "longitude": 25.25,
+      "weight": 0.154068090018
+    }
+  ],
+  "reference": "Operator declaration dated 2026-09-03. Points represent one 0.25-degree GFS grid node in each of the three largest Greek wind-capacity regions reported by HWEA/ELETAEN at 31 December 2023: Central Greece 2,293 MW, Peloponnese 639 MW, and Eastern Macedonia-Thrace 534 MW. Weights are those capacities renormalised over the selected regions. This wind-weighted basis is also applied to irradiance and temperature because the v0.9 fetch contract admits one common geography; it is not a demand or solar-capacity weighting. The 2023 vintage predates validation and test data. Primary statistics must be retained with the acceptance evidence."
+}
