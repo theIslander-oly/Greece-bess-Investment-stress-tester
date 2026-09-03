@@ -1,5 +1,60 @@
 # Decision log
 
+## 2026-09-03 — Settle the ablation on the days it recorded, and refuse a gap rather than exclude it
+
+- **Decision:** `benchmark-fundamentals-dispatch` settles exactly the held-out delivery days the
+  forecast ablation recorded as common to every baseline and both arms. It never widens that set,
+  never re-derives it, and refuses a forecast table that carries a missing value on one of those
+  days or whose held-out common day count disagrees with its own summary.
+- **Reason:** Every other stage in this project excludes an unusable day by named cause, and that
+  is right where the exclusion is a property of the data. Here it would not be: the common-day
+  set is the thing that makes the two arms comparable, so dropping a day at settlement would give
+  the arms different calendars while every label still claimed they shared one. That produces a
+  believable incremental margin computed over two different periods, which is the specific wrong
+  number this milestone must not be able to emit.
+- **Consequence:** The refusal is a contradiction report, not a data-quality verdict: a gap here
+  means the forecast table and its summary disagree, and the fix is upstream. The comparison also
+  carries the ablation's exploratory label verbatim and can neither add a cause nor retire one,
+  because it settles precisely the days that label was computed on.
+
+## 2026-09-03 — Record the incremental margin in the module that owns the comparison basis
+
+- **Decision:** The incremental realized margin of each challenger over its own control, the
+  paired daily differences, their sign counts and their total are computed and recorded by
+  `backtest/fundamentals_dispatch.py`, and `incremental_realized_margin_eur` is a guaranteed key
+  of the new `fundamentals_dispatch_benchmark` manifest kind. No consumer derives it.
+- **Reason:** The difference between two recorded margins is itself a result, and a result is
+  only meaningful together with the basis the two runs shared. The renderer computes nothing by
+  standing decision; a renderer that subtracted two figures would be computing, and it would be
+  doing so without any way to check that the figures were comparable. Recording the difference
+  where the equivalence is enforced keeps the two inseparable.
+- **Consequence:** `equivalent_basis` is a guaranteed key beside it, carrying the battery
+  parameters, the terminal-energy convention, the settled interval range, the common-day identity
+  and digest, the shared perfect-foresight ceiling and the feature-set identity. The comparison
+  refuses to run at all unless one battery plans every arm with terminal SOC equal to initial
+  SOC, and unless the perfect-foresight ceiling is identical across arms to 1e-6 EUR — a wider
+  spread is named, never reconciled.
+
+## 2026-09-03 — Publish the paired daily differences and no statistic derived from them
+
+- **Decision:** The dispatch comparison writes one paired difference per comparison and delivery
+  day, and records the sign counts, the total and the largest daily gain and shortfall. It
+  computes no dispersion, interval or significance statistic over them, and the new manifest kind
+  does not set `forbids_distributional_terms` — its `dispatch_ranking` would trip the term list
+  on the word "rank" alone, while an ordering of named methods by a recorded euro amount is an
+  ordering of results rather than a claim about a distribution of outcomes.
+- **Reason:** A moving-block bootstrap of the paired differences or a Diebold-Mariano-style
+  comparison would be a statement about the sampling variability of a statistic, not a market
+  probability — but this repository's distributional-vocabulary rules and the decision of
+  2026-08-27 make adopting either a deliberate decision with its own wording, not a side effect
+  of a milestone. Publishing the differences lets a reader inspect the series without the project
+  asserting anything about its distribution.
+- **Consequence:** The summary declares `is_probabilistic`, `is_forecast` and
+  `is_investment_evidence` as `false`, which the contract cross-checks on record and on read, and
+  carrying `evidence_grades_admitted` brings the kind under the quarantined-`assumed` check as
+  well. A challenger that settles less than its control is recorded under the same labels as one
+  that settles more.
+
 ## 2026-09-02 — Vary one thing in the fundamentals ablation, and identify the feature set
 
 - **Decision:** v0.9.3 compares the accepted price-history models against the same models with

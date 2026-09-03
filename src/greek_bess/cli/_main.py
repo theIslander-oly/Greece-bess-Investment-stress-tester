@@ -6,6 +6,7 @@ import argparse
 import sys
 
 from ..analysis import AnnualDecompositionError
+from ..backtest.fundamentals_dispatch import FundamentalsDispatchInputError
 from ..data.admie import AdmieError
 from ..data.admie_timing import AdmiePublicationTimingError
 from ..data.availability_audit import FeatureAvailabilityError
@@ -83,6 +84,7 @@ HANDLED_ERRORS = (
     PointInTimeSchemaError,
     PointInTimeJoinError,
     FundamentalsBenchmarkError,
+    FundamentalsDispatchInputError,
     NoaaGfsError,
     OfficialDataDownloadError,
     BootstrapInputError,

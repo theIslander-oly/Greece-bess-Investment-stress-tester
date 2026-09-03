@@ -1,7 +1,7 @@
 # Project status
 
-**Version:** 0.9.3
-**Updated:** 2 September 2026
+**Version:** 0.9.4
+**Updated:** 3 September 2026
 **Status:** Official multi-year operational acceptance and HEnEx-to-ENTSO-E cross-source
 reconciliation passed; encrypted custody copies published and the private key exercised;
 per-delivery-year replay decomposition accepted against the official history;
@@ -49,7 +49,52 @@ hyperparameters, seed and refit cadence, with the feature set identified by dige
 described, a missing feature excluding its day from every arm rather than being imputed, and an
 executable exploratory rule — again on synthetic fixtures alone, and again producing no benchmark
 figure because the same three declarations are still absent
-(`docs/history/implementation_report_v0.9.3.md`)
+(`docs/history/implementation_report_v0.9.3.md`); and v0.9.4 has settled that ablation into euro
+— `benchmark-fundamentals-dispatch` plans every named arm from its own forecast and settles all
+of them at the same realized prices over exactly the days the ablation recorded, asserts one
+perfect-foresight ceiling across arms, records the shared comparison basis, and records the
+incremental margin and the paired daily differences in the module that owns that basis — for the
+fourth time on synthetic fixtures alone and for the fourth time producing no figure, because the
+same three declarations are still absent
+(`docs/history/implementation_report_v0.9.4.md`)
+
+## v0.9.4 — the ablation now settles into euro; it has still measured nothing
+
+`benchmark-fundamentals-dispatch` and `backtest/fundamentals_dispatch.py` complete the v0.9
+chain. Each named arm is planned from its own forecast through
+`_backtest_precomputed_forecast` — the accepted path the ML dispatch benchmark already uses, so
+an arm run through here is the accepted computation with a different forecast column and nothing
+else — and settled at the same realized prices. A test asserts that the control arm and the
+naive baselines reproduce `backtest_ml_dispatch_benchmark` figure for figure on the synthetic
+suite.
+
+The days are the ablation's own: the held-out subset of the days it recorded as common to every
+baseline and both arms. The comparison never widens that set and never re-derives it, and a
+method column carrying a gap on one of those days is refused rather than excluded, because an
+exclusion here would silently give two arms different calendars. A forecast table whose held-out
+common day count disagrees with its own summary is refused as well.
+
+Equivalence is asserted and written down rather than assumed. One battery plans every arm, its
+terminal SOC must equal its initial SOC, one price series settles every arm, and the
+perfect-foresight ceiling is checked identical across arms to 1e-6 EUR — a wider spread is
+refused by naming the two arms and their ceilings. The `equivalent_basis` in the summary records
+the battery parameters, the terminal-energy convention, the settled interval range, the
+common-day identity and its digest, the shared ceiling and the feature-set identity carried from
+the ablation.
+
+The incremental margin is recorded by the producing module and never derived downstream: a
+renderer that subtracted one recorded margin from another would be computing. Each challenger is
+compared against its own control and, separately, against each named baseline; the paired daily
+differences are written per comparison and per day, and the summary records their sign counts,
+their total and the largest daily gain and shortfall. No dispersion or significance statistic is
+computed from them. `fundamentals_dispatch_benchmark` joins the manifest registry on the
+historical-forecast-backtest basis, guaranteeing the comparison methods, the common day count,
+the shared ceiling, the equivalent basis, the ranking, the incremental margin and the exploratory
+flag.
+
+The three operator declarations still do not exist. No accepted feature table exists, so no
+settled figure, manifest or acceptance document was produced, and the comparison has measured
+nothing about weather, Greek prices or battery value. Every test is synthetic.
 
 ## v0.9.3 — the ablation is built; it has still measured nothing
 

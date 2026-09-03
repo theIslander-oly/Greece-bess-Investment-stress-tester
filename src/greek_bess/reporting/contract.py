@@ -256,6 +256,28 @@ def _kinds() -> dict[str, ResultKind]:
                 "is_exploratory",
             ),
         ),
+        # Also without `forbids_distributional_terms`, and for a sharper reason than the
+        # forecast benchmark's: this kind's `dispatch_ranking` would trip the list on the word
+        # "rank" alone, and a ranking of named methods by a recorded euro amount is an ordering
+        # of results, not a claim about the distribution of outcomes. The three standing
+        # negatives are declared in the summary instead and cross-checked on build and on read,
+        # and `evidence_grades_admitted` brings this kind under the quarantine check as well.
+        ResultKind(
+            "fundamentals_dispatch_benchmark",
+            "historical_forecast_backtest",
+            "Held-out like-for-like settled dispatch comparison of a point-in-time "
+            "fundamentals challenger against the identical price-history control.",
+            (
+                "result_label",
+                "comparison_methods",
+                "common_backtest_day_count",
+                "perfect_foresight_margin_eur",
+                "equivalent_basis",
+                "dispatch_ranking",
+                "incremental_realized_margin_eur",
+                "is_exploratory",
+            ),
+        ),
         ResultKind(
             "point_in_time_availability_audit",
             "data_acceptance_evidence",

@@ -46,3 +46,20 @@ they had to decide.
 Every revision of a datum is stored, including revisions published after any cutoff. Selecting
 the decision-time revision is the join's responsibility, not the table's: the storage layer must
 not discard the evidence that a revision was superseded.
+
+## Paired daily dispatch differences
+
+Written by `benchmark-fundamentals-dispatch` beside its settled schedule. One row per comparison
+and delivery day; the summary beside it records the sign counts and the total, and nothing else
+is derived from these rows.
+
+| Field concept | Meaning |
+| --- | --- |
+| Comparison identifier | `<challenger>_vs_<reference>`; stable, and the join between these rows and the summary's incremental record |
+| Challenger / reference method | The two arms settled. The reference is either the challenger's own control arm or a named baseline |
+| Reference role | `control` or `baseline`. The two are recorded separately because only the control comparison is the ablation |
+| Market day | One of the held-out days the forecast ablation recorded as common to every baseline and both arms |
+| Interval count | Delivery intervals settled that day, at the market day's own resolution |
+| Challenger / reference realized margin | Each arm's settled gross margin for that day, planned from its own forecast and settled at the same realized prices |
+| Realized margin difference | Challenger minus reference, in EUR. Signed; a negative value is a challenger that settled less |
+| Perfect-foresight margin | That day's ceiling, identical for both arms by assertion rather than by assumption |

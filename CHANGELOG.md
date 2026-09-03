@@ -6,6 +6,36 @@ All notable project changes are documented here.
 
 ### Added
 
+- **v0.9.4: the settled fundamentals dispatch comparison.** Add
+  `benchmark-fundamentals-dispatch` and `backtest/fundamentals_dispatch.py`: every named ablation
+  arm is planned from its own forecast and settled at the same realized prices, and the
+  incremental realized margin of each challenger over its own control — and, separately, over
+  each named baseline — is recorded by the producing module. Planning and settlement go through
+  `_backtest_precomputed_forecast`, the accepted path the ML dispatch benchmark already uses, so
+  an arm run through the new surface is the accepted computation with a different forecast column
+  and nothing else; a regression asserts the control arm and the naive baselines reproduce
+  `backtest_ml_dispatch_benchmark` figure for figure. The settled days are exactly the held-out
+  days the forecast ablation recorded as common to every baseline and both arms: a gap on one of
+  those days contradicts that record and is refused rather than excluded, because an exclusion
+  here would give two arms different calendars, and a table whose held-out common day count
+  disagrees with its own summary is refused as well. Equivalence is asserted and recorded rather
+  than assumed — one battery configuration whose terminal SOC must equal its initial SOC, one
+  realized price series, and one perfect-foresight ceiling checked identical across arms to 1e-6
+  EUR with a wider spread named rather than reconciled — and the shared basis is written into the
+  summary as `equivalent_basis`. `--methods` is required with no default and every challenger
+  must be named beside its own control. Four artifacts are written: the settled interval schedule
+  per method, the daily results, the paired daily differences per comparison and delivery day,
+  and the summary, which records the differences' sign counts, total and largest daily gain and
+  shortfall and derives no dispersion, interval or significance statistic from them.
+  `reporting/contract.py` gains the `fundamentals_dispatch_benchmark` kind on the
+  `historical_forecast_backtest` basis, guaranteeing the comparison methods, the common day
+  count, the shared ceiling, the equivalent basis, the ranking, the incremental margin and the
+  exploratory flag; the exploratory label is carried verbatim from the ablation, which this
+  comparison can neither strengthen nor retire. Validated entirely on synthetic fixtures: the
+  three operator declarations are still absent, so no accepted feature table, no settled figure,
+  no manifest and no acceptance document was produced, and no accepted figure or analytical
+  behaviour changed
+
 - **v0.9.3: the fundamentals forecast ablation.** Add `benchmark-fundamentals-forecast` and
   `forecast/fundamentals.py`: a control arm of the two existing model families on calendar and
   price-history features, and a challenger arm of the same two families with the accepted

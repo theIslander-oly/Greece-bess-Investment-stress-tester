@@ -193,3 +193,28 @@ only in an explicitly labelled exploratory run and never as accepted evidence (d
 2 September 2026). The check runs on read for the same reason the other two do: a manifest
 travels, a hand-edited summary is exactly the case it exists for, and the renderer reads through
 that doorway — so such a manifest refuses the whole report rather than one block of it.
+
+## Amendment, 3 September 2026 (v0.9.4)
+
+The registry gains `fundamentals_dispatch_benchmark`, also on the `historical_forecast_backtest`
+basis, guaranteeing `result_label`, `comparison_methods`, `common_backtest_day_count`,
+`perfect_foresight_margin_eur`, `equivalent_basis`, `dispatch_ranking`,
+`incremental_realized_margin_eur` and `is_exploratory`. The envelope is unchanged and
+`REPORT_CONTRACT_VERSION` stays 1, so every older manifest still reads.
+
+`forbids_distributional_terms` is left unset, and here the reason is sharper than for the
+forecast benchmark: this kind's `dispatch_ranking` would trip the list on the word "rank" alone.
+An ordering of named methods by a recorded euro amount is an ordering of results, not a claim
+about the distribution of outcomes, and a check that refused it would teach a reader that the
+check is noise. As with the forecast benchmark the summary declares `is_probabilistic`,
+`is_forecast` and `is_investment_evidence` as `false`, which the standing-claim cross-check
+verifies; and because the summary carries `evidence_grades_admitted`, the quarantined-`assumed`
+check of v0.9.3 applies to this kind too, on record and on read.
+
+`incremental_realized_margin_eur` is a guaranteed key rather than something a consumer derives.
+The difference between two recorded margins is itself a result, and results belong to the module
+that owns the comparison basis: a renderer that subtracted one figure from another would be
+computing, which is exactly what the renderer contract forbids. `equivalent_basis` is guaranteed
+for the same reason it is on `scenario_ensemble_range` — a reader must be able to see what the
+compared runs shared without opening the CSVs — and it is rendered by the generic path, since no
+composition section is registered for this kind.

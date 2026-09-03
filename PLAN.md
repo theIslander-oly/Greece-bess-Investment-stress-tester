@@ -385,9 +385,30 @@ plan it as one whenever the host is refused.
     - **Validated on synthetic fixtures only, for the same one reason as v0.9.1 and v0.9.2:**
       the three operator declarations are absent, so no accepted feature table exists and no
       benchmark figure, manifest or acceptance document was produced.
-  - [ ] v0.9.4 — The settled dispatch comparison on common days under an identical battery,
+  - [x] v0.9.4 — The settled dispatch comparison on common days under an identical battery,
     identical realized prices and a common perfect-foresight ceiling, recording the incremental
     realized margin of each challenger over its own control and the paired daily differences.
+    Landed 2026-09-03 (`docs/history/implementation_report_v0.9.4.md`):
+    `backtest/fundamentals_dispatch.py`, `benchmark-fundamentals-dispatch`, the
+    `fundamentals_dispatch_benchmark` manifest kind, and the paired-difference CSV. Each arm is
+    planned and settled through `_backtest_precomputed_forecast`, the accepted path the ML
+    dispatch benchmark already uses, and a test asserts the control arm and the naive baselines
+    reproduce `backtest_ml_dispatch_benchmark` figure for figure on the synthetic suite.
+    - The settled days are **the ablation's own** — the held-out subset of the days it recorded
+      as common to every baseline and both arms. A gap on one of those days is refused rather
+      than excluded: excluding it here would give two arms different calendars, which is the
+      defect the common-day rule exists to prevent (decision entry 2026-09-03).
+    - Equivalence is **asserted and recorded**, not assumed: one battery whose terminal SOC must
+      equal its initial SOC, one realized price series, and one perfect-foresight ceiling checked
+      identical across arms to 1e-6 EUR, with the shared basis written into the summary as
+      `equivalent_basis`.
+    - The **incremental margin is recorded by the producing module**, never derived by a
+      consumer, and the paired daily differences are published with their sign counts and total.
+      No dispersion or significance statistic is computed from them; adding one would be a
+      separate decision about vocabulary.
+    - **Validated on synthetic fixtures only, for the same one reason as v0.9.1 through
+      v0.9.3:** the three operator declarations are absent, so no accepted feature table exists
+      and no settled figure, manifest or acceptance document was produced.
   - [ ] v0.9.5 — Manifest and report integration and the official acceptance run: a data
     acceptance document before any benchmark document, and no benchmark manifest declaring a
     feature-set digest that no acceptance document names.
