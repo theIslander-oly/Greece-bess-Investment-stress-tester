@@ -1060,3 +1060,36 @@ greek-bess build-point-in-time-features prices.csv acceptance/fundamentals/featu
 ```
 
 The cutoff, lead and evidence grades are required and have no defaults. The command writes the interval feature frame, a sibling revision/provenance audit and a summary, and exits `2` when any day is excluded. The committed example cutoff is refused. Outputs are private generated research artifacts and must not be committed.
+
+
+### Benchmark the fundamentals ablation
+
+```bash
+greek-bess benchmark-fundamentals-forecast prices.csv \
+  --features acceptance/fundamentals/joined.csv \
+  --feature-set-sha256 <digest recorded by the join> \
+  --decision-cutoff config/decision_cutoff.json \
+  --decision-lead-minutes 30 --admitted-grades witnessed provider_declared \
+  --price-regime-bands 0 50 150 \
+  --validation-start-day 2024-01-01 --test-start-day 2025-01-01 \
+  --output acceptance/fundamentals/benchmark.csv
+```
+
+Runs the control arm (`ridge`, `hist_gradient_boosting` on calendar and price-history features)
+and the challenger arm (`ridge_fundamentals`, `hist_gradient_boosting_fundamentals`, the same
+models with the accepted point-in-time columns appended) over the same delivery days, the same
+fixed hyperparameters, the same seed and the same refit cadence. Within each arm the model is
+chosen on validation RMSE alone; test metrics never select.
+
+Every declaration is required and cross-checked against the join that produced the feature
+frame: the command refuses to run when the feature-set digest, the cutoff schedule, the decision
+lead or the admitted evidence grades differ from what the join recorded, or when the frame does
+not hash to the digest its own summary states. `--price-regime-bands` has no default because
+which price levels are worth separating is a judgment; the bands are ascending upper edges in
+EUR/MWh and the run records the ones it used.
+
+A delivery day missing any accepted feature is excluded from every arm by its named cause and is
+never imputed, and the summary records the count per cause. A run whose common held-out days do
+not cover a complete meteorological season of quarter-hour deliveries is labelled exploratory and
+carries the suffix saying so. Outputs are private generated research artifacts and must not be
+committed.

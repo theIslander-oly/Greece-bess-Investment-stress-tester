@@ -54,17 +54,22 @@ Read this before interpreting any output:
 - **Illustrative inputs stay illustrative.** The example battery, degradation and finance
   configurations are placeholders. Any number computed from them is arithmetic, not evidence.
 
-**Current release:** `v0.9.2` — the synthetic-validated point-in-time join extends the ingestion and availability audit:
-one chosen source read by byte range, a typed feature table carrying the publication instant and
-byte digest behind every value, and a per-delivery-interval audit against a declared decision
-cutoff. Nothing it retrieves is accepted for forecasting, and no surface runs until the operator
-declares the cutoff, the decision lead and the sampling geography.
+**Current release:** `v0.9.3` — the fundamentals ablation now runs on top of the synthetic-validated
+point-in-time pipeline: one chosen source read by byte range, a typed feature table carrying the
+publication instant and byte digest behind every value, a per-delivery-interval audit against a
+declared decision cutoff, a revision-aware as-of join, and a two-arm forecast benchmark that holds
+the models, hyperparameters, seed, refit cadence and delivery days fixed and varies only the
+information. Nothing it retrieves is accepted for forecasting, and no surface runs until the
+operator declares the cutoff, the decision lead and the sampling geography.
 
-The completed v0.9.2 review corrected the order of two join operations: the latest strictly
-pre-cutoff revision is selected before its evidence grade is judged, so the join cannot
-cherry-pick an older admissible revision when the latest revision is inadmissible. It also scopes
-each audit row's later-revision count to that native feature interval. No real-data or analytical
-result changed.
+v0.9.3 adds `benchmark-fundamentals-forecast`: a control arm on calendar and price-history
+features and a challenger arm with the accepted point-in-time columns appended, both measured on
+the days complete for every baseline and both arms, with the challenger chosen on validation RMSE
+alone. A delivery day missing any accepted feature leaves every arm by named cause and is never
+imputed, the benchmark refuses to run unless it names the same feature set, cutoff and evidence
+grades the join recorded, and a run whose held-out coverage does not span a complete
+meteorological season of quarter-hour days is labelled exploratory. It is validated on synthetic
+fixtures only; no real feature table exists, so no benchmark figure has been produced.
 
 
 ## Measured engineering evidence
@@ -426,7 +431,16 @@ the per-delivery-interval availability audit, the `fetch-fundamentals` and
 `audit-feature-availability` commands, a fetch workflow and a daily witness workflow, and the
 `point_in_time_availability_audit` manifest kind. `eccodes` is the one new dependency — not
 `cfgrib` or `xarray`, which the low-level read does not need. The policy the code enforces is
-`docs/point_in_time_feature_contract.md`. **No surface runs yet**: the decision cutoff, the
+`docs/point_in_time_feature_contract.md`. v0.9.2 added the revision-aware as-of join and its
+per-value provenance audit, and v0.9.3 the ablation itself: `benchmark-fundamentals-forecast`
+runs a control arm that is the accepted ML benchmark unchanged against a challenger arm of the
+same models with the accepted point-in-time columns appended, on identical days, hyperparameters,
+seed and refit cadence, with the model chosen on validation RMSE alone. The benchmark names the
+feature set by digest and refuses to run unless the cutoff, the lead and the admitted evidence
+grades equal what the join recorded; a day missing any accepted feature leaves every arm by named
+cause instead of being imputed; and a run whose held-out coverage does not span a complete
+meteorological season of quarter-hour days is labelled exploratory.
+**No surface runs yet**: the decision cutoff, the
 decision lead and the sampling geography are operator declarations with no defaults, the
 committed examples are refused by name, and until all three exist nothing is retrieved, no day is
 audited and the witness workflow accumulates no witnessed days — which are the one kind of

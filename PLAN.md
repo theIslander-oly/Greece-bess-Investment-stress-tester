@@ -368,10 +368,23 @@ plan it as one whenever the host is refused.
     interpolated or imputed. Its completed review corrected the implementation to select the
     latest revision before judging its evidence grade and to scope each audit row's supersession
     count to its native interval (`docs/history/implementation_report_v0.9.2_review.md`).
-  - [ ] v0.9.3 — The forecast ablation: the two existing models on price-history features
+  - [x] v0.9.3 — The forecast ablation: the two existing models on price-history features
     (control) against the same two models, the same fixed hyperparameters, the same refit
     cadence and the same splits with the accepted features appended (challenger). One feature
-    set, no tuning, validation-only model selection.
+    set, no tuning, validation-only model selection. Landed 2026-09-02
+    (`docs/history/implementation_report_v0.9.3.md`): `forecast/fundamentals.py`,
+    `benchmark-fundamentals-forecast`, the `feature_columns`/`require_non_null` parameter in
+    `ml.py` with a bit-for-bit control-arm regression, the `fundamentals_forecast_benchmark`
+    manifest kind, the contract's third claim check, and the price-regime checklist entry.
+    - The benchmark **identifies** its inputs: the join now records `feature_set_sha256` over
+      the joined frame, and the run refuses unless the digest, the cutoff schedule, the decision
+      lead and the admitted grades all equal what the join recorded.
+    - The exploratory rule of gate G4 is executable rather than editorial: a meteorological
+      season counts only when every one of its calendar days is a common held-out quarter-hour
+      day, and the causes of an exploratory label are recorded (decision entry 2026-09-02).
+    - **Validated on synthetic fixtures only, for the same one reason as v0.9.1 and v0.9.2:**
+      the three operator declarations are absent, so no accepted feature table exists and no
+      benchmark figure, manifest or acceptance document was produced.
   - [ ] v0.9.4 — The settled dispatch comparison on common days under an identical battery,
     identical realized prices and a common perfect-foresight ceiling, recording the incremental
     realized margin of each challenger over its own control and the paired daily differences.

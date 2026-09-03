@@ -282,3 +282,32 @@ Passing the v0.9.2 join establishes only that the selected synthetic-test value 
 Evidence-grade admission cannot be used to select an older revision: the latest pre-cutoff
 revision is selected first, and an inadmissible selected grade excludes the day. This prevents
 stale cherry-picking but does not validate the provider's revision policy or publication record.
+
+## Fundamentals ablation limitations
+
+The v0.9.3 ablation is validated entirely on synthetic fixtures. It has produced no benchmark
+figure, because the three operator declarations do not exist and therefore no accepted feature
+table exists; nothing here is evidence about weather, about Greek prices or about battery value.
+
+What the ablation could establish, once run on an accepted feature table, is narrow. It measures
+price error on one held-out period, under one declared cutoff, one feature set and one battery-
+independent forecast comparison. Price error is not dispatch value, and the accepted evidence
+already shows the two can disagree: a naive `rolling_mean` has worse RMSE than `ridge` and
+captures more value. A better RMSE in the challenger arm would therefore not, on its own, be a
+result about revenue.
+
+The comparison is also one draw. One split of a non-stationary history is not a distribution, and
+nothing in the summary is a probability, a confidence interval or a rate. The paired daily
+differences are reported so a reader can inspect them; no sampling-variability statistic is
+computed, because adding one would be a separate deliberate decision about vocabulary rather than
+a side effect of this milestone.
+
+Reducing the evaluation to the days both arms can be run on protects the comparison but shrinks
+it, and the reduction is not random: days are excluded because a feature was unavailable, which
+may correlate with the weather the feature describes. The control's metrics on its unreduced
+calendar are recorded alongside so the size of that reduction is visible, but the possible
+selection effect is not corrected and cannot be from within the run.
+
+The exploratory rule is deliberately strict: a meteorological season counts only when every one
+of its days is a common held-out quarter-hour day. A run that falls short is labelled exploratory
+and supports no general conclusion, whatever its numbers say.

@@ -152,6 +152,20 @@ GUARANTEED_VALUES: dict[str, Any] = {
     "decision_cutoff_schedule_id": "declared-for-tests",
     "decision_lead_minutes": 30,
     "establishes_only_availability": True,
+    "ablation_arms": {
+        "control": {"methods": ["ridge"], "feature_columns": ["rolling_mean"]},
+        "challenger": {
+            "methods": ["ridge_fundamentals"],
+            "feature_columns": ["rolling_mean", "temperature_2m"],
+        },
+    },
+    "feature_set_sha256": "f" * 64,
+    "evidence_grades_admitted": ["witnessed", "provider_declared"],
+    "common_day_count": 42,
+    "excluded_days_by_cause": {"feature_no_publication": 3},
+    "metrics": {"test": {"ridge": {"rmse_eur_per_mwh": 12.5}}},
+    "selected_challenger": "ridge_fundamentals",
+    "is_exploratory": True,
 }
 
 FIGURE_BLOCK = re.compile(

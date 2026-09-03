@@ -171,3 +171,25 @@ read environment or network state, or combine manifests or bases. Missing, empty
 unusable chart fields are stated as unavailable. The chart remains inside the same labelled
 figure block as the existing tables and therefore carries that manifest's `result_label`, basis
 wording and standing exclusions. The HTML remains self-contained and script-free.
+
+## Amendment, 2 September 2026 (v0.9.3)
+
+The registry gains `fundamentals_forecast_benchmark` on the `historical_forecast_backtest` basis,
+guaranteeing `result_label`, `ablation_arms`, `feature_set_sha256`, `decision_cutoff_schedule_id`,
+`decision_lead_minutes`, `evidence_grades_admitted`, `common_day_count`, `excluded_days_by_cause`,
+`metrics`, `selected_challenger` and `is_exploratory`. The envelope is unchanged and
+`REPORT_CONTRACT_VERSION` stays 1, so every older manifest still reads.
+
+`forbids_distributional_terms` is deliberately left unset, for the reason the module already
+gives: a mean error and a median absolute error are statistics about a model, not claims about a
+distribution of investment outcomes. The summary instead declares `is_probabilistic`,
+`is_forecast` and `is_investment_evidence` as `false`, which the standing-claim cross-check
+verifies rather than ignores.
+
+**A third check runs on record and on read.** A summary that admits the quarantined `assumed`
+availability grade while declaring `is_exploratory` anything but `true` is refused. Availability
+inferred from a regulatory deadline or a nominal latency, rather than from the datum, is usable
+only in an explicitly labelled exploratory run and never as accepted evidence (decision entry
+2 September 2026). The check runs on read for the same reason the other two do: a manifest
+travels, a hand-edited summary is exactly the case it exists for, and the renderer reads through
+that doorway — so such a manifest refuses the whole report rather than one block of it.
