@@ -1,6 +1,6 @@
 # Project status
 
-**Version:** 0.9.4
+**Version:** 0.9.5
 **Updated:** 3 September 2026
 **Status:** Official multi-year operational acceptance and HEnEx-to-ENTSO-E cross-source
 reconciliation passed; encrypted custody copies published and the private key exercised;
@@ -56,9 +56,44 @@ perfect-foresight ceiling across arms, records the shared comparison basis, and 
 incremental margin and the paired daily differences in the module that owns that basis — for the
 fourth time on synthetic fixtures alone and for the fourth time producing no figure, because the
 same three declarations are still absent
-(`docs/history/implementation_report_v0.9.4.md`)
+(`docs/history/implementation_report_v0.9.4.md`); and v0.9.5 has completed the machinery that
+would turn that chain into an official result — a custody-gated manual acceptance-and-benchmark
+workflow, a manifest refusal that ties every fundamentals benchmark to a feature-set digest an
+acceptance document names, generic renderer coverage of all three v0.9 kinds and dated-document
+templates — after which the three declarations were made, lifting the refusal for the first time
+and leaving the v0.9 chain complete in code and still empty of evidence, because no retrieval,
+audit, custody record, acceptance document or benchmark run has been executed against official
+data (`docs/history/implementation_report_v0.9.5.md`)
 
 On 3 September 2026 the operator approved the pre-run declarations: a two-regime cutoff, zero-minute lead, one pre-test-vintage wind-capacity geography, structural price bands and the fixed quarter-hour test boundary. The declaration record quantifies the hourly-to-quarter-hour transfer and adds a separate illustrative 25 MW / 100 MWh battery without changing the v0.9 comparison battery. This records no feature acceptance or result. Primary sources must still accompany acceptance evidence, and availability audit, custody and data acceptance must precede any official benchmark (`docs/fundamentals_declarations_2026-09-03.md`).
+
+## v0.9.5 — the official-run machinery is complete; the official run has not started
+
+The custody-gated manual workflow, the reusable acceptance and benchmark structures, the
+accepted-digest manifest refusal and generic renderer coverage of all three v0.9 kinds are
+complete. The workflow fixes the zero-minute lead, the three declared GFS variables, the
+1 October 2025 quarter-hour test boundary, the structural bands 0/50/100/200, the admissible
+evidence grades and the unchanged 50 MW / 100 MWh battery; it refuses to benchmark before
+acceptance and keeps every interval-level input private. No official run, finding, count, digest
+or investment conclusion is recorded by this engineering milestone
+(`docs/history/implementation_report_v0.9.5.md`).
+
+The three operator declarations landed the same day, so the refusal that blocked v0.9.1 through
+v0.9.4 is lifted and these surfaces are runnable for the first time. **Nothing has been run
+through them.** `Fetch point-in-time fundamentals` has never been dispatched, no feature table
+exists, no availability audit has been recorded against retrieved data, and no dated acceptance
+document exists — so `Benchmark point-in-time fundamentals` would stop at its first guard. The
+v0.9 chain is complete in code and empty of evidence, and every figure the project reports still
+comes from the accepted price history alone.
+
+**One witnessed day was lost and cannot be recovered.** The scheduled `witness-fundamentals` run
+of 3 September 2026 — run `33722543960`, the workflow's first — started at 06:17 UTC against
+commit `a64bb21`, roughly two hours before the declarations merged, and stopped at its own guard
+naming all three as missing. Delivery day 4 September 2026 closed at 12:00 CEST on 3 September,
+so no retrieval can witness it now; it can only ever be provider-declared evidence. The schedule
+itself needs no change: 06:00 UTC falls after the observed publication window of the 00 UTC cycle
+and before the declared closure, and the next scheduled run is the first that will find all three
+declarations in place.
 
 ## v0.9.4 — the ablation now settles into euro; it has still measured nothing
 
@@ -1017,6 +1052,14 @@ exercised the same day. The ADMIE publication-timing audit, workflow and policy 
 2026-09-01, so that acceptance is not pending but withdrawn. The per-year decomposition surface and workflow landed on 2026-08-27 and its official run
 was accepted on 2026-08-28, so that track is complete.
 
-## v0.9.5 — official-run engineering prepared; official acceptance remains external
-
-The custody-gated manual workflow, reusable acceptance and benchmark structures, accepted-digest manifest refusal, and generic renderer coverage are complete. It fixes zero-minute lead, the three declared GFS variables, the 1 October 2025 quarter-hour test boundary, structural bands 0/50/100/200, admissible grades, and the unchanged 50 MW / 100 MWh battery. It refuses to benchmark before acceptance and keeps all interval evidence private. No official run, finding, count, digest, or investment conclusion is recorded by this engineering milestone.
+**The next milestone is the v0.9 official acceptance run, and it is an execution task rather than
+a build task.** Every surface it needs exists and is validated on synthetic fixtures, and since
+3 September 2026 every declaration it refuses without is committed. What remains is the fixed
+order v0.9.5 recorded and nothing else: dispatch `Fetch point-in-time fundamentals` over the
+declared window and read its availability audit; check the complete-season preflight that decides
+whether the run is exploratory; record and verify custody of the resulting feature table; commit
+a dated acceptance document naming the accepted feature-set digest; then dispatch
+`Benchmark point-in-time fundamentals` from that digest and commit its result regardless of sign.
+None of it has been started: the fetch workflow has never run. Until it does, the project's
+reported figures come from the accepted price history alone, and the fundamentals question is
+unanswered rather than answered negatively.

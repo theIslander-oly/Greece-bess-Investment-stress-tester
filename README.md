@@ -460,13 +460,24 @@ meteorological season of quarter-hour days is labelled exploratory. v0.9.4 close
 all of them at the same realized prices over exactly the days the ablation recorded, asserts one
 perfect-foresight ceiling across arms, records the shared comparison basis, and computes the
 incremental margin and the paired daily differences in the module that owns that basis rather
-than leaving a report to subtract two figures.
-**No surface runs yet**: the decision cutoff, the
-decision lead and the sampling geography are operator declarations with no defaults, the
-committed examples are refused by name, and until all three exist nothing is retrieved, no day is
-audited and the witness workflow accumulates no witnessed days — which are the one kind of
-evidence here that cannot be produced later. A negative result would be recorded
-under the same labels, and a thin accepted coverage makes the run exploratory rather than general.
+than leaving a report to subtract two figures. v0.9.5 built the machinery that would turn that
+chain into an official result: a manually dispatched, custody-gated acceptance-and-benchmark
+workflow that runs the fixed order — declaration guards, custody verification, availability audit
+and join, digest check, ablation, settled comparison, manifest record and render — and a manifest
+refusal that admits no fundamentals benchmark whose feature-set digest a committed acceptance
+document does not name. Reusable acceptance and benchmark structures are under `docs/templates/`.
+
+**The declarations exist; the run does not.** The decision cutoff, the decision lead and the
+sampling geography are operator declarations with no defaults, and the committed examples are
+refused by name; all three were declared on 3 September 2026
+(`docs/fundamentals_declarations_2026-09-03.md`), which lifted the refusal that had blocked every
+v0.9 surface. Nothing has been run through them yet: no feature table has been retrieved, no day
+has been audited against retrieved data, no acceptance document exists, and the witness workflow
+has accumulated no witnessed days — which are the one kind of evidence here that cannot be
+produced later. **Every figure this README reports still comes from the accepted price history
+alone, and the fundamentals question is unanswered rather than answered negatively.** A negative
+result would be recorded under the same labels, and a thin accepted coverage makes the run
+exploratory rather than general.
 ADMIE load and RES forecasts stay out of scope by any route, including through another publisher.
 Percentile outputs (P5/P50/P95) and loss probabilities were removed from the roadmap because
 the seasonal bootstrap resamples a non-stationary 2020-2026 history uniformly and therefore
@@ -549,7 +560,32 @@ Per-release implementation reports and release notes live in
 - [Implementation report v0.8.1](docs/history/implementation_report_v0.8.1.md)
 - [Implementation report v0.8.2](docs/history/implementation_report_v0.8.2.md)
 - [Completed-v0.8 review](docs/history/implementation_report_v0.8.2_review.md)
+- [Completed-v0.7 review](docs/history/implementation_report_v0.7_review.md)
+- [v0.8.3 external review response](docs/history/implementation_report_v0.8.3_review_response.md)
 - [README findings-first restructuring](docs/history/implementation_report_readme_findings_first_2026-09-02.md)
+- [One-command synthetic demonstration](docs/history/implementation_report_demo_2026-09-02.md)
+- [Publishing the accepted replay report](docs/history/implementation_report_publish_accepted_replay_2026-09-02.md)
+- [Rendered accepted-replay acceptance](docs/rendered_accepted_replay_acceptance_2026-09-02.md)
+- [Replacement official-history retrieval](docs/official_history_replacement_2026-09-01.md)
+- [Official daily-price data acceptance](docs/official_data_acceptance_2026-08-25.md)
+- [Official data retrieval procedure](docs/official_data_retrieval.md)
+- [ENTSO-E retrieval through GitHub Actions](docs/entsoe_github_retrieval.md)
+- [Data sources](docs/data_sources.md)
+- [Data dictionary](docs/data_dictionary.md)
+- [v0.8 design of record](docs/v0.8_design.md)
+- [v0.9 design of record](docs/v0.9_design.md)
+- [Implementation report v0.9.0 (v0.9 opened)](docs/history/implementation_report_v0.9.0.md)
+- [v0.9 fundamentals source assessment](docs/fundamentals_source_assessment_2026-09-02.md)
+- [Point-in-time feature contract](docs/point_in_time_feature_contract.md)
+- [Implementation report v0.9.1 ingestion and availability audit](docs/history/implementation_report_v0.9.1.md)
+- [Implementation report v0.9.2 point-in-time join](docs/history/implementation_report_v0.9.2.md)
+- [Completed-v0.9.2 review](docs/history/implementation_report_v0.9.2_review.md)
+- [Implementation report v0.9.3 fundamentals forecast ablation](docs/history/implementation_report_v0.9.3.md)
+- [Implementation report v0.9.4 settled dispatch comparison](docs/history/implementation_report_v0.9.4.md)
+- [v0.9 operator declarations](docs/fundamentals_declarations_2026-09-03.md)
+- [Implementation report v0.9.5 official-run preparation](docs/history/implementation_report_v0.9.5.md)
+- [Dated-document templates](docs/templates/)
+- [v0.9.5 record corrections](docs/history/implementation_report_record_corrections_2026-09-03.md)
 - [Current status](STATUS.md)
 - [Implementation plan](PLAN.md)
 - [Contributing guidance](CONTRIBUTING.md)
@@ -559,7 +595,3 @@ Per-release implementation reports and release notes live in
 
 Copyright is reserved. See [LICENSE](LICENSE). The repository is available for viewing,
 educational evaluation and portfolio demonstration; reuse requires prior permission.
-
-## v0.9 official-run preparation
-
-Version 0.9.5 adds a manually dispatched, custody-gated fundamentals acceptance and benchmark workflow. A dated acceptance record must name the exact accepted feature-set digest before a benchmark manifest can be recorded. The generic renderer has been exercised on all three v0.9 manifest kinds; it computes no result. Official execution remains a post-merge external action and synthetic evidence supports machinery only. Reusable structures are under `docs/templates/`.
