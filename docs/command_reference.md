@@ -480,7 +480,7 @@ The audit asks, per delivery interval, whether a value was published strictly be
 greek-bess audit-feature-availability \
   acceptance/fundamentals/features.csv \
   --decision-cutoff config/decision_cutoff.json \
-  --decision-lead-minutes 90 \
+  --decision-lead-minutes 0 \
   --variables dswrf_surface temperature_2m wind_speed_10m \
   --start-day 2026-08-01 \
   --end-day 2026-08-31 \
@@ -1055,11 +1055,11 @@ No official prices or personal API credentials are required.
 ```bash
 greek-bess build-point-in-time-features prices.csv acceptance/fundamentals/features.csv \
   --decision-cutoff config/decision_cutoff.json \
-  --decision-lead-minutes 30 --admitted-grades witnessed provider_declared \
+  --decision-lead-minutes 0 --admitted-grades witnessed provider_declared \
   --output acceptance/fundamentals/joined.csv
 ```
 
-The cutoff, lead and evidence grades are required and have no defaults. The command writes the interval feature frame, a sibling revision/provenance audit and a summary, and exits `2` when any day is excluded. The committed example cutoff is refused. Outputs are private generated research artifacts and must not be committed.
+The cutoff, lead and evidence grades are required and have no defaults. The command writes the interval feature frame, a sibling revision/provenance audit and a summary, and exits `2` when any day is excluded. The committed example cutoff is refused; `config/decision_cutoff.json` is the declaration. Outputs are private generated research artifacts and must not be committed.
 
 
 ### Benchmark the fundamentals ablation
@@ -1069,9 +1069,9 @@ greek-bess benchmark-fundamentals-forecast prices.csv \
   --features acceptance/fundamentals/joined.csv \
   --feature-set-sha256 <digest recorded by the join> \
   --decision-cutoff config/decision_cutoff.json \
-  --decision-lead-minutes 30 --admitted-grades witnessed provider_declared \
-  --price-regime-bands 0 50 150 \
-  --validation-start-day 2024-01-01 --test-start-day 2025-01-01 \
+  --decision-lead-minutes 0 --admitted-grades witnessed provider_declared \
+  --price-regime-bands 0 50 100 200 \
+  --validation-start-day 2024-10-01 --test-start-day 2025-10-01 \
   --output acceptance/fundamentals/benchmark.csv
 ```
 
@@ -1086,7 +1086,10 @@ frame: the command refuses to run when the feature-set digest, the cutoff schedu
 lead or the admitted evidence grades differ from what the join recorded, or when the frame does
 not hash to the digest its own summary states. `--price-regime-bands` has no default because
 which price levels are worth separating is a judgment; the bands are ascending upper edges in
-EUR/MWh and the run records the ones it used.
+EUR/MWh and the run records the ones it used. The values shown above are the declared ones —
+lead `0`, bands `0 50 100 200`, and the split whose held-out block starts 2025-10-01 — recorded in
+`docs/fundamentals_declarations_2026-09-03.md`; the bands were proposed from the training block
+alone and may not be revised after a test run.
 
 A delivery day missing any accepted feature is excluded from every arm by its named cause and is
 never imputed, and the summary records the count per cause. A run whose common held-out days do

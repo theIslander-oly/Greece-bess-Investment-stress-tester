@@ -25,3 +25,12 @@ The v0.9 point-in-time feature path reads its declarations through
 example by name**. Copying an example into `config/decision_cutoff.json`,
 `config/fundamentals_geography.json` or `config/decision_lead_minutes.txt` without replacing its
 placeholder therefore stops the run rather than turning a placeholder into evidence.
+
+`decision_cutoff.json`, `decision_lead_minutes.txt` and `fundamentals_geography.json` are the
+operator declarations themselves, made on 3 September 2026. They are not examples and are not
+defaults: the tooling still reports whatever they declare and still cannot check them against the
+market rules or against Greek geography. `docs/fundamentals_declarations_2026-09-03.md` records
+what each rests on, including the limitation that the primary rulebooks and statistics were
+unreachable from the environment the research ran in. `tests/test_declarations.py` holds each of
+them to the reader that consumes it, because they are read by a scheduled workflow that cannot
+recover a day it fails on.

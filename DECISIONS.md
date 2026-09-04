@@ -1,5 +1,121 @@
 # Decision log
 
+## 2026-09-03 — Declare the Greek day-ahead gate closure as two regimes, and no third at the 15-minute change
+
+- **Decision:** `config/decision_cutoff.json` declares 12:00 `Europe/Athens` on D-1 for delivery
+  days from 2020-11-01, the isolated era of the Greek spot market, and 12:00 `Europe/Brussels` on
+  D-1 for delivery days from 2020-12-16, the first delivery day of the Greek bidding zone inside
+  the Single Day-Ahead Coupling. The decision lead is declared as `0` minutes: the bid decision is
+  taken at the gate. The 15-minute market time unit that went live across SDAC for delivery day
+  2025-10-01 gets **no regime of its own**, because it changed the market time unit and not the
+  gate closure.
+- **Reason:** The coupled-era closure is the SDAC day-ahead gate closure, which is stated on the
+  CET clock, not the Greek one; declaring it as `Europe/Athens` would be an hour wrong twice a
+  year in a comparison that is deliberately strict. The isolated era is a genuinely different rule
+  and gets its own regime rather than being back-projected from the coupled one. Declaring a third
+  regime at the market-time-unit change would assert a rule change that the evidence says did not
+  happen.
+- **Consequence:** The first regime is the one that could not be corroborated against the primary
+  rulebook, and it is admissible for two independent reasons: 12:00 `Europe/Athens` is the earlier
+  of the two candidate closures, so it can only under-admit; and it governs no delivery day that
+  can carry a feature, because the GFS 0.25° product is 3-hourly before 26 February 2021.
+  `tests/test_declarations.py` asserts the second property, so a later decision that moves the
+  feature start earlier fails the suite instead of quietly promoting an unverified rule into use.
+  Both declared cutoffs clear the verified GFS publication window by at least 90 minutes, so the
+  choice of clock changes which days are admitted for no day in the observed samples.
+
+## 2026-09-03 — Declare a wind-capacity sampling geography at a pre-training-block vintage
+
+- **Decision:** `config/fundamentals_geography.json` declares three 0.25° GFS grid nodes — in
+  Sterea Ellada, the Peloponnese and Eastern Macedonia and Thrace — weighted by each region's
+  share of Greek installed wind capacity at **31 December 2023**, renormalised over the 66.3 per
+  cent of national capacity those three regions hold. A four-point variant adding Attica as a
+  demand centre was drafted and rejected.
+- **Reason:** The vintage precedes the end of the benchmark's training block (30 September 2024),
+  so no knowledge of the validation or held-out test period enters a declaration that shapes what
+  the model sees. The 2025 statistics were available and were not used for exactly that reason.
+  Attica was rejected because its weight would have had no source: a single stated basis with a
+  stated limitation is more honest than a mixed basis containing one undefended number, and this
+  project refuses undefended judgmental inputs everywhere else.
+- **Consequence:** One geography serves all three variables, because the retrieval surface accepts
+  one geography per run. Irradiance and temperature are therefore sampled on a wind-capacity
+  geography and the largest demand centre carries no weight; the declaration says so in its own
+  reference text, so any run using it carries the limitation beside the aggregate. The regional
+  split of Greek installed photovoltaic capacity could not be obtained from an accessible primary
+  source and no part of the declaration pretends otherwise.
+
+## 2026-09-03 — Record what the declarations rest on, including that the primary documents were unreachable
+
+- **Decision:** `docs/fundamentals_declarations_2026-09-03.md` records the research behind the
+  three declarations, and states in its first substantive section that the environment the
+  research ran in refused every primary domain — the exchange, the NEMO committee, the power
+  exchanges, the transmission operator and the wind association — so the market-rule and installed
+  capacity statements rest on search-result summaries rather than on the documents themselves.
+  Each declared `reference` repeats the limitation in its own text. Reading the primary documents
+  and replacing the references with version, article and table citations is an open item.
+- **Reason:** A declaration whose provenance is weaker than usual is admissible if the weakness
+  travels with it and is bounded; it is not admissible if the weakness is known only to whoever
+  made it. Putting the limitation inside the reference string, rather than in a document a reader
+  may not open, means every run that uses these declarations carries it.
+- **Consequence:** No figure waits on the primary documents, because no figure exists. The
+  strengthening is a record improvement, not a pending correction. The one statement that could
+  not be corroborated at all is inert for every v0.9 surface by the previous entry's second
+  property.
+
+## 2026-09-03 — Declare price-regime bands structurally from the training block, not by quantile
+
+- **Decision:** The v0.9 forecast ablation is to be run with `--price-regime-bands 0 50 100 200`.
+  A quantile-derived alternative over the training block was considered and not adopted.
+- **Reason:** The bands slice reported metrics and nothing else: they select no model, weight no
+  fit and enter no headline figure. A quantile cut would have required a live run over official
+  prices with a hard constraint that the held-out block is never touched, in exchange for a better
+  cut of a purely descriptive slice. The structural edges are anchored where the market's own
+  structure is: zero separates the negative-and-zero regime this project preserves rather than
+  clips, 100 sits at the level of the training years' mean prices, and 200 separates the 2022
+  regime.
+- **Consequence:** The `<= 0` regime is nearly empty in the training block and heavily populated
+  in the test block. That asymmetry is the correct consequence of choosing bands without looking
+  at the test distribution, and it is recorded now so that it cannot later be mistaken for a
+  fault. The bands may not be revised after a test run.
+
+## 2026-09-03 — Record the resolution-era split as structural, and pre-register nothing after the fact
+
+- **Decision:** The consequence of a held-out test block starting 2025-10-01 is recorded and
+  quantified rather than mitigated: training and validation hold 1,284 and 365 delivery days and
+  **zero** quarter-hour days, and the test block holds 329 days that are **all** quarter-hour. No
+  hourly-era control arm is declared. Whether to pre-register one is left open, explicitly, as an
+  operator decision that is only valid **before** a test run.
+- **Reason:** Every quarter-hour delivery day in the accepted history falls inside the test block,
+  so no admissible validation block can contain one; the mismatch cannot be fixed by moving the
+  validation boundary, and the test start is settled and may not be revised. A second benchmark
+  declared after seeing test results would contaminate both, so the only legitimate window for
+  declaring one is now, and declaring it unasked would be this project making an operator's
+  judgment for them.
+- **Consequence:** Three things belong in the acceptance document when the run happens: model
+  selection is made entirely in one resolution era and reported entirely in the other; the
+  augmented arm's feature column is per-interval in training and broadcast across four intervals
+  in every held-out row; and the non-exploratory label depends on DJF 2025-26 being complete to
+  the day, since MAM 2026 loses the spring DST day to the documented wall-clock-slot cause and JJA
+  2026 is cut short by the accepted history's end. A coverage and availability pre-flight over
+  those 90 days should precede the official run.
+
+## 2026-09-03 — Add a researched representative Greek unit beside the accepted example, not in place of it
+
+- **Decision:** `examples/battery_representative_gr_25mw_100mwh.json` is added: 25 MW / 100 MWh,
+  four hours, one daily equivalent cycle, every other field identical to
+  `examples/battery_50mw_100mwh.json`, which is unchanged. The v0.9 dispatch comparison continues
+  to run on the 50/100 example.
+- **Reason:** Greek standalone-storage auctions moved to a four-hour duration requirement, and
+  25 MW / 100 MWh is the largest of the reported awarded sizes at exactly that duration, so it
+  describes the shape of unit the Greek market is actually procuring. Replacing the accepted
+  example would have broken comparability with every accepted-history figure, which is the reason
+  the accepted example exists.
+- **Consequence:** The two differ only in sizing, the matching grid limits and the daily cycle
+  limit — 1.0 rather than 1.5, because one deep cycle a day is the four-hour convention. That
+  cycle limit is the one number in the file that is a judgment rather than a sourced figure, and
+  it is named as such. The file is illustrative exactly as the accepted example is: it is not a
+  project, a cost estimate or evidence about any asset.
+
 ## 2026-09-03 — Settle the ablation on the days it recorded, and refuse a gap rather than exclude it
 
 - **Decision:** `benchmark-fundamentals-dispatch` settles exactly the held-out delivery days the

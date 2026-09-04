@@ -153,6 +153,23 @@ declared slices of the held-out days: by delivery year, by market-clock interval
 declared price regime and by resolution era. The price-regime bands are declared, because which
 price levels are worth separating is a judgment.
 
+The declared bands are `0 50 100 200` EUR/MWh, and how they were chosen is part of the method:
+they were proposed from the training block alone, never from the held-out block, so that the
+reported slicing carries no knowledge of the period it slices. The edges are structural rather
+than quantile-derived — zero separates the negative-and-zero regime the pipeline preserves rather
+than clips, and the upper edges sit at the level of the training years' mean prices and above the
+2022 regime. One consequence is expected and is not a fault: a regime that is nearly empty in
+training can be heavily populated in the held-out block, and the bands are not adjusted for it
+after the fact.
+
+The declared sampling geography is part of the method for the same reason. Its weights come from
+regional installed wind capacity at a vintage chosen to precede the end of the training block, so
+that the choice of where to sample carries no knowledge of the validation or held-out periods
+either. One geography serves every variable because the retrieval surface accepts one per run, so
+an irradiance or temperature aggregate is taken on a wind-weighted geography; the declaration
+states this, and the tooling aggregates exactly as declared without checking that the declaration
+represents the bidding zone.
+
 A benchmark identifies its inputs rather than describing them. It declares the digest of the
 joined feature frame it fits on, the cutoff schedule, the decision lead and the admitted evidence
 grades, and refuses to run unless every one equals what the join recorded and the frame hashes to

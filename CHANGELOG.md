@@ -6,6 +6,29 @@ All notable project changes are documented here.
 
 ### Added
 
+- **The three v0.9 operator declarations, and the record of what they rest on.** Add
+  `config/decision_cutoff.json` (two dated regimes: 12:00 `Europe/Athens` on D-1 for the isolated
+  Greek spot market from 2020-11-01, and 12:00 `Europe/Brussels` on D-1 from the SDAC accession
+  delivery day 2020-12-16, with the 2025-10-01 market-time-unit change deliberately carrying no
+  regime because it did not move the gate), `config/decision_lead_minutes.txt` (`0`, the decision
+  taken at the gate) and `config/fundamentals_geography.json` (three exact 0.25° GFS grid nodes
+  weighted by regional share of Greek installed wind capacity at 31 December 2023, a vintage
+  chosen to precede the training block's end so no test-period knowledge enters the declaration).
+  Add `docs/fundamentals_declarations_2026-09-03.md`, which records the sources, states that the
+  research environment could not reach the primary rulebooks and statistics so the rule and
+  capacity statements rest on secondary summaries, and shows why the one uncorroborated regime is
+  inert — it governs no delivery day that can carry a feature. Add `tests/test_declarations.py`,
+  which holds each declaration to the reader that consumes it, checks every sampling point lands
+  exactly on a 0.25° grid node, and asserts the uncorroborated regime stays inert. Add
+  `examples/battery_representative_gr_25mw_100mwh.json`, a researched four-hour Greek unit placed
+  beside the unchanged 50/100 example rather than replacing it. Record the price-regime bands
+  `0 50 100 200`, proposed from the training block alone, and record the structural finding that
+  the training and validation blocks are entirely hourly while the held-out test block is entirely
+  quarter-hour — with its three consequences quantified and no control arm declared after the
+  fact. No run was made, no feature was retrieved, no figure exists, and no accepted figure or
+  analytical behaviour changed; the witness workflow's guard now passes, so the daily loss of
+  unrecoverable witnessed days stops
+
 - **v0.9.4: the settled fundamentals dispatch comparison.** Add
   `benchmark-fundamentals-dispatch` and `backtest/fundamentals_dispatch.py`: every named ablation
   arm is planned from its own forecast and settled at the same realized prices, and the

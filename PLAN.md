@@ -91,25 +91,38 @@ The plan below is therefore organised by what each item waits on, not by milesto
 - **`ENTSOE_SECURITY_TOKEN`.** The secret is no longer configured, so
   `Reconcile HEnEx and ENTSO-E prices` refuses at its guard step and the reconciliation cannot be
   re-run. The accepted evidence is safe in the custody copy; only regeneration is blocked.
-- **The v0.9 decision cutoff and decision lead.** The point-in-time benchmark opened on
-  2 September 2026 needs a declared day-ahead closure schedule with a real rulebook citation and a
-  declared decision lead in minutes, and supplies neither on the operator's behalf. This is the
-  same refusal the gate-closure schedule already records: the tooling reports whatever closure is
-  declared and cannot check the declaration against the market rules.
-  `config/decision_cutoff.example.json` shows the format and is refused as a declaration while its
-  placeholder reference remains. Nothing in v0.9 runs without it.
-- **The v0.9 sampling geography.** A gridded fundamentals variable must be sampled at declared
-  points with declared weights and a stated basis for the choice; there is no default geography.
-  `config/fundamentals_geography.example.json` shows the format under the same refusal.
-- **All three v0.9 declarations are now load-bearing rather than prospective.** Since v0.9.1
-  landed on 2 September 2026 the code exists and refuses: `read_decision_cutoff_schedule` and
-  `read_sampling_geography` reject the committed examples by name, `validate_decision_lead_minutes`
-  refuses an absent lead, and both workflows stop at their guard steps. The declarations are
-  `config/decision_cutoff.json`, `config/decision_lead_minutes.txt` (one non-negative integer;
-  `config/decision_lead_minutes.example.txt` deliberately holds no number) and
-  `config/fundamentals_geography.json`. **Each day without them costs a witnessed day that cannot
-  be recovered:** witnessed evidence exists only if a retrieval happened before that delivery
-  day's cutoff, and the scheduled `witness-fundamentals` workflow says so every time it refuses.
+- **Reading the v0.9 declarations' primary documents.** The three declarations were made on
+  3 September 2026 (below), but the day-ahead gate-closure regimes and the regional wind-capacity
+  weights behind them were researched from search-result summaries: the egress policy of the
+  environment the research ran in refused `enexgroup.gr`, `nemo-committee.eu`, `epexspot.com`,
+  `entsoe.eu`, `admie.gr` and `eletaen.gr` outright. Each declared `reference` says so in its own
+  text. What remains is to read the HEnEx DAM and IDM Trading Rulebook and the HWEA/ELETAEN 2023
+  statistics and replace those references with version, article and table citations. No figure
+  waits on this — none exists — and the one regime that could not be corroborated governs no
+  feature-bearing day (`docs/fundamentals_declarations_2026-09-03.md`, §2).
+- **Whether an hourly-era control arm is pre-registered.** The held-out test block is entirely
+  quarter-hour and the training and validation blocks are entirely hourly; this is structural and
+  cannot be fixed by moving the validation boundary (§5 of the same document). A second benchmark
+  on an hourly test block is legitimate evidence **only if it is declared before any test run**,
+  and none is declared. After a test run it contaminates both, and the split may not be revised.
+- **The DJF 2025-26 pre-flight.** The acceptance run can be labelled anything but exploratory only
+  if the common held-out days cover every one of the 90 days from 2025-12-01 to 2026-02-28. One
+  missing GFS object or one day excluded on availability makes the whole run exploratory, so a
+  coverage and availability pre-flight over exactly those days should precede the official run.
+
+### Declared on 3 September 2026
+
+- [x] **The v0.9 decision cutoff, decision lead and sampling geography.** `config/decision_cutoff.json`
+  declares two dated regimes — 12:00 `Europe/Athens` on D-1 for the isolated era from 2020-11-01,
+  and 12:00 `Europe/Brussels` on D-1 from the SDAC accession delivery day 2020-12-16, with the
+  2025-10-01 market-time-unit change deliberately carrying no regime of its own.
+  `config/decision_lead_minutes.txt` declares `0`, the decision taken at the gate.
+  `config/fundamentals_geography.json` declares three 0.25° grid nodes weighted by regional share
+  of Greek installed wind capacity at 31 December 2023, a vintage chosen to precede the training
+  block's end so no test-period information enters the declaration. `tests/test_declarations.py`
+  holds all three to the readers that consume them. The witness workflow's guard now passes, so
+  the daily 06:00 UTC job begins producing witnessed days; every day between v0.9.1 and this
+  commit remains permanently unrecoverable.
 
 ### Resolved on 2 September 2026: the v0.9 source-selection spike
 

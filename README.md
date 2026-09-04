@@ -390,6 +390,7 @@ src/greek_bess/
     spread.py
 examples/
   battery_50mw_100mwh.json
+  battery_representative_gr_25mw_100mwh.json
   illustrative_degradation_with_augmentation.json
   illustrative_finance_not_project_specific.json
 tests/

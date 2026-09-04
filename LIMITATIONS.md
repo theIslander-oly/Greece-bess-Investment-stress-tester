@@ -346,3 +346,44 @@ The terminal-SOC convention is required for the arms to be comparable at all, an
 modelling choice rather than an operating strategy: a real unit is not obliged to end each day
 where it started, and a comparison run under a different convention would produce different
 increments. No finance or degradation state is coupled to this comparison, by design.
+
+## Limitations of the declarations themselves
+
+The decision cutoff, decision lead and sampling geography were declared on 3 September 2026, so
+the v0.9 surfaces can now run. Declaring them removes a blocker; it adds no evidence, and three
+limitations travel with them.
+
+**The primary documents were not read.** The environment the research ran in could not reach the
+exchange, the NEMO committee, the coupled power exchanges, the transmission operator or the wind
+association, so the gate-closure regimes and the regional capacity weights rest on search-result
+summaries of those documents rather than on the documents. Each declared reference says so in its
+own text, and `docs/fundamentals_declarations_2026-09-03.md` §1 states it in full. The
+uncorroborated isolated-era regime is bounded twice over — it is the earlier of the candidate
+closures, so it can only under-admit, and it governs no delivery day that can carry a feature —
+but the coupled-era regime and the capacity weights are simply less well sourced than this
+project's usual standard until the documents are read.
+
+**The geography represents one thing and is used for three.** Irradiance and temperature are
+sampled at wind-capacity-weighted points, and Attica, the largest demand centre, carries no
+weight. The regional split of Greek installed photovoltaic capacity was not obtainable from an
+accessible primary source, so no solar-weighted alternative was available to compare against. A
+temperature aggregate taken on this geography is a weak demand proxy and should not be read as
+anything stronger.
+
+**The held-out period is in a resolution era that no part of training or selection saw.** With
+the test block starting 1 October 2025, the training and validation blocks contain 1,284 and 365
+delivery days and not one quarter-hour day, while all 329 held-out days are quarter-hour. This is
+structural: every quarter-hour day in the accepted history falls inside the held-out block, so no
+admissible validation block can contain one. Two consequences follow for any figure the
+acceptance run eventually produces. The model is selected on hourly validation error and reported
+on quarter-hour days, so nothing at selection time carries evidence about the era it is reported
+in. And the augmented arm's feature column changes meaning at the boundary: per-interval in every
+training and validation row, and an hourly value broadcast across four intervals in every
+held-out row. A result from this split describes a broadcast-feature, quarter-hour regime that the
+fit and the selection never saw.
+
+A further consequence is procedural: the non-exploratory label depends on DJF 2025-26 being
+complete to the day, because MAM 2026 loses the spring daylight-saving day to the documented
+wall-clock-slot cause and JJA 2026 is cut short by the accepted history's end. A single missing
+GFS object, late cycle or availability exclusion in those 90 days makes the whole acceptance run
+exploratory.

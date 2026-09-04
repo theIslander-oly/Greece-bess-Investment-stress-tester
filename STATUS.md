@@ -56,7 +56,63 @@ perfect-foresight ceiling across arms, records the shared comparison basis, and 
 incremental margin and the paired daily differences in the module that owns that basis — for the
 fourth time on synthetic fixtures alone and for the fourth time producing no figure, because the
 same three declarations are still absent
-(`docs/history/implementation_report_v0.9.4.md`)
+(`docs/history/implementation_report_v0.9.4.md`); and the three
+operator declarations v0.9 has waited on since 2 September 2026 now exist — a two-regime Greek
+day-ahead gate-closure schedule, a decision lead of zero minutes, and a three-point sampling
+geography weighted by regional wind capacity at a vintage deliberately older than the training
+block's end — researched, recorded with their sources and their evidence limitation, and held to
+the readers that consume them by a new test module, so the witness workflow's guard passes and
+the daily witnessed-day loss stops
+(`docs/fundamentals_declarations_2026-09-03.md`)
+
+## 3 September 2026 — the three v0.9 declarations exist
+
+`config/decision_cutoff.json`, `config/decision_lead_minutes.txt` and
+`config/fundamentals_geography.json` are declared, and `docs/fundamentals_declarations_2026-09-03.md`
+records what each rests on. This is a declaration and a record; it is not a result. No run was
+made, no feature was retrieved, no figure exists, and no accepted figure or analytical behaviour
+changed. What changed is that the surfaces can now be run at all.
+
+**The cutoff.** Two dated regimes: 12:00 `Europe/Athens` on D-1 for the isolated era opened on
+1 November 2020, and 12:00 `Europe/Brussels` on D-1 from 16 December 2020, the first delivery day
+of the Greek bidding zone inside the Single Day-Ahead Coupling. The 15-minute market time unit
+that went live for delivery day 1 October 2025 changed the market time unit and not the gate
+closure, so it carries no regime of its own — an absence that is a finding rather than an
+omission. The decision lead is zero: the decision is taken at the gate.
+
+**The geography.** Three points, each an exact 0.25° GFS grid node, weighted by regional share of
+Greek installed wind capacity at 31 December 2023 and renormalised over the 66.3 per cent of
+national capacity those three regions hold. The vintage is deliberately older than the training
+block's end (30 September 2024) so that no knowledge of the validation or test period enters the
+declaration. One geography must serve all three variables because the retrieval surface accepts
+one per run, so irradiance and temperature are sampled on a wind-weighted geography and no demand
+centre carries weight; the declaration states this in its own reference text.
+
+**What the declarations rest on, stated plainly.** The research environment's egress policy
+refused every primary domain the question needs, so the market-rule and capacity statements come
+from search-result summaries rather than from the rulebooks and statistics themselves. Each
+reference says so. The one regime that could not be corroborated — the isolated-era closure —
+governs no feature-bearing day, because the GFS product is 3-hourly before 26 February 2021; a
+test asserts that, so a later decision moving the feature start earlier fails the suite rather
+than promoting an unverified rule into use. Reading the primary documents is an open item in
+`PLAN.md`.
+
+**Price-regime bands.** `0 50 100 200`, proposed from the training block alone and slicing
+reported metrics alone. They may not be revised after a test run.
+
+**The structural finding this round refused to wave through.** With the test block starting
+1 October 2025, the training and validation blocks are 100 per cent hourly (1,284 and 365
+delivery days, zero quarter-hour days) and the test block is 100 per cent quarter-hour (329
+days). No admissible validation block can contain a quarter-hour day, so model selection happens
+entirely in one resolution era and is reported entirely in the other; and the augmented arm's
+feature column is per-interval in training and broadcast across four intervals in every test row.
+The non-exploratory label depends on DJF 2025-26 being complete to the day — MAM 2026 loses the
+spring DST day and JJA 2026 is cut short by the accepted history's end — so one missing GFS
+object makes the acceptance run exploratory.
+
+**The witness workflow's guard now passes.** The daily 06:00 UTC job sits after the observed GFS
+publication window and before every declared cutoff, so landed runs grade as witnessed. Every day
+between v0.9.1 and today remains permanently unrecoverable.
 
 ## v0.9.4 — the ablation now settles into euro; it has still measured nothing
 

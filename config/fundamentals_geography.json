@@ -1,0 +1,25 @@
+{
+  "geography_id": "gr-wind-capacity-2023-3pt",
+  "area": "GR",
+  "points": [
+    {
+      "point_id": "sterea-ellada-evia-boeotia",
+      "latitude": 38.5,
+      "longitude": 23.5,
+      "weight": 0.661569532602
+    },
+    {
+      "point_id": "peloponnese-arcadia-laconia",
+      "latitude": 37.5,
+      "longitude": 22.25,
+      "weight": 0.18436237738
+    },
+    {
+      "point_id": "east-macedonia-thrace-rodopi",
+      "latitude": 41.0,
+      "longitude": 25.25,
+      "weight": 0.154068090018
+    }
+  ],
+  "reference": "Basis: each point's share of Greek installed wind generating capacity at 31 December 2023, from the HWEA/ELETAEN annual wind statistics for 2023 (Central Greece / Sterea Ellada 2,293 MW, Peloponnese 639 MW, Eastern Macedonia and Thrace 534 MW of a national 5,226 MW), renormalised over the three mainland regions the source names, which together hold 66.3 per cent of national wind capacity. Vintage 31 December 2023, chosen because it precedes the end of the benchmark training block (30 September 2024), so no information from the validation or held-out test period enters the declaration. Each coordinate is a 0.25 degree GFS grid node inside the named region's wind cluster; no interpolation is implied. Limitation, stated as part of the declaration: this single geography is applied to dswrf_surface and temperature_2m as well as wind_speed_10m because the retrieval surface accepts one geography per run, so irradiance and temperature are sampled on a wind-capacity-weighted geography rather than on a solar-capacity or demand-weighted one; the regional split of Greek installed photovoltaic capacity was not obtainable from an accessible primary source at the declaration date, and Attica, the largest demand centre, carries no weight. The tooling aggregates exactly as declared here and cannot check that the declaration represents the Greek bidding zone."
+}

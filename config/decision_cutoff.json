@@ -1,0 +1,19 @@
+{
+  "schedule_id": "greek-dam-gate-closure-2020-11",
+  "regimes": [
+    {
+      "effective_from_delivery_day": "2020-11-01",
+      "closure_day_offset": -1,
+      "closure_local_time": "12:00:00",
+      "closure_timezone": "Europe/Athens",
+      "reference": "HEnEx Day-Ahead Market in isolated operation, delivery days 2020-11-01 through 2020-12-15. The Greek spot market opened on 1 November 2020 under the target model in isolated mode, with explicit allocation of interconnector capacity, and the day-ahead order book closed at 12:00 Greek time on the day before delivery under the HEnEx DAM and IDM Trading Rulebook then in force. This regime is declared from secondary reporting of that rulebook and has not been checked against the primary rulebook text; it is recorded conservatively, because 12:00 Europe/Athens is one hour earlier than the coupled-era closure and so can only under-admit. It governs no feature-bearing day in the v0.9 benchmark: the 0.25 degree NOAA GFS product is 3-hourly before 26 February 2021, so the first delivery day that can carry an hourly feature is 2021-02-27, after this regime has ended. See docs/fundamentals_declarations_2026-09-03.md, section 2."
+    },
+    {
+      "effective_from_delivery_day": "2020-12-16",
+      "closure_day_offset": -1,
+      "closure_local_time": "12:00:00",
+      "closure_timezone": "Europe/Brussels",
+      "reference": "HEnEx Day-Ahead Market coupled in the Single Day-Ahead Coupling, delivery days from 2020-12-16 onward. The Greek bidding zone entered SDAC on trading day 15 December 2020 with first delivery day 16 December 2020, via the GR-IT border, and from that day the Greek day-ahead order book closes at the SDAC day-ahead gate closure, 12:00 CET or CEST on the day before delivery. The 15-minute market time unit introduced across SDAC on trading day 30 September 2025 for delivery day 1 October 2025 changed the market time unit only and not the gate closure, so no further regime is declared for it. This regime is declared from the SDAC accession announcements and the published SDAC timings and has not been checked against the primary HEnEx rulebook text. See docs/fundamentals_declarations_2026-09-03.md, section 2."
+    }
+  ]
+}
