@@ -73,7 +73,23 @@ def _synthetic_day(day: date) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def _write_shard(directory: Path, name: str, days: list[date]) -> Path:
+def _write_shard(
+    directory: Path,
+    name: str,
+    days: list[date],
+    *,
+    window: tuple[date, date] | None = None,
+    excluded: list[dict[str, str]] | None = None,
+    listed_exclusion_cap: int | None = None,
+) -> Path:
+    """Write one shard. ``excluded`` names delivery days the retrieval excluded by cause.
+
+    ``window`` states the span the slice was asked to retrieve when it is wider than the days
+    it produced, which is what an excluded day looks like. A shard caps the day-by-day exclusion
+    list it writes but reports its counts in full, so ``listed_exclusion_cap`` reproduces a
+    shard whose list is shorter than its own count.
+    """
+
     frame = pd.concat([_synthetic_day(day) for day in days], ignore_index=True)
     features = directory / f"{name}.csv"
     write_point_in_time_csv(frame, features)
@@ -84,13 +100,18 @@ def _write_shard(directory: Path, name: str, days: list[date]) -> Path:
         "variables": sorted(VARIABLES),
         "geography_id": "synthetic-geography",
         "geography": {"geography_id": "synthetic-geography"},
-        "start_day": min(days).isoformat(),
-        "end_day": max(days).isoformat(),
+        "start_day": (window[0] if window else min(days)).isoformat(),
+        "end_day": (window[1] if window else max(days)).isoformat(),
         "retrieved_at_utc": "2026-01-01T00:00:00+00:00",
         "feature_row_count": int(len(frame)),
         "document_count": 0,
         "attribution": "synthetic fixture; no provider content",
-        "excluded_days_by_cause": [],
+        "excluded_day_count": len(excluded or []),
+        "excluded_day_count_by_cause": {
+            cause: sum(1 for entry in (excluded or []) if entry["cause"] == cause)
+            for cause in sorted({entry["cause"] for entry in (excluded or [])})
+        },
+        "excluded_days_by_cause": (excluded or [])[:listed_exclusion_cap],
         "per_delivery_day": [{"market_day": day.isoformat()} for day in days],
     }
     features.with_suffix(".summary.json").write_text(
@@ -195,6 +216,75 @@ class CombineFeatureShardsTests(unittest.TestCase):
     def test_no_shards_is_refused(self) -> None:
         with self.assertRaises(FeatureShardError):
             combine_feature_shards([], created_at_utc="2026-01-02T00:00:00+00:00")
+
+
+class ExclusionAccountingTests(unittest.TestCase):
+    """A delivery day excluded by name in one slice stays named in the combined window.
+
+    The retrieval now excludes a delivery day by name on a source condition and continues, so
+    the combined summary is where a reader learns how many days of the declared window carry no
+    feature and why. Under-reporting that would leave a short window with nothing saying so.
+    """
+
+    def test_named_causes_are_summed_across_slices(self) -> None:
+        with TemporaryDirectory() as raw:
+            directory = Path(raw)
+            days = _days("2026-03-01", 6)
+            # Each slice declares the window it was asked for; the days it excluded by name are
+            # inside that window and carry no feature row, which is exactly what the counts say.
+            first = _write_shard(
+                directory,
+                "first",
+                days[:2],
+                window=(days[0], days[2]),
+                excluded=[{"market_day": days[2].isoformat(), "cause": "missing_object"}],
+            )
+            second = _write_shard(
+                directory,
+                "second",
+                days[3:5],
+                window=(days[3], days[5]),
+                excluded=[
+                    {"market_day": days[5].isoformat(), "cause": "sidecar_object_mismatch"},
+                ],
+            )
+            _, summary, _ = combine_feature_shards(
+                [first, second], created_at_utc="2026-01-02T00:00:00+00:00"
+            )
+            self.assertEqual(summary["start_day"], days[0].isoformat())
+            self.assertEqual(summary["end_day"], days[-1].isoformat())
+            self.assertEqual(summary["excluded_day_count"], 2)
+            self.assertEqual(
+                summary["excluded_day_count_by_cause"],
+                {"missing_object": 1, "sidecar_object_mismatch": 1},
+            )
+            self.assertEqual(
+                [entry["market_day"] for entry in summary["excluded_days_by_cause"]],
+                [days[2].isoformat(), days[5].isoformat()],
+            )
+
+    def test_a_count_is_taken_from_the_slice_not_recounted_from_its_capped_list(self) -> None:
+        with TemporaryDirectory() as raw:
+            directory = Path(raw)
+            days = _days("2026-03-01", 2)
+            excluded = [
+                {"market_day": f"2026-03-{day:02d}", "cause": "missing_object"}
+                for day in range(3, 8)
+            ]
+            shard = _write_shard(
+                directory,
+                "only",
+                days,
+                window=(days[0], date.fromisoformat("2026-03-07")),
+                excluded=excluded,
+                listed_exclusion_cap=2,
+            )
+            _, summary, _ = combine_feature_shards(
+                [shard], created_at_utc="2026-01-02T00:00:00+00:00"
+            )
+            self.assertEqual(len(summary["excluded_days_by_cause"]), 2)
+            self.assertEqual(summary["excluded_day_count"], 5)
+            self.assertEqual(summary["excluded_day_count_by_cause"], {"missing_object": 5})
 
 
 if __name__ == "__main__":  # pragma: no cover

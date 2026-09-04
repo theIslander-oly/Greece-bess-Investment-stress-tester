@@ -10,9 +10,21 @@ later cycle is a separate decision with its own evidence, not a fallback this mo
 for when a 00 UTC object is missing: a missing cycle makes the day incomplete and it is excluded
 by name.
 
-**Both archive key layouts are tried.** The 0.25° product moved under an ``atmos/`` segment on
-23 March 2021. A client that hard-codes the current layout returns nothing — silently, as an
-empty listing rather than an error — for the earliest usable delivery days.
+**Both archive key layouts are tried, and only absence moves on to the next.** The 0.25° product
+moved under an ``atmos/`` segment on 23 March 2021. A client that hard-codes the current layout
+returns nothing — silently, as an empty listing rather than an error — for the earliest usable
+delivery days. Trying both layouts means asking the store twice, so the two answers have to be
+told apart: a ``404`` means the object is not at that key and the other layout is tried, while a
+5xx or a transport fault means the store did not answer and the retrieval stops there. Reading
+the second as the first would report a network blip as a provider non-publication, which is a
+finding about the source that nothing downstream could detect as false.
+
+**A source condition names the delivery day, and only that day.** A genuinely missing object and
+a ``.idx`` sidecar that does not describe the object beside it are conditions of one delivery
+day. They carry a named cause (:data:`MISSING_OBJECT`, :data:`SIDECAR_OBJECT_MISMATCH`) so the
+retrieval can exclude that day by name and continue, which is what the refusals here have always
+said happens. Every other refusal in this module is an integrity refusal about how a value would
+be built, and still stops the retrieval.
 
 **Every forecast step is checked on its own.** Upload order is not monotone in step: a later step
 of one cycle was observed appearing before an earlier one. One step's availability therefore says
@@ -47,7 +59,13 @@ from typing import Any
 
 import pandas as pd
 
-from .http import OfficialDataDownloadError, fetch_https_bytes, head_https_headers
+from .http import (
+    DEFAULT_RETRY_POLICY,
+    OfficialDataDownloadError,
+    RetryPolicy,
+    fetch_https_bytes,
+    head_https_headers,
+)
 from .point_in_time import (
     PROVIDER_DECLARED,
     VARIABLE_UNITS,
@@ -106,8 +124,35 @@ _INSTANT_STEP = re.compile(r"^(?P<step>\d+) hour fcst$")
 _WINDOW_STEP = re.compile(r"^(?P<start>\d+)-(?P<end>\d+) hour (?P<kind>ave|acc) fcst$")
 
 
+#: The 00 UTC cycle published no object for a forecast step this delivery day needs, at either
+#: archive key layout, and the store said so rather than failing to answer.
+MISSING_OBJECT = "missing_object"
+
+#: The ``.idx`` sidecar beside a step object does not describe that object — it indexes a
+#: different publication — so no message byte range can be resolved from it.
+SIDECAR_OBJECT_MISMATCH = "sidecar_object_mismatch"
+
+#: The causes that are conditions of one delivery day rather than of the retrieval. A retrieval
+#: excludes such a day by name and continues; every other :class:`NoaaGfsError` stops it, because
+#: every other one is a refusal about how a value would be built rather than about whether the
+#: provider published it.
+SOURCE_CONDITION_CAUSES = (MISSING_OBJECT, SIDECAR_OBJECT_MISMATCH)
+
+
 class NoaaGfsError(RuntimeError):
-    """Raised when a NOAA GFS retrieval or decode cannot be performed exactly as declared."""
+    """Raised when a NOAA GFS retrieval or decode cannot be performed exactly as declared.
+
+    ``cause`` is set only for the source conditions above. It is ``None`` for every integrity
+    refusal, and a caller deciding whether to exclude a day must read it rather than the message
+    text: an excluded day is recorded as a provider non-publication, and a refusal about grids,
+    units, decoding or declarations is not that.
+    """
+
+    def __init__(self, message: str, *, cause: str | None = None) -> None:
+        super().__init__(message)
+        if cause is not None and cause not in SOURCE_CONDITION_CAUSES:
+            raise ValueError(f"Unknown NOAA GFS source-condition cause: {cause!r}")
+        self.cause = cause
 
 
 @dataclass(frozen=True)
@@ -431,7 +476,8 @@ def parse_gfs_index(text: str, object_size_bytes: int) -> tuple[GfsIndexEntry, .
     if offsets[-1] >= object_size_bytes:
         raise NoaaGfsError(
             "The .idx sidecar describes an offset past the end of the object it indexes; the "
-            "sidecar and the object are not the same publication"
+            "sidecar and the object are not the same publication",
+            cause=SIDECAR_OBJECT_MISMATCH,
         )
     parsed: list[GfsIndexEntry] = []
     for position, entry in enumerate(entries):
@@ -512,6 +558,11 @@ class NoaaGfsClient:
     response headers, and a ``decoder`` turning one GRIB2 message into sampled values. The
     defaults are the real HTTPS and ecCodes implementations; the seams exist for tests, not to
     admit an alternative source through the back door.
+
+    ``retry_policy`` bounds how often the transport re-asks a request that failed in a way that
+    says nothing about the object. It is a property of the client rather than a command-line
+    knob: a retrieval accepted as evidence should talk to the provider the same way every time
+    it runs.
     """
 
     def __init__(
@@ -521,14 +572,27 @@ class NoaaGfsClient:
         head_reader: Callable[[str], Mapping[str, str]] | None = None,
         decoder: Decoder | None = None,
         timeout_seconds: int = 60,
+        retry_policy: RetryPolicy = DEFAULT_RETRY_POLICY,
     ) -> None:
         self.timeout_seconds = timeout_seconds
+        self.retry_policy = retry_policy
         self._fetcher = fetcher
         self._head_reader = head_reader
         self._decoder = decoder or decode_grib2_message
 
     def head_step_object(self, cycle_day: date, step: int) -> GfsObjectHead:
-        """Return the ``HEAD`` of one forecast-step object, trying both key layouts."""
+        """Return the ``HEAD`` of one forecast-step object, trying both key layouts.
+
+        Only the store answering that a key holds nothing moves on to the other layout. A 5xx, a
+        connection reset or a truncated answer is not an answer about the key, and is raised
+        rather than absorbed: absorbing it would turn a network fault into the claim that the
+        provider published no object, which is a finding this project records by name and which
+        no later stage could distinguish from the real thing.
+
+        An injected ``head_reader`` is held to the same contract — it signals absence with an
+        :class:`~greek_bess.data.http.OfficialDataDownloadError` of kind ``absent`` — so a test
+        exercises the same branch the archive does.
+        """
 
         attempted: list[str] = []
         for key in object_key_candidates(cycle_day, step):
@@ -536,20 +600,41 @@ class NoaaGfsClient:
             attempted.append(key)
             try:
                 headers = self._head(url)
-            except (NoaaGfsError, OfficialDataDownloadError):
+            except OfficialDataDownloadError as exc:
+                if not exc.is_absence:
+                    raise NoaaGfsError(
+                        f"The archive did not answer whether {key} exists ({exc}). The delivery "
+                        "day is not excluded on this evidence: an unanswered request is not a "
+                        "provider non-publication"
+                    ) from exc
                 continue
             return _object_head(key, url, headers)
         raise NoaaGfsError(
             f"No 0.25° object for the {DECISION_CYCLE_HOUR:02d} UTC cycle of "
             f"{cycle_day.isoformat()} at forecast step {step}; both archive key layouts were "
-            f"tried ({', '.join(attempted)}). A missing cycle or step makes the delivery day "
-            "incomplete and it is excluded by name; an earlier cycle is not substituted"
+            f"tried ({', '.join(attempted)}) and the store answered that neither holds an "
+            "object. A missing cycle or step makes the delivery day incomplete and it is "
+            "excluded by name; an earlier cycle is not substituted",
+            cause=MISSING_OBJECT,
         )
 
     def read_index(self, head: GfsObjectHead) -> tuple[GfsIndexEntry, ...]:
-        """Read and parse the ``.idx`` sidecar beside one forecast-step object."""
+        """Read and parse the ``.idx`` sidecar beside one forecast-step object.
 
-        payload = self._get(f"{head.url}.idx", None)
+        A sidecar that is absent while its object is present carries no cause: it is neither the
+        provider having published no object nor a sidecar describing a different one, and this
+        client has no rule for reading an object's messages without it. The retrieval stops and
+        names the key rather than excluding the delivery day on a condition nobody stated.
+        """
+
+        try:
+            payload = self._get(f"{head.url}.idx", None)
+        except OfficialDataDownloadError as exc:
+            raise NoaaGfsError(
+                f"The .idx sidecar beside {head.key} could not be read ({exc}). The object is "
+                "present, so this is not a delivery day the provider did not publish, and the "
+                "message byte ranges are not guessed"
+            ) from exc
         try:
             text = payload.decode("utf-8")
         except UnicodeDecodeError as exc:
@@ -703,7 +788,10 @@ class NoaaGfsClient:
         if self._head_reader is not None:
             return self._head_reader(url)
         return head_https_headers(
-            url, allowed_hosts=NOAA_GFS_ALLOWED_HOSTS, timeout_seconds=self.timeout_seconds
+            url,
+            allowed_hosts=NOAA_GFS_ALLOWED_HOSTS,
+            timeout_seconds=self.timeout_seconds,
+            retry_policy=self.retry_policy,
         )
 
     def _get(self, url: str, byte_range: tuple[int, int] | None) -> bytes:
@@ -714,6 +802,7 @@ class NoaaGfsClient:
             allowed_hosts=NOAA_GFS_ALLOWED_HOSTS,
             timeout_seconds=self.timeout_seconds,
             byte_range=byte_range,
+            retry_policy=self.retry_policy,
         )
 
 

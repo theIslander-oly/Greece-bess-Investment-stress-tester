@@ -54,7 +54,7 @@ Read this before interpreting any output:
 - **Illustrative inputs stay illustrative.** The example battery, degradation and finance
   configurations are placeholders. Any number computed from them is arithmetic, not evidence.
 
-**Current release:** `v0.9.6` — the fundamentals ablation now runs end to end on top of the
+**Current release:** `v0.9.7` — the fundamentals ablation now runs end to end on top of the
 synthetic-validated point-in-time pipeline: one chosen source read by byte range, a typed feature
 table carrying the publication instant and byte digest behind every value, a per-delivery-interval
 audit against a declared decision cutoff, a revision-aware as-of join, a two-arm forecast
@@ -467,13 +467,22 @@ and join, digest check, ablation, settled comparison, manifest record and render
 refusal that admits no fundamentals benchmark whose feature-set digest a committed acceptance
 document does not name. Reusable acceptance and benchmark structures are under `docs/templates/`.
 
+v0.9.6 then made the declared window retrievable at all, tiling forty hours of sequential
+retrieval into 23 parallel slices, and v0.9.7 made that retrieval survive its source: the first
+dispatch over the full window lost ten of 23 slices across two attempts because HTTP 404, HTTP
+5xx and connection failures were one untyped error, because 200,000 requests were issued with no
+retry, and because a source condition affecting one delivery day aborted the 90 days beside it.
+Failures now carry a kind and a status so that only a `404` reads as absence, transport faults
+and 5xx answers are retried under a bounded policy, and a missing object or a mismatched `.idx`
+sidecar excludes its delivery day by name while every other refusal still stops the retrieval.
+
 **The declarations exist; the run does not.** The decision cutoff, the decision lead and the
 sampling geography are operator declarations with no defaults, and the committed examples are
 refused by name; all three were declared on 3 September 2026
 (`docs/fundamentals_declarations_2026-09-03.md`), which lifted the refusal that had blocked every
-v0.9 surface. Nothing has been run through them yet: no feature table has been retrieved, no day
-has been audited against retrieved data, no acceptance document exists, and the witness workflow
-has accumulated no witnessed days — which are the one kind of evidence here that cannot be
+v0.9 surface. Nothing has been run through them to a result yet: no feature table has been
+accepted, no day has been audited against retrieved data, no acceptance document exists, and the
+witness workflow has accumulated no witnessed days — which are the one kind of evidence here that cannot be
 produced later. **Every figure this README reports still comes from the accepted price history
 alone, and the fundamentals question is unanswered rather than answered negatively.** A negative
 result would be recorded under the same labels, and a thin accepted coverage makes the run
@@ -587,6 +596,7 @@ Per-release implementation reports and release notes live in
 - [Dated-document templates](docs/templates/)
 - [v0.9.5 record corrections](docs/history/implementation_report_record_corrections_2026-09-03.md)
 - [Implementation report v0.9.6 sharded retrieval](docs/history/implementation_report_v0.9.6.md)
+- [Implementation report v0.9.7 retrieval defects](docs/history/implementation_report_v0.9.7.md)
 - [Current status](STATUS.md)
 - [Implementation plan](PLAN.md)
 - [Contributing guidance](CONTRIBUTING.md)

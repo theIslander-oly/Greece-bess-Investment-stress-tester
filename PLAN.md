@@ -576,6 +576,34 @@ on synthetic fixtures.
 - [ ] **The declared window is still not retrieved.** The 30-day dispatch is a measurement, not
   an accepted feature table.
 
+## v0.9.7 — the retrieval survives its source
+
+The declared window was dispatched for the first time on 4 September 2026 (run `33843070945`,
+23 slices of 90 delivery days) and failed: six slices died on attempt 1 and four on attempt 2, so
+`combine` never ran. Four distinct events did it — a connection reset, a truncated body, a `.idx`
+sidecar indexing another publication, and an object reported missing — and each cost 90 delivery
+days.
+
+- [x] Classify every official-data HTTP failure by kind and preserve the status, so that only
+  `404`/`410` mean absence. The key-layout loop reads absence alone as "not at this key"; a 5xx,
+  a reset or a truncated body stops the retrieval rather than being reported as a provider
+  non-publication that nothing downstream could detect as false.
+- [x] Retry transport faults and 5xx answers, bounded at five attempts with 1, 2, 4 and 8 second
+  backoff. Never retry absence, the sidecar mismatch or any other deterministic refusal, and do
+  not add concurrency: that would change how an accepted evidence path talks to the provider.
+- [x] Exclude a delivery day by name — `missing_object`, `sidecar_object_mismatch` — and continue,
+  instead of aborting the slice, with both causes carried as a typed attribute rather than matched
+  from message text. **Every other refusal still stops the retrieval**, and this item is void
+  without the classification above.
+- [x] Record `excluded_day_count_by_cause` in the retrieval and combined summaries, summing each
+  slice's own total rather than recounting its capped list.
+- [ ] **The declared window is still not retrieved.** This milestone makes the first step capable
+  of finishing; it does not perform the run.
+
+**The window is never shortened to fit a runner or to route around a source condition.** A
+delivery day the provider did not publish is excluded by name and stays in the record as an
+exclusion; it is not removed from the declared window.
+
 **The window is never shortened to fit a runner.** The split, the boundary and the source are
 pre-registered; trimming the window to make a job fit would be revising a declaration to suit an
 operational constraint, which is exactly the move the pre-registration exists to prevent.

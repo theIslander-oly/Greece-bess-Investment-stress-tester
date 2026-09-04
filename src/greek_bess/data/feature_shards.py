@@ -24,6 +24,7 @@ already retrieved and re-runs the same schema validation the retrieval ran.
 from __future__ import annotations
 
 import json
+from collections import Counter
 from dataclasses import dataclass
 from datetime import date, timedelta
 from pathlib import Path
@@ -170,11 +171,29 @@ def combine_feature_shards(
             records.extend(entry for entry in entries if isinstance(entry, dict))
 
     first = ordered[0].summary
+    # A shard caps the day-by-day list it writes but not its counts, so the combined counts are
+    # summed from the shards' own totals rather than from the capped lists. Recounting the lists
+    # would silently under-report exclusions on any shard that hit the cap, and an under-reported
+    # exclusion is a delivery day missing from the window with nothing saying so.
     excluded: list[dict[str, Any]] = []
+    excluded_count = 0
+    cause_counts: Counter[str] = Counter()
     for shard in ordered:
         shard_excluded = shard.summary.get("excluded_days_by_cause")
-        if isinstance(shard_excluded, list):
-            excluded.extend(item for item in shard_excluded if isinstance(item, dict))
+        listed = (
+            [item for item in shard_excluded if isinstance(item, dict)]
+            if isinstance(shard_excluded, list)
+            else []
+        )
+        excluded.extend(listed)
+        shard_count = shard.summary.get("excluded_day_count")
+        excluded_count += int(shard_count) if isinstance(shard_count, int) else len(listed)
+        shard_causes = shard.summary.get("excluded_day_count_by_cause")
+        if isinstance(shard_causes, dict):
+            for cause, count in shard_causes.items():
+                cause_counts[str(cause)] += int(count)
+        else:
+            cause_counts.update(str(item.get("cause")) for item in listed)
 
     per_day: list[dict[str, Any]] = []
     for shard in ordered:
@@ -193,7 +212,8 @@ def combine_feature_shards(
         "end_day": end_day.isoformat(),
         "retrieved_at_utc": created_at_utc,
         "built_day_count": len(per_day),
-        "excluded_day_count": len(excluded),
+        "excluded_day_count": excluded_count,
+        "excluded_day_count_by_cause": dict(cause_counts),
         "excluded_days_by_cause": excluded[:100],
         "feature_row_count": int(len(combined)),
         "document_count": len(records),

@@ -1,7 +1,7 @@
 # Project status
 
-**Version:** 0.9.6
-**Updated:** 3 September 2026
+**Version:** 0.9.7
+**Updated:** 4 September 2026
 **Status:** Official multi-year operational acceptance and HEnEx-to-ENTSO-E cross-source
 reconciliation passed; encrypted custody copies published and the private key exercised;
 per-delivery-year replay decomposition accepted against the official history;
@@ -66,6 +66,53 @@ audit, custody record, acceptance document or benchmark run has been executed ag
 data (`docs/history/implementation_report_v0.9.5.md`)
 
 On 3 September 2026 the operator approved the pre-run declarations: a two-regime cutoff, zero-minute lead, one pre-test-vintage wind-capacity geography, structural price bands and the fixed quarter-hour test boundary. The declaration record quantifies the hourly-to-quarter-hour transfer and adds a separate illustrative 25 MW / 100 MWh battery without changing the v0.9 comparison battery. This records no feature acceptance or result. Primary sources must still accompany acceptance evidence, and availability audit, custody and data acceptance must precede any official benchmark (`docs/fundamentals_declarations_2026-09-03.md`).
+
+## v0.9.7 — the first real retrieval of the declared window, and the three defects it found
+
+On 4 September 2026 the sharded retrieval was dispatched over the full pre-registered window,
+2021-02-27 to 2026-08-25, as 23 slices of 90 delivery days. Run `33843070945` failed: **six of
+23 slices died on attempt 1 and four on attempt 2**, so the `combine` job never ran and the run
+produced nothing. The four surviving failures were four different events — a connection reset
+(slice 4), a `.idx` sidecar that indexes a different publication (slice 7), a body that stopped
+short of its declared length (slice 11), and a forecast-step object reported missing (slice 20)
+— and each of them cost 90 delivery days of retrieval.
+
+Three defects lie behind them, and the order they are fixed in matters.
+
+**Absence and transport failure were indistinguishable.** HTTP 404, HTTP 5xx and connection or
+TLS failures all arrived as one untyped error with no status preserved, and the client's
+key-layout loop absorbed every one of them and moved to the other layout. When both layouts had
+been tried it raised "No 0.25° object … both archive key layouts were tried" — a statement that
+the provider published nothing, reachable from two transient 503s. Slice 20 died with exactly
+that message and nothing records which it was. Every failure now carries a kind (`absent`,
+`client_error`, `server_error`, `transport`, `unsafe_request`, `unusable_response`) and the HTTP
+status when the server answered one; only `404` and `410` are absence, and anything else stops
+the retrieval rather than being read as "not at this key". `IncompleteRead`, which killed slice
+11 as a raw traceback, is now classified as a transport fault.
+
+**There was no retry.** The declared window is roughly 200,000 HTTPS round trips issued with no
+retry at all, so one reset discarded a 90-day slice. Transport faults and 5xx answers are now
+retried up to five attempts with 1, 2, 4 and 8 second backoff. Absence is never retried, because
+it is an answer; neither is the sidecar mismatch or any other deterministic refusal. The client
+stays sequential — making it concurrent would change how an evidence path talks to the provider.
+
+**A source condition aborted the window instead of excluding one day.** The refusals for a
+missing object and a mismatched sidecar both promised the delivery day "is excluded by name",
+but the exception left `run_fetch_fundamentals` and killed the whole slice; only days before the
+hourly product were ever recorded as exclusions. The retrieval now records `missing_object` and
+`sidecar_object_mismatch` in `excluded_days_by_cause` and continues. **Every other refusal still
+stops it**: a grid change, an undecodable message, a non-finite sample or an unanswered request
+is a statement about how a value would be built, and recording one as a provider non-publication
+would put a false finding into a pre-registered window that nothing downstream could detect.
+That is also why this fix does not ship without the first one.
+
+Slice 7 reproduced its sidecar mismatch identically on both attempts, which makes it a property
+of the archive rather than a race, and it is now recorded as such for the delivery day it
+affects (`docs/history/implementation_report_v0.9.7.md`).
+
+**Nothing official has been retrieved yet.** No accepted feature table, availability finding
+against official data, custody record, acceptance document or benchmark figure exists. Every
+figure this project reports still comes from the accepted price history alone.
 
 ## v0.9.6 — the declared window is now retrievable; it has still not been retrieved
 
@@ -1106,9 +1153,13 @@ a dated acceptance document naming the accepted feature-set digest; then dispatc
 `Benchmark point-in-time fundamentals` from that digest and commit its result regardless of sign.
 
 Since v0.9.6 that order is executable, which it was not before: the retrieval of the declared
-window needed forty hours in a six-hour job until it was tiled into slices. The first step has
-still not been taken against the declared window — only a 30-day measurement has been retrieved
-— and the two new workflow surfaces reach a dispatchable state only once they are on the default
-branch, because a `workflow_dispatch` workflow must live there to be triggerable. Until the run
-happens, the project's reported figures come from the accepted price history alone, and the
-fundamentals question is unanswered rather than answered negatively.
+window needed forty hours in a six-hour job until it was tiled into slices. Since v0.9.7 the
+first step can finish, which it could not on 4 September 2026: the sharded retrieval was
+dispatched over the declared window and lost ten of 23 slices across two attempts to a
+connection reset, a truncated body, a sidecar mismatch and an object reported missing, none of
+which the retrieval could survive or even tell apart. The first step has therefore still not
+produced an accepted feature table, and the two workflow surfaces reach a dispatchable state
+only once they are on the default branch, because a `workflow_dispatch` workflow must live there
+to be triggerable. Until the run happens, the project's reported figures come from the accepted
+price history alone, and the fundamentals question is unanswered rather than answered
+negatively.
