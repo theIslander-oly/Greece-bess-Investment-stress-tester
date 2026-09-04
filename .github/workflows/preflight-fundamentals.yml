@@ -1,0 +1,270 @@
+name: Preflight point-in-time fundamentals acceptance
+
+# Step 2 of the v0.9 official-run order: everything the dated acceptance document must state,
+# computed from the retrieved feature table and nothing else.
+#
+# This workflow exists because the acceptance document has to name the accepted feature-set
+# digest, and that digest is produced by the revision-aware join rather than by the retrieval.
+# `Benchmark point-in-time fundamentals` refuses unless a committed acceptance document already
+# names it, so without this step the order could only be satisfied by running the benchmark
+# first, which is exactly what the gate exists to prevent.
+#
+# It accepts nothing. It records no result, plans no dispatch and produces no figure. It reads
+# the same two artifacts the benchmark reads, under the same custody step, and emits the
+# aggregate evidence a person needs in order to write the acceptance document: identity digests,
+# availability-grade counts, structured exclusion causes and the complete-season classification.
+#
+# Only aggregates leave this job in the log or the step summary — digests, counts, day statuses
+# and classification. Every interval-level value stays inside the private artifact, which is the
+# same boundary the retrieval and benchmark workflows already hold.
+
+on:
+  workflow_dispatch:
+    inputs:
+      history_run_id:
+        description: Accepted official-history run ID
+        required: true
+        type: string
+      feature_run_id:
+        description: Run ID holding the retrieved point-in-time feature table
+        required: true
+        type: string
+      start_day:
+        description: First delivery day to audit (YYYY-MM-DD)
+        required: false
+        default: "2021-02-27"
+        type: string
+      end_day:
+        description: Last delivery day to audit (YYYY-MM-DD), inclusive
+        required: false
+        default: "2026-08-25"
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      HISTORY_RUN_ID: ${{ inputs.history_run_id }}
+      FEATURE_RUN_ID: ${{ inputs.feature_run_id }}
+      START_DAY: ${{ inputs.start_day }}
+      END_DAY: ${{ inputs.end_day }}
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install .
+
+      - name: Guard every pre-registered declaration
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(cat config/decision_lead_minutes.txt)" = "0"
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          schedule = json.loads(Path("config/decision_cutoff.json").read_text())
+          assert schedule["schedule_id"] == "greek-dam-gate-closure-2026-09-03"
+          geography = json.loads(Path("config/fundamentals_geography.json").read_text())
+          assert len(geography["points"]) == 3
+          PY
+
+      - name: Download accepted official price history
+        uses: actions/download-artifact@v4
+        with:
+          name: greek-dam-official-history
+          run-id: ${{ env.HISTORY_RUN_ID }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: artifacts/greek-dam-official-history
+
+      - name: Download the retrieved feature table
+        uses: actions/download-artifact@v4
+        with:
+          name: point-in-time-fundamentals
+          run-id: ${{ env.FEATURE_RUN_ID }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: artifacts/accepted-fundamentals-feature-table
+
+      - name: Custody, through the established step and no other
+        shell: bash
+        run: |
+          set -euo pipefail
+          .github/scripts/custody_step.sh greek-dam-official-history "$HISTORY_RUN_ID" \
+            "Fetch official Greek market history" "" auto
+          .github/scripts/custody_step.sh accepted-fundamentals-feature-table "$FEATURE_RUN_ID" \
+            "Fetch point-in-time fundamentals" "" auto
+          test ! -f custody/verification_failed
+
+      - name: Prepare inputs without printing private contents
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p private/results private/audit
+          greek-bess merge-canonical \
+            artifacts/greek-dam-official-history/henex_archived_prices.csv \
+            artifacts/greek-dam-official-history/henex_daily_prices.csv \
+            --output private/results/prices.csv >/dev/null
+          FEATURES=$(find artifacts/accepted-fundamentals-feature-table -name features.csv -type f -print -quit)
+          test -n "$FEATURES"
+          echo "PRICE=private/results/prices.csv" >> "$GITHUB_ENV"
+          echo "FEATURES=$FEATURES" >> "$GITHUB_ENV"
+
+      - name: Audit availability against the declared decision cutoff
+        shell: bash
+        run: |
+          set +e
+          greek-bess audit-feature-availability "$FEATURES" \
+            --decision-cutoff config/decision_cutoff.json --decision-lead-minutes 0 \
+            --variables dswrf_surface temperature_2m wind_speed_10m --area GR \
+            --start-day "$START_DAY" --end-day "$END_DAY" \
+            --output private/audit/delivery_days.csv \
+            --observations private/audit/observations.csv \
+            --summary private/audit/availability.summary.json
+          status=$?
+          set -e
+          test "$status" = 0 || test "$status" = 2
+
+      - name: Build the admissible feature set and classify the season
+        shell: bash
+        run: |
+          set -euo pipefail
+          greek-bess build-point-in-time-features "$PRICE" "$FEATURES" \
+            --decision-cutoff config/decision_cutoff.json --decision-lead-minutes 0 \
+            --admitted-grades witnessed provider_declared \
+            --output private/results/features.csv --audit private/audit/join.csv \
+            --summary private/results/features.summary.json || test "$?" = 2
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import pandas as pd
+          summary = json.loads(Path("private/results/features.summary.json").read_text())
+          excluded = {
+              str(day["market_day"])
+              for day in summary["delivery_days"]
+              if day["status"] != "complete"
+          }
+          winter = {str(d.date()) for d in pd.date_range("2025-12-01", "2026-02-28", tz="UTC")}
+          missing = sorted(winter & excluded)
+          Path("private/results/run_classification.json").write_text(
+              json.dumps(
+                  {
+                      "is_exploratory": bool(missing),
+                      "rule": "exploratory unless every day of one complete meteorological season is common",
+                      "season": "DJF 2025-26",
+                      "season_day_count": len(winter),
+                      "season_days_not_common": missing,
+                  },
+                  indent=2,
+              )
+              + "\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Report the aggregate evidence the acceptance document must state
+        shell: bash
+        run: |
+          python - <<'PY' | tee -a "$GITHUB_STEP_SUMMARY"
+          import collections
+          import hashlib
+          import json
+          from pathlib import Path
+
+          def digest(path):
+              return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+          audit = json.loads(Path("private/audit/availability.summary.json").read_text())
+          features = json.loads(Path("private/results/features.summary.json").read_text())
+          classification = json.loads(Path("private/results/run_classification.json").read_text())
+          causes = collections.Counter(
+              day.get("cause") or day["status"] for day in features["delivery_days"]
+          )
+
+          out = [
+              "# Fundamentals acceptance preflight",
+              "",
+              "Aggregates only. Every interval value stays in the private artifact.",
+              "",
+              "## Identity digests",
+              "",
+              f"- Accepted feature set: `{features['feature_set_sha256']}`",
+              f"- Decision-cutoff schedule: `{digest('config/decision_cutoff.json')}`",
+              f"- Sampling geography: `{digest('config/fundamentals_geography.json')}`",
+              f"- Cutoff schedule id: `{audit['decision_cutoff_schedule_id']}`, "
+              f"lead {audit['decision_lead_minutes']} min",
+              "",
+              "## Availability audit",
+              "",
+              f"- Window: `{audit['audit_start_day']}` to `{audit['audit_end_day']}`",
+              f"- Delivery days audited: {audit['audited_delivery_day_count']}",
+              f"- Observations: {audit['observation_count']}",
+              f"- Evidence basis: `{audit['evidence_basis']}`",
+              f"- Availability accepted: {audit['availability_accepted']}",
+              f"- Accepted variable-days: {audit['accepted_day_count']}",
+              f"- Witnessed variable-days: {audit['witnessed_day_count']}",
+              f"- Quarantined observations: {audit['quarantined_observation_count']}",
+              f"- Findings: {audit['finding_count']}",
+              "",
+              "| Variable | Days | Accepted | Witnessed | Late | Min lead (min) |",
+              "| --- | ---: | ---: | ---: | ---: | ---: |",
+          ]
+          for variable, row in audit["per_variable"].items():
+              lead = row["min_decision_time_lead_minutes"]
+              out.append(
+                  f"| {variable} | {row['audited_day_count']} | {row['accepted_day_count']} | "
+                  f"{row['witnessed_day_count']} | {row['days_with_publications_after_cutoff']} | "
+                  f"{'-' if lead is None else round(lead, 1)} |"
+              )
+
+          out += [
+              "",
+              "## Join and exclusions",
+              "",
+              f"- Delivery days in the join: {len(features['delivery_days'])}",
+              f"- Complete days: {causes.get('complete', 0)}",
+              "",
+              "| Named cause | Day count |",
+              "| --- | ---: |",
+          ]
+          for cause, count in sorted(causes.items()):
+              out.append(f"| `{cause}` | {count} |")
+
+          out += [
+              "",
+              "## Complete-season classification",
+              "",
+              f"- Season: {classification['season']} "
+              f"({classification['season_day_count']} days)",
+              f"- Days not common: {len(classification['season_days_not_common'])}",
+              f"- **Exploratory: {classification['is_exploratory']}**",
+              "",
+              "## Generated custody record for the feature table",
+              "",
+              "```json",
+              Path("custody/accepted-fundamentals-feature-table.json").read_text().rstrip()
+              if Path("custody/accepted-fundamentals-feature-table.json").exists()
+              else "(verified against the committed record; none generated)",
+              "```",
+              "",
+              "This preflight accepts nothing, computes no benchmark and produces no figure.",
+          ]
+          print("\n".join(out))
+          PY
+
+      - name: Upload the private preflight evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fundamentals-preflight-private
+          path: |
+            private/
+            custody/
+          if-no-files-found: error
+          retention-days: 90

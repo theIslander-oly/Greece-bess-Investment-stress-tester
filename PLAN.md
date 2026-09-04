@@ -91,25 +91,26 @@ The plan below is therefore organised by what each item waits on, not by milesto
 - **`ENTSOE_SECURITY_TOKEN`.** The secret is no longer configured, so
   `Reconcile HEnEx and ENTSO-E prices` refuses at its guard step and the reconciliation cannot be
   re-run. The accepted evidence is safe in the custody copy; only regeneration is blocked.
-- **The v0.9 decision cutoff and decision lead.** The point-in-time benchmark opened on
-  2 September 2026 needs a declared day-ahead closure schedule with a real rulebook citation and a
-  declared decision lead in minutes, and supplies neither on the operator's behalf. This is the
-  same refusal the gate-closure schedule already records: the tooling reports whatever closure is
-  declared and cannot check the declaration against the market rules.
-  `config/decision_cutoff.example.json` shows the format and is refused as a declaration while its
-  placeholder reference remains. Nothing in v0.9 runs without it.
-- **The v0.9 sampling geography.** A gridded fundamentals variable must be sampled at declared
-  points with declared weights and a stated basis for the choice; there is no default geography.
-  `config/fundamentals_geography.example.json` shows the format under the same refusal.
-- **All three v0.9 declarations are now load-bearing rather than prospective.** Since v0.9.1
-  landed on 2 September 2026 the code exists and refuses: `read_decision_cutoff_schedule` and
-  `read_sampling_geography` reject the committed examples by name, `validate_decision_lead_minutes`
-  refuses an absent lead, and both workflows stop at their guard steps. The declarations are
-  `config/decision_cutoff.json`, `config/decision_lead_minutes.txt` (one non-negative integer;
-  `config/decision_lead_minutes.example.txt` deliberately holds no number) and
-  `config/fundamentals_geography.json`. **Each day without them costs a witnessed day that cannot
-  be recovered:** witnessed evidence exists only if a retrieval happened before that delivery
-  day's cutoff, and the scheduled `witness-fundamentals` workflow says so every time it refuses.
+### Resolved on 3 September 2026: the three v0.9 declarations
+
+The decision cutoff, the decision lead and the sampling geography were the only reason v0.9.1
+through v0.9.4 accepted nothing, and all three were declared on 3 September 2026
+(`docs/fundamentals_declarations_2026-09-03.md`): a two-regime cutoff schedule in
+`config/decision_cutoff.json`, a zero-minute lead in `config/decision_lead_minutes.txt` and a
+pre-test-vintage wind-capacity geography in `config/fundamentals_geography.json`. The refusal was
+load-bearing rather than prospective — `read_decision_cutoff_schedule` and
+`read_sampling_geography` reject the committed examples by name and both workflows stop at their
+guard steps — so this is what makes every v0.9 surface runnable for the first time. The tooling
+still cannot check a declared closure against the market rules, so the primary rulebook and
+capacity statistics must accompany the acceptance evidence.
+
+**One witnessed day was lost on the way, and cannot be recovered.** The scheduled
+`witness-fundamentals` run of 3 September 2026 (`33722543960`, the workflow's first) started at
+06:17 UTC against commit `a64bb21`, about two hours before the declarations merged, and stopped
+at its guard. Delivery day 4 September 2026 closed at 12:00 CEST that day, so it can now only
+ever be provider-declared evidence. The cron needs no change: 06:00 UTC is after the observed
+publication window of the 00 UTC cycle and before the declared closure, and the next scheduled
+run is the first that will find all three declarations present.
 
 ### Resolved on 2 September 2026: the v0.9 source-selection spike
 
@@ -409,14 +410,28 @@ plan it as one whenever the host is refused.
     - **Validated on synthetic fixtures only, for the same one reason as v0.9.1 through
       v0.9.3:** the three operator declarations are absent, so no accepted feature table exists
       and no settled figure, manifest or acceptance document was produced.
-  - [ ] v0.9.5 — Manifest and report integration and the official acceptance run: a data
+  - [~] v0.9.5 — Manifest and report integration and the official acceptance run: a data
     acceptance document before any benchmark document, and no benchmark manifest declaring a
-    feature-set digest that no acceptance document names.
+    feature-set digest that no acceptance document names. **The machinery landed on 3 September
+    2026; the official run has not started** (`docs/history/implementation_report_v0.9.5.md`).
     - [x] Research declarations pre-registered on 3 September 2026, before any test run: the
       two-regime cutoff, zero lead, wind-capacity geography, structural price bands, fixed
       quarter-hour test boundary and separate 25 MW / 100 MWh example
       (`docs/fundamentals_declarations_2026-09-03.md`). Primary sources still have to accompany
       acceptance evidence; no official feature table or benchmark result exists.
+    - [x] The custody-gated `Benchmark point-in-time fundamentals` workflow, which runs the fixed
+      order and refuses anything out of it, guarding every pre-registered declaration by value.
+    - [x] The manifest refusal itself: both fundamentals benchmark kinds are refused, on record
+      and on read, unless the declared inputs name the same accepted feature-set digest as the
+      producer summary, so no benchmark can be presented whose feature table acceptance did not
+      identify.
+    - [x] Feature-table custody through the established record, verify and encrypted-copy paths
+      rather than a second mechanism, plus generic renderer coverage of all three v0.9 kinds and
+      the dated-document templates under `docs/templates/`.
+    - [ ] **The official run itself, which is the whole point and has not begun.**
+      `Fetch point-in-time fundamentals` has never been dispatched, so no feature table, no
+      availability audit against retrieved data, no custody record, no acceptance document and no
+      benchmark figure exists. The v0.9 chain is complete in code and empty of evidence.
   - **A negative result is a result.** If fundamentals do not improve settled value, that is
     recorded under the same labels; the cutoff, the split and the feature set are never revised
     after seeing test results. Any such revision is a new benchmark under a new decision entry.
@@ -523,4 +538,48 @@ plan it as one whenever the host is refused.
 - [x] Add the manual acceptance-before-benchmark workflow and fixed-declaration guards.
 - [x] Require benchmark manifests to match an accepted feature-set digest.
 - [x] Exercise the generic renderer for all three v0.9 kinds and add dated-document templates.
-- [ ] After merge: fetch/audit, complete-season preflight, custody record/verification, commit acceptance, then benchmark and commit its result regardless of sign.
+- [ ] **The official run, in this fixed order and no other.** The engineering above merged on
+  3 September 2026, so nothing here waits on a branch any more:
+  1. Dispatch `Fetch point-in-time fundamentals` over the declared window and read its
+     availability audit. *Measured but not yet run against the declared window — see v0.9.6.*
+  2. Check the complete-season preflight, which decides whether the run is labelled exploratory
+     before any result is seen rather than after.
+  3. Record and verify custody of the accepted feature table through
+     `Record official artifact custody` and `Publish encrypted custody copies`.
+  4. Commit the dated acceptance document, which must name the accepted feature-set digest and
+     carry the primary rulebook and capacity sources the tooling cannot verify
+     (`docs/templates/fundamentals_acceptance.md`).
+  5. Dispatch `Benchmark point-in-time fundamentals` from that digest, and commit its result
+     regardless of sign (`docs/templates/fundamentals_benchmark.md`).
+
+## v0.9.6 — the declared window becomes retrievable
+
+The first dispatch of the retrieval surface was a measurement, and it found the official run
+impossible as designed: **72.1 s per delivery day** (run `33760441164`, 30 days in 36 minutes)
+is **40.2 hours** across the pre-registered 2,006-day window against a six-hour per-job ceiling,
+and **83 MB per delivery day** retained is **163 GB** against roughly 14 GB of runner disk.
+Nothing but a dispatched run could have shown this; every earlier v0.9 milestone was validated
+on synthetic fixtures.
+
+- [x] Stop retaining raw GRIB2 messages in the retrieval workflow. The retrieval manifest
+  already records each message's digest, byte count and source URL, so the messages are not what
+  the evidence rests on. This removes the disk ceiling outright.
+- [x] Tile the window into slices retrieved in parallel — 23 slices of about 1 h 50 m at 90
+  delivery days each — leaving the retrieval client untouched, because making it concurrent
+  would change how an evidence path talks to the provider.
+- [x] `combine-feature-tables`, which refuses anything that is not a tiling: an overlap rather
+  than deduplicating it, a gap by name, and slices disagreeing on source, variable set or
+  declared geography by naming the fields that differ.
+- [x] Read feature tables with round-trip float precision wherever a digest is taken over them.
+  The default parser is accurate to one unit in the last place, which no result here can see,
+  but a digest has no tolerance and the acceptance gate is a digest.
+- [ ] **The declared window is still not retrieved.** The 30-day dispatch is a measurement, not
+  an accepted feature table.
+
+**The window is never shortened to fit a runner.** The split, the boundary and the source are
+pre-registered; trimming the window to make a job fit would be revising a declaration to suit an
+operational constraint, which is exactly the move the pre-registration exists to prevent.
+
+**A `workflow_dispatch` workflow must be on the default branch to be triggerable.** The sharded
+retrieval and the acceptance preflight are therefore not dispatchable until they merge, and that
+merge is the gate in front of every remaining step of the official run.

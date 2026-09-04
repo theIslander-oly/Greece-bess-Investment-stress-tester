@@ -6,6 +6,82 @@ All notable project changes are documented here.
 
 ### Added
 
+- **v0.9.6: the declared window becomes retrievable.** The first dispatch of
+  `Fetch point-in-time fundamentals` (run `33760441164`) measured what the surface costs:
+  **72.1 seconds per delivery day**, and 83 MB per delivery day of GRIB2 messages when
+  `--raw-dir` retains them. Against the pre-registered 2,006-day window that is **40.2 hours**
+  of retrieval against a six-hour per-job ceiling, and **163 GB** against roughly 14 GB of
+  runner disk — two hard failures that only a dispatched run could reveal, because the surface
+  had only ever been exercised on synthetic fixtures. The window is pre-registered and is not
+  shortened to fit a runner. Instead the workflow stops retaining raw messages, which the
+  retrieval manifest already identifies by digest and byte count, and tiles the window into
+  slices retrieved in parallel and recombined — 23 slices of about 1 h 50 m at 90 days each.
+  The retrieval client is untouched: making it concurrent would change how an evidence path
+  talks to the provider. Add `combine-feature-tables` and `data/feature_shards.py`, which hold
+  the invariant that makes the recombination checkable rather than assumed — the slices must
+  **tile** the window, covering every delivery day exactly once. An overlap is refused rather
+  than deduplicated, because two retrievals of one day are two revisions of one observation and
+  choosing between them is the point-in-time join's decision under a declared cutoff; a gap is
+  refused by name; and slices disagreeing on source, variable set or declared geography are
+  refused by naming the fields that differ. The combined summary records every slice and its own
+  retrieval instant and the combined manifest carries every document from every slice, so any
+  one slice can be re-retrieved alone.
+
+### Fixed
+
+- **A digest that depended on how many times a table had been copied.** The point-in-time
+  feature table is written exactly but was read back with pandas' default float parser, which is
+  accurate only to within one unit in the last place. The observed relative difference was 2e-16
+  — far below anything meteorological or monetary this project reports — but the feature set is
+  identified downstream by a SHA-256 over its own values, and a digest has no tolerance, so a
+  table written, read and written again digested differently from the one the retrieval
+  produced. Both readers that feed a digested frame now parse with round-trip precision. No
+  analytical result changes; one digest computation becomes stable that was not.
+
+- **v0.9.5 record corrections.** No source, test, workflow or configuration behaviour changed.
+  The v0.9.5 merge had appended its documentation below the closing sections of `STATUS.md`,
+  `CHANGELOG.md`, `README.md` and `PLAN.md` rather than into the structures those files already
+  had, so each is put back in order: the status section returns to reverse-chronological position,
+  this changelog entry returns to the `[Unreleased]` bullet style every version above 0.7.2 uses,
+  the README section is folded into the v0.9 narrative, and `PLAN.md` stops tracking v0.9.5 in two
+  contradictory places. Four statements are corrected against the repository: `STATUS.md` still
+  declared version `0.9.4`; the README still said the three v0.9 declarations do not exist and
+  that nothing can be retrieved until they do; `PLAN.md` still listed those declarations under
+  "waiting on an operator declaration"; and the README's "full list" of project records stopped at
+  v0.8.2, omitting eighteen committed records including both design documents and every v0.9
+  implementation report. Two facts no document carried are now recorded: `Fetch point-in-time
+  fundamentals` has never been dispatched, so the v0.9 chain is complete in code and empty of
+  evidence for a reason that is no longer the missing declarations; and the first scheduled
+  `witness-fundamentals` run stopped at its guard two hours before those declarations merged,
+  losing delivery day 4 September 2026 from the witnessed subset permanently
+  (`docs/history/implementation_report_record_corrections_2026-09-03.md`)
+
+- **v0.9.5: the official-run machinery, and the declarations that unblock it.** Add the manually
+  dispatched `Benchmark point-in-time fundamentals` workflow, which runs the fixed order the v0.9
+  design requires and refuses anything out of it: it guards every pre-registered declaration by
+  value, verifies custody of both accepted inputs, audits availability and builds the
+  point-in-time join before any benchmark, checks the accepted feature-set digest, applies the
+  declared hourly-to-quarter-hour split and the complete-season exploratory rule, runs the
+  forecast ablation and the settled dispatch comparison, records, verifies and renders their
+  manifests, and uploads the evidence privately; its step summary carries an artifact index and
+  interpretation labels and no figure. `reporting/contract.py` refuses both fundamentals
+  benchmark kinds, on record and on read, unless the declared inputs name the same 64-character
+  accepted feature-set digest as the producer summary, so a benchmark cannot be presented whose
+  feature table no acceptance document identified. `record-artifact-custody` and
+  `publish-encrypted-custody` take an optional accepted-feature-table run ID through the
+  established record, verify and encryption paths rather than a second mechanism; no
+  second-copy-under-separate-control rule was added, because that placement remains outside this
+  repository's knowledge. `docs/templates/` adds reusable acceptance and benchmark document
+  structures that enumerate the required aggregate findings without interval-level official data.
+  A clearly synthetic fundamentals dispatch manifest is rendered through the existing generic
+  path, so no bespoke ablation layout is introduced and the renderer still computes nothing.
+  Validated on synthetic fixtures only: this milestone creates no official feature table, price
+  interval, workflow run ID, acceptance finding, benchmark value or custody outcome. The three
+  operator declarations were then committed on 3 September 2026 — the two-regime cutoff, the
+  zero-minute lead and the wind-capacity sampling geography — which lifts the refusal that had
+  blocked v0.9.1 through v0.9.4 and makes every v0.9 surface runnable for the first time. Nothing
+  has yet been run through them, so the v0.9 chain is complete in code and empty of evidence
+
 - **v0.9.4: the settled fundamentals dispatch comparison.** Add
   `benchmark-fundamentals-dispatch` and `backtest/fundamentals_dispatch.py`: every named ablation
   arm is planned from its own forecast and settled at the same realized prices, and the
@@ -1218,17 +1294,3 @@ All notable project changes are documented here.
 - DST-safe UTC, market-clock and Greece-clock timestamps.
 - Data quality and official-source comparison tools.
 - Deterministic, clearly labelled synthetic fixtures for tests and demos.
-
-## [0.9.5] — 2026-09-03
-
-### Added
-- Custody-gated fundamentals acceptance/benchmark workflow and dated-document templates.
-- Manifest refusal linking every fundamentals benchmark to an accepted feature-set digest.
-- Generic-render regression and synthetic review artifact for all v0.9 result kinds.
-
-### Changed
-- Feature-table custody now uses the established record, verify, and encrypted-copy paths.
-- Documentation records the fixed split, declarations, private-artifact boundary, and post-merge official-run order.
-
-### Validation
-- Engineering is validated with synthetic fixtures only; no official feature table or result is committed.

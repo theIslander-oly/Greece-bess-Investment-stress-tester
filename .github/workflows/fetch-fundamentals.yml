@@ -9,8 +9,18 @@ name: Fetch point-in-time fundamentals
 # them: the sampling geography a gridded variable is read at, and the decision-cutoff schedule
 # with its decision lead. The committed examples are refused by name.
 #
-# Nothing retrieved is committed. The raw GRIB2 messages stay under an ignored path, and the
-# feature table, its manifest and the audit leave as a private artifact.
+# THE WINDOW IS RETRIEVED IN SLICES, AND THAT IS NOT AN OPTIMISATION. The first dispatched run
+# of this workflow (`33760441164`, 3 September 2026) retrieved 30 delivery days in 36 minutes:
+# 72 seconds per day, one HTTPS round trip per forecast step. The declared v0.9 window is 2,006
+# delivery days, so a single job would need about forty hours against a ceiling of six, and
+# would retain about 163 GB if it kept its raw messages. The window is pre-registered and cannot
+# be shortened, and making the retrieval client concurrent would change how an evidence path
+# talks to the provider. So the window is tiled into slices retrieved in parallel and put back
+# together by `combine-feature-tables`, which refuses any set of slices that is not a tiling.
+#
+# Nothing retrieved is committed. The raw GRIB2 messages are not retained at all — their digests
+# are recorded in the retrieval manifest — and the feature table, its manifest and the audit
+# leave as a private artifact.
 
 on:
   workflow_dispatch:
@@ -22,6 +32,13 @@ on:
       end_day:
         description: Last delivery day to retrieve (YYYY-MM-DD), inclusive
         required: true
+        type: string
+      days_per_shard:
+        description: >-
+          Delivery days per parallel slice. At the measured 72 s/day, 90 days is about 1 h 50 m,
+          comfortably inside the per-job ceiling.
+        required: false
+        default: "90"
         type: string
       variables:
         description: Space-separated feature variables
@@ -52,34 +69,21 @@ permissions:
   contents: read
 
 jobs:
-  fetch:
+  plan:
     runs-on: ubuntu-latest
-    timeout-minutes: 240
-    env:
-      START_DAY: ${{ inputs.start_day }}
-      END_DAY: ${{ inputs.end_day }}
-      VARIABLES: ${{ inputs.variables }}
-      GEOGRAPHY_CONFIG: ${{ inputs.geography_config }}
-      DECISION_CUTOFF_CONFIG: ${{ inputs.decision_cutoff_config }}
-      DECISION_LEAD_MINUTES: ${{ inputs.decision_lead_minutes }}
-
+    timeout-minutes: 10
+    outputs:
+      shards: ${{ steps.tile.outputs.shards }}
+      shard_count: ${{ steps.tile.outputs.shard_count }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.12
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-          cache: pip
-
-      - name: Install the project
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install .
-
       - name: Verify the declared geography and decision cutoff exist
         shell: bash
+        env:
+          GEOGRAPHY_CONFIG: ${{ inputs.geography_config }}
+          DECISION_CUTOFF_CONFIG: ${{ inputs.decision_cutoff_config }}
         run: |
           missing=0
           if [[ ! -f "$GEOGRAPHY_CONFIG" ]]; then
@@ -99,17 +103,168 @@ jobs:
           fi
           exit "$missing"
 
-      - name: Retrieve the point-in-time feature table
+      - name: Tile the window into slices
+        id: tile
+        shell: bash
+        env:
+          START_DAY: ${{ inputs.start_day }}
+          END_DAY: ${{ inputs.end_day }}
+          DAYS_PER_SHARD: ${{ inputs.days_per_shard }}
+        run: |
+          set -euo pipefail
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          import os
+          from datetime import date, timedelta
+
+          start = date.fromisoformat(os.environ["START_DAY"])
+          end = date.fromisoformat(os.environ["END_DAY"])
+          size = int(os.environ["DAYS_PER_SHARD"])
+          if end < start:
+              raise SystemExit("end_day must not precede start_day")
+          if size < 1:
+              raise SystemExit("days_per_shard must be at least 1")
+
+          shards = []
+          cursor = start
+          while cursor <= end:
+              last = min(cursor + timedelta(days=size - 1), end)
+              shards.append(
+                  {
+                      "index": len(shards),
+                      "start_day": cursor.isoformat(),
+                      "end_day": last.isoformat(),
+                  }
+              )
+              cursor = last + timedelta(days=1)
+          if len(shards) > 256:
+              raise SystemExit(
+                  f"{len(shards)} slices exceeds the matrix limit; raise days_per_shard"
+              )
+          print(f"shards={json.dumps(shards)}")
+          print(f"shard_count={len(shards)}")
+          PY
+
+      - name: Say what will be retrieved
         shell: bash
         run: |
-          mkdir -p acceptance/fundamentals
+          {
+            echo "## Retrieval plan"
+            echo ""
+            echo "- Window: \`${{ inputs.start_day }}\` to \`${{ inputs.end_day }}\`"
+            echo "- Slices: ${{ steps.tile.outputs.shard_count }} of at most ${{ inputs.days_per_shard }} delivery days"
+            echo ""
+            echo "Each slice is retrieved independently and recombined by \`combine-feature-tables\`,"
+            echo "which refuses any overlap, gap or mixed retrieval identity."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  retrieve:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJson(needs.plan.outputs.shards) }}
+    env:
+      VARIABLES: ${{ inputs.variables }}
+      GEOGRAPHY_CONFIG: ${{ inputs.geography_config }}
+      SHARD_INDEX: ${{ matrix.shard.index }}
+      SHARD_START: ${{ matrix.shard.start_day }}
+      SHARD_END: ${{ matrix.shard.end_day }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install the project
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install .
+
+      - name: Retrieve this slice
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p shard
+          # No --raw-dir. The declared window would retain about 163 GB of GRIB2 messages, and
+          # the retrieval manifest already records the digest and byte count of every message
+          # the value was decoded from.
           greek-bess fetch-fundamentals \
             --source noaa_gfs \
             --variables $VARIABLES \
             --geography "$GEOGRAPHY_CONFIG" \
-            --start-day "$START_DAY" \
-            --end-day "$END_DAY" \
-            --raw-dir data/raw/noaa_gfs \
+            --start-day "$SHARD_START" \
+            --end-day "$SHARD_END" \
+            --output "shard/features_${SHARD_INDEX}.csv" \
+            --manifest "shard/features_${SHARD_INDEX}.retrieval_manifest.json"
+
+      - name: Upload this slice
+        uses: actions/upload-artifact@v4
+        with:
+          name: fundamentals-shard-${{ matrix.shard.index }}
+          path: shard/
+          if-no-files-found: error
+          retention-days: 90
+
+  combine:
+    needs: [plan, retrieve]
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      START_DAY: ${{ inputs.start_day }}
+      END_DAY: ${{ inputs.end_day }}
+      VARIABLES: ${{ inputs.variables }}
+      DECISION_CUTOFF_CONFIG: ${{ inputs.decision_cutoff_config }}
+      DECISION_LEAD_MINUTES: ${{ inputs.decision_lead_minutes }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install the project
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install .
+
+      - name: Download every slice
+        uses: actions/download-artifact@v4
+        with:
+          pattern: fundamentals-shard-*
+          merge-multiple: true
+          path: shards
+
+      - name: Refuse unless every planned slice is present
+        shell: bash
+        env:
+          EXPECTED: ${{ needs.plan.outputs.shard_count }}
+        run: |
+          set -euo pipefail
+          actual=$(find shards -name 'features_*.csv' -type f | wc -l)
+          echo "slices expected: $EXPECTED; slices present: $actual"
+          test "$actual" = "$EXPECTED"
+
+      - name: Combine the slices into one feature table
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p acceptance/fundamentals
+          # Sorted numerically so the combination is deterministic; the command refuses any
+          # overlap, gap or mixed retrieval identity regardless of the order it is given.
+          mapfile -t slices < <(find shards -name 'features_*.csv' -type f | sort -V)
+          greek-bess combine-feature-tables "${slices[@]}" \
             --output acceptance/fundamentals/features.csv \
             --manifest acceptance/fundamentals/retrieval_manifest.json
 
@@ -122,8 +277,7 @@ jobs:
             --decision-cutoff "$DECISION_CUTOFF_CONFIG" \
             --decision-lead-minutes "$DECISION_LEAD_MINUTES" \
             --variables $VARIABLES \
-            --start-day "$START_DAY" \
-            --end-day "$END_DAY" \
+            --start-day "$START_DAY" --end-day "$END_DAY" \
             --output acceptance/fundamentals/delivery_days.csv
           status=$?
           set -e
@@ -156,6 +310,7 @@ jobs:
               f"**{verdict}**",
               "",
               f"- Window: `{audit['audit_start_day']}` to `{audit['audit_end_day']}`",
+              f"- Retrieved in {retrieval.get('shard_count', 1)} slices, recombined as a tiling",
               f"- Source: `{retrieval['source']}`, geography `{retrieval['geography_id']}`",
               f"- Decision cutoff: `{audit['decision_cutoff_schedule_id']}`, "
               f"lead {audit['decision_lead_minutes']} min",

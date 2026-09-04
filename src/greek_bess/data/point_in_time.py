@@ -222,7 +222,14 @@ def ensure_point_in_time(
 def read_point_in_time_csv(path: Path, *, require_publication_time: bool = True) -> pd.DataFrame:
     """Read a written feature table back into a validated frame."""
 
-    frame = pd.read_csv(path)
+    # `float_precision="round_trip"` rather than the parser default. The default is accurate to
+    # within one unit in the last place, which is far below anything meteorological or monetary
+    # this project reports — but this table is identified downstream by a SHA-256 over its own
+    # values, and a digest does not have a tolerance. Without the exact parser a feature table
+    # written, read and written again digests differently from the one the retrieval produced,
+    # which would make the v0.9 acceptance gate depend on how many times a table had been
+    # copied rather than on what was retrieved.
+    frame = pd.read_csv(path, float_precision="round_trip")
     for column in _TIMESTAMP_COLUMNS:
         if column in frame.columns:
             frame[column] = pd.to_datetime(frame[column], utc=True, errors="coerce")
