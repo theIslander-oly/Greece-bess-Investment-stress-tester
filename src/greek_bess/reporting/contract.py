@@ -403,6 +403,7 @@ def write_run_manifest(path: Path, manifest: RunManifest) -> None:
     temporary.write_text(
         json.dumps(manifest.to_dict(), indent=2, sort_keys=False, default=str) + "\n",
         encoding="utf-8",
+        newline="\n",
     )
     temporary.replace(path)
 
