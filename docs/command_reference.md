@@ -463,9 +463,39 @@ declaration. A declared point that does not land on a grid node is refused rathe
 interpolated, and the refusal names the nearest node.
 
 Only the 00 UTC cycle of D-1 is read: the 06 UTC cycle was observed publishing after a midday
-cutoff. Delivery days before 27 February 2021 carry no feature — the product is 3-hourly before
-then — and are excluded by named cause rather than filled from a coarser resolution. A window
-holding no usable day is refused rather than written as an empty table.
+cutoff. A window holding no usable day is refused rather than written as an empty table.
+
+**Three conditions exclude a delivery day by name and let the window continue**, and they are the
+only three:
+
+| Cause | What the provider said |
+| --- | --- |
+| `before_hourly_product_start` | The 0.25° product is 3-hourly before 27 February 2021, so the day carries no hourly feature and no coarser value is broadcast into one. |
+| `missing_object` | Both archive key layouts were asked for a forecast step the day needs, and the store answered that neither holds an object. |
+| `sidecar_object_mismatch` | The `.idx` sidecar beside a step object indexes a different publication, so no message byte range can be resolved from it. |
+
+The summary records each excluded day under `excluded_days_by_cause` — capped at 100 entries so a
+long window cannot become a day-by-day log — and every cause's total under
+`excluded_day_count_by_cause`, which is never capped.
+
+**Every other refusal stops the retrieval.** A message on a different grid, an undecodable
+message, a non-finite sample at a declared point, an object with no publication instant, a
+byte-range slice shorter than the sidecar declares, an unreadable sidecar — each of those is a
+statement about how a value would be *built*, not about what the provider published. An excluded
+day is recorded as a provider non-publication in a pre-registered window, so recording one of
+these as an exclusion would put a false finding into the evidence that nothing downstream could
+detect. A retrieval that stops costs a re-run; one that excludes the wrong day does not announce
+itself.
+
+**A request the archive did not answer is not absence either.** HTTP failures are classified by
+kind: only `404` and `410` mean the object is not there. A `403`, a `5xx`, a connection reset, a
+TLS failure or a body that stops short of its declared length says nothing about whether the
+object exists, so the client raises rather than moving on to the other key layout — because two
+"failures" from two layouts would otherwise read as absence. Transport faults and 5xx answers are
+retried up to five attempts with 1, 2, 4 and 8 second backoff before that raise; a `404` is never
+retried, because absence is an answer and re-asking cannot change it, and neither is the sidecar
+mismatch or any other deterministic refusal. The retrieval remains sequential by construction:
+making it concurrent would change how an accepted evidence path talks to the provider.
 
 `--raw-dir` retains every retrieved GRIB2 message and is optional. It is useful over a short
 window and unaffordable over the declared one — the measured 83 MB per delivery day is about
@@ -505,6 +535,12 @@ holds the invariant that makes the recombination checkable rather than assumed �
   naming the fields that differ, because combining them would give one column two meanings.
 - A slice without its retrieval summary is refused; a shard is combined on the evidence of what
   it retrieved, not on a CSV happening to sit beside it.
+
+A slice declares the window it was asked to retrieve, so a delivery day it excluded by name is
+inside its window and carries no feature row. The combined summary carries every slice's
+exclusions under `excluded_days_by_cause` and their totals under `excluded_day_count_by_cause`,
+and it sums each slice's own count rather than recounting its capped list, so an exclusion is
+never invisible in the aggregate.
 
 The combined table is exactly what a single retrieval of the whole window would have written:
 the test suite asserts the equality on synthetic fixtures, and it was checked on real retrieved

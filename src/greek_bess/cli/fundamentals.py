@@ -13,6 +13,12 @@ availability without reading a value, the join selects the decision-time revisio
 the frame, the forecast ablation refuses any input whose digest and declarations differ from
 the join's, and the dispatch comparison settles exactly the days that ablation recorded.
 
+``fetch-fundamentals`` excludes a delivery day by name and continues when the source condition
+is a fact about that day — the 3-hourly era before the hourly product, an object the archive says
+it does not hold, or a ``.idx`` sidecar that indexes a different publication. It stops on
+everything else, including any request the archive did not answer, because an unanswered request
+is not evidence that the provider published nothing and a window is not silently shortened on it.
+
 Every output is private. A retrieved GRIB2 message, a feature table, an audit CSV and a settled
 schedule are provider content or derived research output; they belong in an ignored path or a
 workflow artifact, never in a commit.
@@ -22,6 +28,8 @@ from __future__ import annotations
 
 import argparse
 import json
+from collections import Counter
+from collections.abc import Mapping, Sequence
 from datetime import date, timedelta
 from pathlib import Path
 
@@ -35,6 +43,7 @@ from ..data.gfs import (
     GFS_VARIABLES,
     NOAA_GFS_ATTRIBUTION,
     NOAA_GFS_SOURCE,
+    SOURCE_CONDITION_CAUSES,
     NoaaGfsClient,
     NoaaGfsError,
     write_gfs_retrieval_manifest,
@@ -127,13 +136,30 @@ def run_fetch_fundamentals(args: argparse.Namespace) -> int:
             )
             day += timedelta(days=1)
             continue
-        built = client.build_delivery_day_features(
-            day,
-            geography=geography,
-            variables=args.variables,
-            raw_dir=args.raw_dir,
-            retrieved_at_utc=retrieved_at,
-        )
+        try:
+            built = client.build_delivery_day_features(
+                day,
+                geography=geography,
+                variables=args.variables,
+                raw_dir=args.raw_dir,
+                retrieved_at_utc=retrieved_at,
+            )
+        except NoaaGfsError as exc:
+            # A source condition is a fact about one delivery day, and the refusals that raise it
+            # already say the day "is excluded by name". Until now the exception propagated out
+            # of this loop and killed the whole window instead, so one unpublished object cost
+            # every other day retrieved beside it. Only the two named source conditions are
+            # excluded here: every other refusal is about how a value would be built, and a run
+            # that quietly dropped those days would record an integrity defect of this client as
+            # a provider non-publication. Absence itself is a classified answer from the store,
+            # never an unanswered request — see `greek_bess.data.http`.
+            if exc.cause not in SOURCE_CONDITION_CAUSES:
+                raise
+            excluded.append(
+                {"market_day": day.isoformat(), "cause": exc.cause, "detail": str(exc)}
+            )
+            day += timedelta(days=1)
+            continue
         frames.append(built.features)
         records.extend(built.records)
         per_day.append(built.summary)
@@ -141,10 +167,11 @@ def run_fetch_fundamentals(args: argparse.Namespace) -> int:
 
     if not frames:
         raise NoaaGfsError(
-            f"No delivery day in {args.start_day.isoformat()}..{args.end_day.isoformat()} can "
-            "carry an hourly feature, so the retrieval produced nothing. An empty feature table "
-            "is refused rather than written, because downstream it is indistinguishable from a "
-            "provider that published nothing"
+            f"No delivery day in {args.start_day.isoformat()}..{args.end_day.isoformat()} "
+            "produced an hourly feature, so the retrieval produced nothing. An empty feature "
+            "table is refused rather than written, because downstream it is indistinguishable "
+            "from a provider that published nothing. Excluded by cause: "
+            f"{json.dumps(_exclusion_counts(excluded), sort_keys=True)}"
         )
 
     features = pd.concat(frames, ignore_index=True)
@@ -170,6 +197,9 @@ def run_fetch_fundamentals(args: argparse.Namespace) -> int:
         "retrieved_at_utc": retrieved_at,
         "built_day_count": len(per_day),
         "excluded_day_count": len(excluded),
+        # The list is capped so a long window cannot turn a summary into a day-by-day log; the
+        # counts are not, so no exclusion is ever invisible in the aggregate.
+        "excluded_day_count_by_cause": _exclusion_counts(excluded),
         "excluded_days_by_cause": excluded[:100],
         "feature_row_count": int(len(features)),
         "document_count": len(records),
@@ -182,9 +212,16 @@ def run_fetch_fundamentals(args: argparse.Namespace) -> int:
     _write_json(summary, summary_path)
     print(json.dumps({key: summary[key] for key in (
         "result_label", "source", "variables", "start_day", "end_day", "built_day_count",
-        "excluded_day_count", "feature_row_count", "document_count", "retrieved_byte_count",
+        "excluded_day_count", "excluded_day_count_by_cause", "feature_row_count",
+        "document_count", "retrieved_byte_count",
     )}, indent=2))
     return 0
+
+
+def _exclusion_counts(excluded: Sequence[Mapping[str, object]]) -> dict[str, int]:
+    """Return how many delivery days each named cause excluded."""
+
+    return dict(Counter(str(entry["cause"]) for entry in excluded))
 
 
 def configure_combine_feature_tables(parser: argparse.ArgumentParser) -> None:

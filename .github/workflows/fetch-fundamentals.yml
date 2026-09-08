@@ -18,6 +18,15 @@ name: Fetch point-in-time fundamentals
 # talks to the provider. So the window is tiled into slices retrieved in parallel and put back
 # together by `combine-feature-tables`, which refuses any set of slices that is not a tiling.
 #
+# A SLICE SURVIVES ITS SOURCE, AND SAYS SO. The first dispatch over the declared window
+# (`33843070945`, 4 September 2026) lost six of 23 slices on attempt 1 and four on attempt 2, so
+# `combine` never ran. Each loss was one delivery day's condition or one failed request ending 90
+# days of retrieval. Since v0.9.7 a delivery day the archive says it does not hold, and one whose
+# `.idx` sidecar indexes a different publication, are excluded by name and the slice continues;
+# transport faults and 5xx answers are retried under a bounded policy; and only a `404` is read as
+# absence. Everything else still fails the slice loudly, because an unanswered request is not
+# evidence that a provider published nothing.
+#
 # Nothing retrieved is committed. The raw GRIB2 messages are not retained at all — their digests
 # are recorded in the retrieval manifest — and the feature table, its manifest and the audit
 # leave as a private artifact.
@@ -316,7 +325,7 @@ jobs:
               f"lead {audit['decision_lead_minutes']} min",
               f"- Evidence basis: `{audit['evidence_basis']}`",
               f"- Documents retrieved: {retrieval['document_count']}",
-              f"- Days excluded before retrieval: {retrieval['excluded_day_count']}",
+              f"- Delivery days excluded by name: {retrieval['excluded_day_count']}",
               f"- Findings: {audit['finding_count']}",
               "",
               retrieval["attribution"],
@@ -324,6 +333,21 @@ jobs:
               "This audit establishes availability only. It accepts no value and no unit, and "
               "it does not admit the source to any benchmark.",
               "",
+          ]
+          # Every delivery day the retrieval left out is named by its cause. A day is excluded
+          # only on a condition the provider stated; a request the archive did not answer fails
+          # the slice instead, so nothing here can be a network fault in disguise.
+          causes = retrieval.get("excluded_day_count_by_cause") or {}
+          if causes:
+              lines += [
+                  "## Delivery days excluded by named cause",
+                  "",
+                  "| Cause | Day count |",
+                  "| --- | ---: |",
+              ]
+              lines += [f"| `{cause}` | {count} |" for cause, count in sorted(causes.items())]
+              lines.append("")
+          lines += [
               "| Variable | Days | Accepted | Witnessed | Min lead (min) |",
               "| --- | ---: | ---: | ---: | ---: |",
           ]

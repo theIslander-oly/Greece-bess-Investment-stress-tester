@@ -1,5 +1,53 @@
 # Decision log
 
+## 2026-09-04 — Classify a retrieval failure before reading it as a provider non-publication
+
+- **Decision:** Every official-data HTTP failure carries a kind (`absent`, `client_error`,
+  `server_error`, `transport`, `unsafe_request`, `unusable_response`) and the HTTP status when the
+  server answered one. The NOAA GFS key-layout loop treats only `absent` as "the object is not at
+  this key"; a 5xx, a reset, a TLS failure or a truncated body stops the retrieval by name.
+- **Reason:** Both layouts were tried and every failure of either was absorbed, so the refusal
+  "No 0.25° object … both archive key layouts were tried" — a statement that the provider
+  published nothing — could be reached from a transient 503. In the first dispatch of the declared
+  window that refusal ended a 90-day slice, and nothing recorded which of the two it had been.
+- **Consequence:** A retrieval can now fail loudly where it used to make a false claim quietly.
+  That is the intended direction: an unanswered request is not evidence about what a provider
+  published, and this project does not manufacture the missing evidence. The distinction is load
+  bearing for the exclusion decision below and must not be weakened to make a run finish.
+
+## 2026-09-04 — Retry a request that says nothing about the object, and only that
+
+- **Decision:** Transport faults and 5xx answers are retried up to five attempts with 1, 2, 4 and
+  8 second backoff. Absence is never retried, nor is any refusal this project makes
+  deterministically, including the `.idx` sidecar mismatch. The policy is fixed in code rather
+  than exposed as a command-line option, and the retrieval stays sequential.
+- **Reason:** The declared window is roughly 200,000 HTTPS round trips with no retries, so a
+  single reset discarded a 90-day slice; four slices of the first dispatch died that way. Absence
+  is an answer and re-asking cannot change it. Concurrency would change how an accepted evidence
+  path talks to the provider, which is a change to the evidence rather than to its schedule.
+- **Consequence:** A retrieval that is accepted as evidence talks to the provider the same way
+  every time it runs. The worst case is bounded at fifteen seconds per request that never
+  succeeds, which cannot rescue a genuine outage — and should not.
+
+## 2026-09-04 — Exclude a delivery day by name only on a condition the provider stated
+
+- **Decision:** `fetch-fundamentals` records a named exclusion and continues for exactly three
+  causes: `before_hourly_product_start`, `missing_object` and `sidecar_object_mismatch`. Every
+  other refusal stops the retrieval. The two new causes are carried as a typed `cause` on
+  `NoaaGfsError`, not matched from message text.
+- **Reason:** The refusals for a missing object and a mismatched sidecar have always said the day
+  "is excluded by name", but the exception killed the whole window instead. An excluded day is
+  recorded as a provider non-publication in a pre-registered benchmark window, so the set of
+  conditions that can produce one must be closed and stated. A grid change, an undecodable
+  message or a non-finite sample is a statement about how a value would be built by this client,
+  and recording it as a non-publication would put a false finding into the record that nothing
+  downstream could detect.
+- **Consequence:** The byte-count mismatch in `fetch_message` deliberately stays an abort even
+  though it can arise from the same sidecar/object inconsistency, because it cannot be
+  distinguished from a truncated transfer; the same applies to an unreadable or empty sidecar.
+  Erring toward aborting costs a re-run; erring the other way would write a false finding about
+  the source. This decision is void without the classification decision above.
+
 ## 2026-09-03 — Declare the v0.9 cutoff, geography, bands and test boundary
 
 - **Decision:** Use D-1 12:00 Europe/Athens from delivery day 1 November 2020 and D-1 12:00 Europe/Brussels from 16 December 2020, with zero decision lead and no new regime at the quarter-hour transition; sample three exact GFS nodes weighted by renormalised 31 December 2023 wind capacity; use price edges `0, 50, 100, 200` EUR/MWh; and fix the test start at 1 October 2025.

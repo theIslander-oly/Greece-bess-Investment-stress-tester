@@ -20,9 +20,11 @@ import json
 import tempfile
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
-from datetime import date
+from datetime import UTC, date, datetime
+from email.utils import format_datetime
 from pathlib import Path
 from typing import Any
+from unittest import mock
 
 import pandas as pd
 
@@ -32,7 +34,10 @@ from greek_bess.data.gfs import (
     FIRST_HOURLY_DELIVERY_DAY,
     GFS_VARIABLES,
     MAXIMUM_HOURLY_FORECAST_STEP,
+    MISSING_OBJECT,
     NOAA_GFS_ALLOWED_HOSTS,
+    SIDECAR_OBJECT_MISMATCH,
+    SOURCE_CONDITION_CAUSES,
     Grib2Grid,
     Grib2Message,
     NoaaGfsClient,
@@ -48,7 +53,12 @@ from greek_bess.data.gfs import (
     required_forecast_steps,
     select_index_entry,
 )
-from greek_bess.data.http import OfficialDataDownloadError, validate_https_url
+from greek_bess.data.http import (
+    ABSENT,
+    SERVER_ERROR,
+    OfficialDataDownloadError,
+    validate_https_url,
+)
 from greek_bess.data.point_in_time import SamplingGeography
 
 GRID = Grib2Grid(
@@ -82,7 +92,7 @@ MESSAGE_ORDER = (
 MESSAGE_BYTES = 1000
 
 
-def _index_text(step: int) -> str:
+def _index_text(step: int, *, offset_shift: int = 0) -> str:
     lines = []
     for number, (variable, level) in enumerate(MESSAGE_ORDER, start=1):
         description = (
@@ -90,9 +100,9 @@ def _index_text(step: int) -> str:
             if variable == "DSWRF"
             else f"{step} hour fcst"
         )
+        offset = (number - 1) * MESSAGE_BYTES + offset_shift
         lines.append(
-            f"{number}:{(number - 1) * MESSAGE_BYTES}:d=2026081900:{variable}:{level}:"
-            f"{description}:"
+            f"{number}:{offset}:d=2026081900:{variable}:{level}:{description}:"
         )
     return "\n".join(lines) + "\n"
 
@@ -112,18 +122,46 @@ def _payload(key: str, start: int) -> bytes:
 
 
 class _Archive:
-    """A fake archive: the ``atmos/`` layout by default, four messages per step object."""
+    """A fake archive: the ``atmos/`` layout by default, four messages per step object.
 
-    def __init__(self, *, legacy_layout: bool = False, missing_steps: frozenset[int] = frozenset()):
+    It answers the way an object store answers, because the client's rules are about the
+    difference between those answers: a key it does not hold gets a ``404``, and a step listed in
+    ``unanswered_steps`` gets a ``503``, which is not an answer about the object at all.
+    """
+
+    def __init__(
+        self,
+        *,
+        legacy_layout: bool = False,
+        missing_steps: frozenset[int] = frozenset(),
+        unanswered_steps: frozenset[int] = frozenset(),
+        mismatched_sidecar_steps: frozenset[int] = frozenset(),
+        missing_cycles: frozenset[str] = frozenset(),
+        unanswered_cycles: frozenset[str] = frozenset(),
+        mismatched_sidecar_cycles: frozenset[str] = frozenset(),
+    ):
         self.legacy_layout = legacy_layout
         self.missing_steps = missing_steps
+        self.unanswered_steps = unanswered_steps
+        self.mismatched_sidecar_steps = mismatched_sidecar_steps
+        # The step numbers a market day needs repeat from cycle to cycle, so a condition that
+        # must strike one delivery day and not its neighbours is keyed by the cycle day.
+        self.missing_cycles = missing_cycles
+        self.unanswered_cycles = unanswered_cycles
+        self.mismatched_sidecar_cycles = mismatched_sidecar_cycles
         self.requested_keys: list[str] = []
         self.head_keys: list[str] = []
+
+    @staticmethod
+    def _cycle(key: str) -> str:
+        return key.split("/", 1)[0].removeprefix("gfs.")
 
     def _known(self, key: str) -> bool:
         if "/atmos/" in key and self.legacy_layout:
             return False
         if "/atmos/" not in key and not self.legacy_layout:
+            return False
+        if self._cycle(key) in self.missing_cycles:
             return False
         step = int(key.rsplit(".f", 1)[1][:3])
         return step not in self.missing_steps
@@ -131,10 +169,28 @@ class _Archive:
     def head(self, url: str) -> dict[str, str]:
         key = url.split("amazonaws.com/", 1)[1]
         self.head_keys.append(key)
+        step = int(key.rsplit(".f", 1)[1][:3])
+        if step in self.unanswered_steps or self._cycle(key) in self.unanswered_cycles:
+            raise OfficialDataDownloadError(
+                "Official-data server returned HTTP 503; the answer says nothing about whether "
+                "the object exists",
+                kind=SERVER_ERROR,
+                status=503,
+            )
         if not self._known(key):
-            raise NoaaGfsError(f"no such object: {key}")
+            raise OfficialDataDownloadError(
+                f"Official-data server returned HTTP 404; the object is not at this location "
+                f"({key})",
+                kind=ABSENT,
+                status=404,
+            )
+        # Published at 03:52 UTC of the cycle day the key names, so a multi-day window keeps the
+        # publication instant after the cycle that produced it, as the schema requires.
+        published = datetime.strptime(self._cycle(key), "%Y%m%d").replace(
+            hour=3, minute=52, tzinfo=UTC
+        )
         return {
-            "Last-Modified": "Wed, 19 Aug 2026 03:52:00 GMT",
+            "Last-Modified": format_datetime(published, usegmt=True),
             "Content-Length": str(len(MESSAGE_ORDER) * MESSAGE_BYTES),
             "ETag": '"deadbeef"',
         }
@@ -144,6 +200,15 @@ class _Archive:
             key = url.split("amazonaws.com/", 1)[1][: -len(".idx")]
             self.requested_keys.append(key + ".idx")
             step = int(key.rsplit(".f", 1)[1][:3])
+            if (
+                step in self.mismatched_sidecar_steps
+                or self._cycle(key) in self.mismatched_sidecar_cycles
+            ):
+                # A sidecar left over from a different publication of the same key: its last
+                # message starts past the end of the object the HEAD just measured.
+                return _index_text(step, offset_shift=len(MESSAGE_ORDER) * MESSAGE_BYTES).encode(
+                    "utf-8"
+                )
             return _index_text(step).encode("utf-8")
         key = url.split("amazonaws.com/", 1)[1]
         self.requested_keys.append(key)
@@ -201,8 +266,64 @@ class KeyLayoutTests(unittest.TestCase):
     def test_a_missing_object_is_named_and_no_earlier_cycle_is_substituted(self) -> None:
         archive = _Archive(missing_steps=frozenset({30}))
         client = NoaaGfsClient(fetcher=archive.fetch, head_reader=archive.head)
-        with self.assertRaisesRegex(NoaaGfsError, "excluded by name"):
+        with self.assertRaisesRegex(NoaaGfsError, "excluded by name") as caught:
             client.head_step_object(date(2026, 8, 19), 30)
+        # Both layouts were asked, and both answered that they hold nothing. That is an answer,
+        # so the refusal carries the cause a retrieval excludes the delivery day by.
+        self.assertEqual(caught.exception.cause, MISSING_OBJECT)
+        self.assertEqual(len(archive.head_keys), 2)
+
+
+class UnansweredRequestTests(unittest.TestCase):
+    """A store that does not answer has not said the object is absent.
+
+    Before this distinction existed, ``head_step_object`` caught every failure from either key
+    layout and moved on, so a 503 or a reset arrived at the operator as "no 0.25 degree object
+    ... both archive key layouts were tried" — a finding about the provider, recorded against a
+    delivery day that the provider had in fact published. Nothing downstream could tell the two
+    apart, which is why this is checked here rather than left to the retrieval to notice.
+    """
+
+    def test_a_server_error_is_not_read_as_a_missing_object(self) -> None:
+        archive = _Archive(unanswered_steps=frozenset({30}))
+        client = NoaaGfsClient(fetcher=archive.fetch, head_reader=archive.head)
+        with self.assertRaises(NoaaGfsError) as caught:
+            client.head_step_object(date(2026, 8, 19), 30)
+        self.assertIn("did not answer whether", str(caught.exception))
+        self.assertNotIn("excluded by name", str(caught.exception))
+        self.assertIsNone(caught.exception.cause)
+        self.assertNotIn(caught.exception.cause, SOURCE_CONDITION_CAUSES)
+
+    def test_an_unreadable_sidecar_beside_a_present_object_is_named_without_a_cause(
+        self,
+    ) -> None:
+        archive = _Archive()
+        absent = OfficialDataDownloadError(
+            "Official-data server returned HTTP 404; the object is not at this location",
+            kind=ABSENT,
+            status=404,
+        )
+
+        def fetch(url: str, byte_range: tuple[int, int] | None) -> bytes:
+            if url.endswith(".idx"):
+                raise absent
+            return archive.fetch(url, byte_range)
+
+        client = NoaaGfsClient(fetcher=fetch, head_reader=archive.head)
+        head = client.head_step_object(date(2026, 8, 19), 24)
+        with self.assertRaises(NoaaGfsError) as caught:
+            client.read_index(head)
+        self.assertIn("could not be read", str(caught.exception))
+        self.assertIsNone(caught.exception.cause)
+
+    def test_the_other_key_layout_is_not_tried_after_an_unanswered_request(self) -> None:
+        """The second layout would answer 404, and two answers would read as absence."""
+
+        archive = _Archive(unanswered_steps=frozenset({30}))
+        client = NoaaGfsClient(fetcher=archive.fetch, head_reader=archive.head)
+        with self.assertRaises(NoaaGfsError):
+            client.head_step_object(date(2026, 8, 19), 30)
+        self.assertEqual(len(archive.head_keys), 1)
 
 
 class ForecastStepTests(unittest.TestCase):
@@ -247,12 +368,22 @@ class IndexTests(unittest.TestCase):
         self.assertEqual(entries[-1].end_byte, 4320)
 
     def test_a_sidecar_that_does_not_describe_this_object_is_refused(self) -> None:
-        with self.assertRaisesRegex(NoaaGfsError, "not the same publication"):
+        with self.assertRaisesRegex(NoaaGfsError, "not the same publication") as caught:
             parse_gfs_index(_index_text(24), 10)
+        # A sidecar and an object that are different publications of one key is a condition of
+        # the delivery day that needs them, so it carries the cause the day is excluded by.
+        self.assertEqual(caught.exception.cause, SIDECAR_OBJECT_MISMATCH)
 
     def test_an_unparseable_line_is_named_by_line_number(self) -> None:
-        with self.assertRaisesRegex(NoaaGfsError, "Line 2"):
+        with self.assertRaisesRegex(NoaaGfsError, "Line 2") as caught:
             parse_gfs_index(_index_text(24).replace("2:1000:", "rubbish"), 4000)
+        # A sidecar line this client cannot read is as likely to be a gap in this parser as a
+        # fact about the provider, so it carries no cause and stops the retrieval.
+        self.assertIsNone(caught.exception.cause)
+
+    def test_an_unknown_source_condition_cause_cannot_be_invented(self) -> None:
+        with self.assertRaises(ValueError):
+            NoaaGfsError("refused", cause="looked_wrong")
 
     def test_the_averaging_window_is_read_from_the_sidecar(self) -> None:
         entries = parse_gfs_index(_index_text(25), 4000)
@@ -572,6 +703,171 @@ class CommandTests(unittest.TestCase):
                 )
             self.assertEqual(code, 1)
             self.assertIn("refused rather than written", stderr.getvalue())
+            self.assertFalse((directory / "features.csv").exists())
+
+
+class NamedExclusionTests(unittest.TestCase):
+    """A source condition excludes its delivery day by name; nothing else does.
+
+    The refusals for a missing object and for a mismatched sidecar have always said the delivery
+    day "is excluded by name", but the exception left ``run_fetch_fundamentals`` and killed the
+    whole window: only days before the hourly product were ever recorded as exclusions. On the
+    declared v0.9 window that cost a 90-day slice per unpublished object.
+
+    The other half of the rule matters just as much. A day is excluded only on a condition the
+    provider stated. A request the archive did not answer, and any refusal about how a value
+    would be built, still stops the retrieval, because an excluded day is recorded as a provider
+    non-publication and neither of those is one.
+    """
+
+    def _run(self, directory: Path, archive: _Archive, *, end_day: str) -> tuple[int, str]:
+        geography = directory / "geography.json"
+        geography.write_text(json.dumps(GEOGRAPHY.to_dict()), encoding="utf-8")
+
+        def factory() -> NoaaGfsClient:
+            return NoaaGfsClient(
+                fetcher=archive.fetch, head_reader=archive.head, decoder=_decoder()
+            )
+
+        stderr = io.StringIO()
+        with mock.patch("greek_bess.cli.fundamentals.NoaaGfsClient", factory):
+            with redirect_stdout(io.StringIO()), redirect_stderr(stderr):
+                code = main(
+                    [
+                        "fetch-fundamentals",
+                        "--source",
+                        "noaa_gfs",
+                        "--variables",
+                        "temperature_2m",
+                        "--geography",
+                        str(geography),
+                        "--start-day",
+                        "2026-08-20",
+                        "--end-day",
+                        end_day,
+                        "--output",
+                        str(directory / "features.csv"),
+                    ]
+                )
+        return code, stderr.getvalue()
+
+    def _summary(self, directory: Path) -> dict[str, Any]:
+        text = (directory / "features.summary.json").read_text(encoding="utf-8")
+        return dict(json.loads(text))
+
+    def test_a_missing_object_excludes_its_day_and_the_window_still_completes(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            directory = Path(raw)
+            # The 00 UTC cycle of 20 August covers the 21 August delivery day, and no other.
+            archive = _Archive(missing_cycles=frozenset({"20260820"}))
+            code, stderr = self._run(directory, archive, end_day="2026-08-22")
+            self.assertEqual(code, 0, stderr)
+            summary = self._summary(directory)
+            self.assertEqual(summary["built_day_count"], 2)
+            self.assertEqual(summary["excluded_day_count"], 1)
+            self.assertEqual(summary["excluded_day_count_by_cause"], {"missing_object": 1})
+            self.assertEqual(
+                [entry["market_day"] for entry in summary["excluded_days_by_cause"]],
+                ["2026-08-21"],
+            )
+            self.assertEqual(
+                sorted(
+                    str(day["delivery_day"]) for day in summary["per_delivery_day"]
+                ),
+                ["2026-08-20", "2026-08-22"],
+            )
+            features = pd.read_csv(directory / "features.csv")
+            self.assertEqual(
+                sorted(set(features["market_day"])), ["2026-08-20", "2026-08-22"]
+            )
+
+    def test_a_sidecar_indexing_another_publication_excludes_its_day_by_name(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            directory = Path(raw)
+            archive = _Archive(mismatched_sidecar_cycles=frozenset({"20260820"}))
+            code, stderr = self._run(directory, archive, end_day="2026-08-22")
+            self.assertEqual(code, 0, stderr)
+            summary = self._summary(directory)
+            self.assertEqual(
+                summary["excluded_day_count_by_cause"], {"sidecar_object_mismatch": 1}
+            )
+            self.assertEqual(summary["built_day_count"], 2)
+
+    def test_an_unanswered_request_stops_the_retrieval_rather_than_excluding_a_day(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            directory = Path(raw)
+            archive = _Archive(unanswered_cycles=frozenset({"20260820"}))
+            code, stderr = self._run(directory, archive, end_day="2026-08-22")
+            self.assertEqual(code, 1)
+            self.assertIn("did not answer whether", stderr)
+            self.assertFalse((directory / "features.csv").exists())
+            self.assertFalse((directory / "features.summary.json").exists())
+
+    def test_a_refusal_about_building_a_value_still_stops_the_retrieval(self) -> None:
+        """A grid change is an integrity refusal, not a provider non-publication."""
+
+        with tempfile.TemporaryDirectory() as raw:
+            directory = Path(raw)
+            geography = directory / "geography.json"
+            geography.write_text(json.dumps(GEOGRAPHY.to_dict()), encoding="utf-8")
+            archive = _Archive()
+            calls: list[int] = []
+
+            def decode(payload: bytes, indices: Any) -> Grib2Message:
+                calls.append(1)
+                return Grib2Message(
+                    name="TMP",
+                    units="K",
+                    step_type="instant",
+                    start_step=0,
+                    end_step=0,
+                    grid=GRID
+                    if len(calls) < 4
+                    else Grib2Grid(720, 361, 90.0, 0.0, 0.5, 0.5),
+                    samples=tuple(300.0 for _ in indices),
+                )
+
+            def factory() -> NoaaGfsClient:
+                return NoaaGfsClient(
+                    fetcher=archive.fetch, head_reader=archive.head, decoder=decode
+                )
+
+            stderr = io.StringIO()
+            with mock.patch("greek_bess.cli.fundamentals.NoaaGfsClient", factory):
+                with redirect_stdout(io.StringIO()), redirect_stderr(stderr):
+                    code = main(
+                        [
+                            "fetch-fundamentals",
+                            "--source",
+                            "noaa_gfs",
+                            "--variables",
+                            "temperature_2m",
+                            "--geography",
+                            str(geography),
+                            "--start-day",
+                            "2026-08-20",
+                            "--end-day",
+                            "2026-08-22",
+                            "--output",
+                            str(directory / "features.csv"),
+                        ]
+                    )
+            self.assertEqual(code, 1)
+            self.assertIn("different grid", stderr.getvalue())
+            self.assertFalse((directory / "features.csv").exists())
+
+    def test_a_window_excluded_entirely_by_name_is_refused_rather_than_written_empty(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            directory = Path(raw)
+            archive = _Archive(missing_cycles=frozenset({"20260819", "20260820"}))
+            code, stderr = self._run(directory, archive, end_day="2026-08-21")
+            self.assertEqual(code, 1)
+            self.assertIn("refused rather than written", stderr)
+            self.assertIn("missing_object", stderr)
             self.assertFalse((directory / "features.csv").exists())
 
 

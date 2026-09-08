@@ -182,6 +182,19 @@ jobs:
 
           audit = json.loads(Path("private/audit/availability.summary.json").read_text())
           features = json.loads(Path("private/results/features.summary.json").read_text())
+          retrieval_summary = next(
+              iter(
+                  sorted(
+                      Path("artifacts/accepted-fundamentals-feature-table").rglob(
+                          "features.summary.json"
+                      )
+                  )
+              ),
+              None,
+          )
+          retrieval = (
+              json.loads(retrieval_summary.read_text()) if retrieval_summary else {}
+          )
           classification = json.loads(Path("private/results/run_classification.json").read_text())
           causes = collections.Counter(
               day.get("cause") or day["status"] for day in features["delivery_days"]
@@ -222,6 +235,22 @@ jobs:
                   f"{row['witnessed_day_count']} | {row['days_with_publications_after_cutoff']} | "
                   f"{'-' if lead is None else round(lead, 1)} |"
               )
+
+          out += [
+              "",
+              "## Retrieval exclusions",
+              "",
+              "Delivery days the retrieval left out, by the cause the provider stated. A day is "
+              "excluded only on a condition the archive asserted; a request it did not answer "
+              "fails the retrieval instead, so none of these is a transport fault in disguise.",
+              "",
+              f"- Delivery days excluded by name: {retrieval.get('excluded_day_count', 'n/a')}",
+              "",
+              "| Retrieval cause | Day count |",
+              "| --- | ---: |",
+          ]
+          for cause, count in sorted((retrieval.get("excluded_day_count_by_cause") or {}).items()):
+              out.append(f"| `{cause}` | {count} |")
 
           out += [
               "",

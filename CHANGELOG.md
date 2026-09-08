@@ -4,6 +4,59 @@ All notable project changes are documented here.
 
 ## [Unreleased]
 
+### Fixed
+
+- **v0.9.7: absence, transport failure and a source condition were one event.** The first
+  dispatch of the declared window (run `33843070945`, 23 slices of 90 delivery days) failed:
+  six slices died on the first attempt and four on the second, so `combine` never ran and the
+  window produced nothing. Every one of those deaths was one of three defects, and they compound
+  in a specific order.
+
+  *Absence and transport failure were indistinguishable.* `head_https_headers` and
+  `fetch_https_bytes` collapsed HTTP 404, HTTP 5xx and connection or TLS failures into one
+  untyped `OfficialDataDownloadError` with no status preserved, and `_locate_object` in the NOAA
+  GFS client caught every one of them and tried the next archive key layout. When both layouts
+  had been tried it raised "No 0.25° object … both archive key layouts were tried" — a statement
+  that the provider published nothing, reached from evidence that could equally have been a
+  transient 503. Slice 20 died with exactly that message for delivery day 2026-04-18, and
+  nothing in the retrieval says which it was. Every failure now carries a **kind** — `absent`,
+  `client_error`, `server_error`, `transport`, `unsafe_request`, `unusable_response` — and the
+  HTTP status when the server answered one. `head_step_object` treats only `absent` as "not at
+  this key"; anything else stops the retrieval by name, because an unanswered request is not
+  evidence about what the provider published. `IncompleteRead` is classified rather than escaping
+  as a raw `http.client` traceback, which is how slice 11 died.
+
+  *There were no retries.* The declared window is roughly 200,000 HTTPS requests issued with no
+  retry at all, so one reset discarded a 90-day slice — slice 4 died on a single
+  `Connection reset by peer`. Transport faults and 5xx answers are now retried up to five
+  attempts with 1, 2, 4 and 8 second backoff. A 404 is never retried, because absence is an
+  answer and re-asking cannot change it, and neither is the `.idx` sidecar mismatch or any other
+  deterministic refusal. The retrieval stays sequential: making it concurrent would change how an
+  accepted evidence path talks to the provider, which is a change to the evidence.
+
+  *A source condition aborted the window instead of excluding one day.* The refusals for a
+  genuinely missing object and for an `.idx` sidecar that indexes a different publication both
+  promised the delivery day "is excluded by name", but the exception propagated out of
+  `run_fetch_fundamentals` and killed the whole slice; only `day < FIRST_HOURLY_DELIVERY_DAY` was
+  ever recorded as an exclusion. `fetch-fundamentals` now catches the two named source conditions
+  — `missing_object` and `sidecar_object_mismatch`, carried as a typed `cause` on `NoaaGfsError`
+  — records the day in the retrieval summary's `excluded_days_by_cause`, and continues. Every
+  other refusal still stops the retrieval: a grid change, an undecodable message, a non-finite
+  sample or an unanswered request is a statement about how a value would be built, and recording
+  one as a provider non-publication would put a false finding into a pre-registered benchmark
+  window that nothing downstream could detect. **This third fix does not ship without the first**:
+  without typed absence, a network blip would permanently exclude a real delivery day and record
+  it as a non-publication.
+
+  The retrieval and combined summaries now also carry `excluded_day_count_by_cause`, and the
+  combined count is summed from each slice's own total rather than recounted from its capped
+  day-by-day list, so an exclusion can never be invisible in the aggregate.
+
+- **A persistent source inconsistency, recorded rather than worked around.** Slice 7
+  (`2022-11-19..2023-02-16`) reproduced the `.idx` sidecar mismatch identically on both attempts.
+  That is a property of the archive, not a race, and it is now excluded by name for the delivery
+  day it affects rather than treated as a retrieval failure.
+
 ### Added
 
 - **v0.9.6: the declared window becomes retrievable.** The first dispatch of
