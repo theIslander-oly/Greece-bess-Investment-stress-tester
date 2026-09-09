@@ -6,6 +6,12 @@ All notable project changes are documented here.
 
 ### Fixed
 
+- **Cross-platform deterministic demo manifests.** Run-manifest JSON now forces LF newlines
+  instead of accepting the host platform's text translation, and the committed byte-checked
+  sample report is pinned to LF through `.gitattributes`. Windows therefore records the same
+  manifest digests and regenerates the same synthetic demonstration report as other supported
+  platforms. No analytical value, result label or project assumption changes.
+
 - **v0.9.7: absence, transport failure and a source condition were one event.** The first
   dispatch of the declared window (run `33843070945`, 23 slices of 90 delivery days) failed:
   six slices died on the first attempt and four on the second, so `combine` never ran and the

@@ -1,7 +1,7 @@
 # Project status
 
 **Version:** 0.9.7
-**Updated:** 4 September 2026
+**Updated:** 9 September 2026
 **Status:** Official multi-year operational acceptance and HEnEx-to-ENTSO-E cross-source
 reconciliation passed; encrypted custody copies published and the private key exercised;
 per-delivery-year replay decomposition accepted against the official history;
@@ -66,6 +66,15 @@ audit, custody record, acceptance document or benchmark run has been executed ag
 data (`docs/history/implementation_report_v0.9.5.md`)
 
 On 3 September 2026 the operator approved the pre-run declarations: a two-regime cutoff, zero-minute lead, one pre-test-vintage wind-capacity geography, structural price bands and the fixed quarter-hour test boundary. The declaration record quantifies the hourly-to-quarter-hour transfer and adds a separate illustrative 25 MW / 100 MWh battery without changing the v0.9 comparison battery. This records no feature acceptance or result. Primary sources must still accompany acceptance evidence, and availability audit, custody and data acceptance must precede any official benchmark (`docs/fundamentals_declarations_2026-09-03.md`).
+
+## Entry-gate portability correction
+
+The deterministic synthetic demonstration now forces LF newlines for the temporary manifests
+whose exact bytes define the digests rendered into the report. The committed sample report is
+also pinned to LF. This closes the Windows-only mismatch found while establishing the executable
+baseline: all analytical values were already identical, but platform newline translation changed
+the recorded manifest identities. The correction changes no result or assumption; evidence is in
+`docs/history/implementation_report_windows_determinism_2026-09-09.md`.
 
 ## v0.9.7 — the first real retrieval of the declared window, and the three defects it found
 

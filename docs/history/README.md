@@ -16,3 +16,7 @@ Nothing here is the current state of the tool. For that, read:
 Reports are named `implementation_report_v<version>.md` and release notes
 `release_notes_v<version>.md`. A `_review` suffix marks a report reviewing a completed version
 rather than implementing one.
+
+Cross-platform baseline corrections that do not change a versioned analytical milestone are
+recorded by date, including
+[`implementation_report_windows_determinism_2026-09-09.md`](implementation_report_windows_determinism_2026-09-09.md).

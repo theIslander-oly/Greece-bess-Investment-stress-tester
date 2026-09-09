@@ -1,5 +1,17 @@
 # Decision log
 
+## 2026-09-09 — Make exact-byte report identity independent of host newlines
+
+- **Decision:** Write run-manifest JSON with explicit LF newlines and pin the committed
+  `docs/sample_report.html` fixture to LF with `.gitattributes`.
+- **Reason:** The renderer identifies each manifest by the SHA-256 of its exact bytes. Python's
+  default text translation wrote temporary manifest files with CRLF on Windows, changing every
+  displayed manifest digest despite identical recorded values. Git could separately check out
+  the byte-compared sample with CRLF, so both the producer and fixture need an explicit format.
+- **Consequence:** `greek-bess demo` regenerates the committed synthetic sample byte for byte on
+  Windows as well as Linux and macOS. No analytical value, evidence basis, label, or accepted
+  result changes.
+
 ## 2026-09-04 — Classify a retrieval failure before reading it as a provider non-publication
 
 - **Decision:** Every official-data HTTP failure carries a kind (`absent`, `client_error`,
