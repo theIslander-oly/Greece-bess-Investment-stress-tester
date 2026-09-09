@@ -61,8 +61,8 @@ steps and reset boundaries.
 
 The final local gate ran on Windows with Python 3.13.7, ecCodes 2.48.0, pytest 8.4.2 and
 Hypothesis 6.168.0. Ruff passed, mypy reported no issues in 65 source files, all 639 tests passed
-in 117.92 seconds, and the isolated wheel build completed successfully. GitHub CI remains the
-clean Python 3.12/3.13 review gate.
+in 117.92 seconds, and the isolated wheel build completed successfully. GitHub CI passed on
+Python 3.12 in 3 minutes 19 seconds and Python 3.13 in 4 minutes 10 seconds.
 
 ## Interpretation
 
