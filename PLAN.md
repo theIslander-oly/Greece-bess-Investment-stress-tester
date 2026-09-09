@@ -6,6 +6,17 @@ Every new milestone uses a feature branch, validation, diff review and one pull 
 v0.1-v0.6 implementation predates the connected repository and will enter through the truthful
 `repository-foundation-v0.6-import` snapshot; earlier Git history will not be fabricated.
 
+### Fixed execution-plan tracker
+
+The staged plan in `Greek_BESS_Execution_Plan.md` is active. Only one stage moves at a time.
+
+| Stage | Status | Evidence or next gate |
+| --- | --- | --- |
+| Entry | In progress | Windows exact-byte portability correction; final CI and merge pending |
+| 1 | Complete | Retrieval repair merged as `f149f61`; tree matches reviewed PR #55 head |
+| 2 | Pending | Begin `fix-gfs-feature-semantics` only from current main after Entry closes |
+| 3–10 | Pending | Follow the fixed plan in order |
+
 Suggested future branch sequence:
 
 1. `repository-foundation-v0.6-import`

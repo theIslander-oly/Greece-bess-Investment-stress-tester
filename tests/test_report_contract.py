@@ -432,6 +432,16 @@ class AcceptedReplayPublicationWorkflowTests(unittest.TestCase):
 
 
 class RoundTripTests(unittest.TestCase):
+    def test_a_written_manifest_uses_lf_newlines(self) -> None:
+        manifest = _build(_dispatch_summary(), declared_inputs={"prices": "history.csv"})
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "run.manifest.json"
+            write_run_manifest(path, manifest)
+            payload = path.read_bytes()
+
+        self.assertTrue(payload.endswith(b"\n"))
+        self.assertNotIn(b"\r\n", payload)
+
     def test_a_manifest_round_trips(self) -> None:
         manifest = _build(_dispatch_summary(), declared_inputs={"prices": "history.csv"})
         with tempfile.TemporaryDirectory() as directory:

@@ -119,6 +119,8 @@ path, evaluates illustrative one-year unlevered project-finance screening arithm
 every result under the manifest contract and composes them into `demo-report.html`. It normally
 finishes in well under one minute. The committed
 [sample](docs/sample_report.html) is byte-checked against this command by the test suite.
+The sample and the temporary run manifests are pinned to LF newlines so that this byte-level
+check is deterministic on Windows as well as Linux and macOS.
 
 The equivalent first two stages can be run individually:
 
