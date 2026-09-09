@@ -116,6 +116,10 @@ MAXIMUM_HOURLY_FORECAST_STEP = 120
 #: The bucket length of the accumulated/averaged fields, in forecast hours.
 RADIATION_BUCKET_HOURS = 6
 
+#: Incremented when decoded-message validation or feature-value construction changes. Existing
+#: tables built under an earlier value are not equivalent inputs and must be rebuilt.
+GFS_FEATURE_SEMANTICS_VERSION = 2
+
 _INDEX_LINE = re.compile(
     r"^(?P<message>\d+):(?P<offset>\d+):d=(?P<cycle>\d{10}):"
     r"(?P<variable>[^:]+):(?P<level>[^:]+):(?P<step>[^:]*):"
@@ -156,11 +160,24 @@ class NoaaGfsError(RuntimeError):
 
 
 @dataclass(frozen=True)
+class GfsMessageSpec:
+    """The sidecar and decoded GRIB identity required for one source message."""
+
+    index_variable: str
+    index_level: str
+    short_name: str
+    name: str
+    units: str
+    type_of_level: str
+    level: float
+
+
+@dataclass(frozen=True)
 class GfsVariable:
     """One feature variable, the GRIB2 messages behind it and how they combine."""
 
     feature_variable: str
-    messages: tuple[tuple[str, str], ...]
+    messages: tuple[GfsMessageSpec, ...]
     aggregation: str
 
     def __post_init__(self) -> None:
@@ -178,14 +195,57 @@ class GfsVariable:
 #: forecast uses.
 GFS_VARIABLES: dict[str, GfsVariable] = {
     "dswrf_surface": GfsVariable(
-        "dswrf_surface", (("DSWRF", "surface"),), "bucket_mean"
+        "dswrf_surface",
+        (
+            GfsMessageSpec(
+                "DSWRF",
+                "surface",
+                "sdswrf",
+                "Surface downward short-wave radiation flux",
+                "W m**-2",
+                "surface",
+                0.0,
+            ),
+        ),
+        "bucket_mean",
     ),
     "temperature_2m": GfsVariable(
-        "temperature_2m", (("TMP", "2 m above ground"),), "instant"
+        "temperature_2m",
+        (
+            GfsMessageSpec(
+                "TMP",
+                "2 m above ground",
+                "2t",
+                "2 metre temperature",
+                "K",
+                "heightAboveGround",
+                2.0,
+            ),
+        ),
+        "instant",
     ),
     "wind_speed_10m": GfsVariable(
         "wind_speed_10m",
-        (("UGRD", "10 m above ground"), ("VGRD", "10 m above ground")),
+        (
+            GfsMessageSpec(
+                "UGRD",
+                "10 m above ground",
+                "10u",
+                "10 metre U wind component",
+                "m s**-1",
+                "heightAboveGround",
+                10.0,
+            ),
+            GfsMessageSpec(
+                "VGRD",
+                "10 m above ground",
+                "10v",
+                "10 metre V wind component",
+                "m s**-1",
+                "heightAboveGround",
+                10.0,
+            ),
+        ),
         "instant",
     ),
 }
@@ -235,11 +295,19 @@ class Grib2Grid:
 class Grib2Message:
     """A decoded GRIB2 message, sampled at the grid indices the caller asked for."""
 
+    short_name: str
     name: str
     units: str
+    type_of_level: str
+    level: float
     step_type: str
     start_step: int
     end_step: int
+    step_units: int
+    data_date: int
+    data_time: int
+    validity_date: int
+    validity_time: int
     grid: Grib2Grid
     samples: tuple[float, ...]
 
@@ -317,11 +385,19 @@ def decode_grib2_message(payload: bytes, indices: Sequence[int]) -> Grib2Message
             for index in indices
         )
         return Grib2Message(
+            short_name=str(eccodes.codes_get(handle, "shortName")),
             name=str(eccodes.codes_get(handle, "name")),
             units=str(eccodes.codes_get(handle, "units")),
+            type_of_level=str(eccodes.codes_get(handle, "typeOfLevel")),
+            level=float(eccodes.codes_get(handle, "level")),
             step_type=str(eccodes.codes_get(handle, "stepType")),
             start_step=int(eccodes.codes_get(handle, "startStep")),
             end_step=int(eccodes.codes_get(handle, "endStep")),
+            step_units=int(eccodes.codes_get(handle, "stepUnits")),
+            data_date=int(eccodes.codes_get(handle, "dataDate")),
+            data_time=int(eccodes.codes_get(handle, "dataTime")),
+            validity_date=int(eccodes.codes_get(handle, "validityDate")),
+            validity_time=int(eccodes.codes_get(handle, "validityTime")),
             grid=grid,
             samples=samples,
         )
@@ -695,11 +771,20 @@ class NoaaGfsClient:
         for step in steps:
             head = heads[step]
             for variable in requested:
-                for name, level in GFS_VARIABLES[variable].messages:
+                variable_spec = GFS_VARIABLES[variable]
+                for message_spec in variable_spec.messages:
+                    name = message_spec.index_variable
+                    level = message_spec.index_level
                     key = (step, name, level)
                     if key in messages:
                         continue
                     entry = select_index_entry(indexes[step], name, level, step)
+                    _validate_index_semantics(
+                        entry,
+                        expected_cycle=cycle,
+                        expected_step=step,
+                        aggregation=variable_spec.aggregation,
+                    )
                     payload = self.fetch_message(head, entry)
                     if grid is None:
                         # The declared points are resolved to flat indices once, from the first
@@ -707,7 +792,14 @@ class NoaaGfsClient:
                         # that grid rather than trusted: a step published on a different grid
                         # would be sampled at the right index of the wrong array, which is the
                         # one failure here that produces plausible numbers.
-                        grid = self._decoder(payload, ()).grid
+                        probe = self._decoder(payload, ())
+                        _validate_decoded_message(
+                            probe,
+                            spec=message_spec,
+                            entry=entry,
+                            expected_cycle=cycle,
+                        )
+                        grid = probe.grid
                         indices = {
                             (point.latitude, point.longitude): grid_index(
                                 grid, point.latitude, point.longitude
@@ -719,6 +811,12 @@ class NoaaGfsClient:
                         payload,
                         [indices[(point.latitude, point.longitude)] for point in ordered_points],
                     )
+                    _validate_decoded_message(
+                        message,
+                        spec=message_spec,
+                        entry=entry,
+                        expected_cycle=cycle,
+                    )
                     if message.grid != grid:
                         raise NoaaGfsError(
                             f"{head.key} message {entry.message_number} is on a different grid "
@@ -726,12 +824,13 @@ class NoaaGfsClient:
                             f"against ({grid}); the day is refused rather than sampled at "
                             "indices that mean something else"
                         )
+                    _validate_samples(message.samples, ordered_points)
                     digest = sha256_bytes(payload)
                     messages[key] = _MessagePayload(
                         head=head,
                         entry=entry,
                         digest=digest,
-                        sampled=_weighted_sample(message.samples, ordered_points),
+                        samples=message.samples,
                     )
                     if raw_dir is not None:
                         atomic_write_bytes(
@@ -773,6 +872,9 @@ class NoaaGfsClient:
             "forecast_steps": list(steps),
             "requested_variables": list(requested),
             "geography_id": geography.geography_id,
+            "geography": geography.to_dict(),
+            "feature_semantics_version": GFS_FEATURE_SEMANTICS_VERSION,
+            "decoded_message_contract": _decoded_message_contract(requested),
             "message_count": len(messages),
             "retrieved_byte_count": int(
                 sum(payload.entry.byte_count for payload in messages.values())
@@ -819,7 +921,115 @@ class _MessagePayload:
     head: GfsObjectHead
     entry: GfsIndexEntry
     digest: str
-    sampled: float
+    samples: tuple[float, ...]
+
+
+def _validate_index_semantics(
+    entry: GfsIndexEntry,
+    *,
+    expected_cycle: pd.Timestamp,
+    expected_step: int,
+    aggregation: str,
+) -> None:
+    expected_cycle_text = expected_cycle.strftime("%Y%m%d%H")
+    if entry.cycle != expected_cycle_text:
+        raise NoaaGfsError(
+            f"Sidecar message {entry.message_number} declares cycle {entry.cycle}, not the "
+            f"requested {expected_cycle_text} cycle"
+        )
+    actual_window = index_step_window(entry)
+    expected_window = (
+        (expected_step, expected_step, "instant")
+        if aggregation == "instant"
+        else (bucket_start_step(expected_step), expected_step, "ave")
+    )
+    if actual_window != expected_window:
+        raise NoaaGfsError(
+            f"Sidecar message {entry.message_number} declares forecast semantics "
+            f"{actual_window}, not the required {expected_window}"
+        )
+
+
+def _validate_decoded_message(
+    message: Grib2Message,
+    *,
+    entry: GfsIndexEntry,
+    spec: GfsMessageSpec,
+    expected_cycle: pd.Timestamp,
+) -> None:
+    identity = (message.short_name, message.name)
+    expected_identity = (spec.short_name, spec.name)
+    if identity != expected_identity:
+        raise NoaaGfsError(
+            f"Decoded parameter identity {identity!r} does not match "
+            f"{entry.variable}:{entry.level} ({expected_identity!r})"
+        )
+    if message.units != spec.units:
+        raise NoaaGfsError(
+            f"Decoded units {message.units!r} for {entry.variable}:{entry.level} do not match "
+            f"the required {spec.units!r}; units are not converted silently"
+        )
+    if message.type_of_level != spec.type_of_level or not math.isclose(
+        message.level, spec.level, rel_tol=0.0, abs_tol=1e-9
+    ):
+        raise NoaaGfsError(
+            f"Decoded level {message.type_of_level}:{message.level:g} does not match "
+            f"{entry.variable}:{entry.level} ({spec.type_of_level}:{spec.level:g})"
+        )
+    if message.step_units != 1:
+        raise NoaaGfsError(
+            f"Decoded forecast step unit code is {message.step_units}, not 1 (hours)"
+        )
+    sidecar_start, sidecar_end, sidecar_kind = index_step_window(entry)
+    decoded_kind = {"instant": "instant", "ave": "avg", "acc": "accum"}[sidecar_kind]
+    expected_window = (sidecar_start, sidecar_end, decoded_kind)
+    decoded_window = (message.start_step, message.end_step, message.step_type)
+    if decoded_window != expected_window:
+        raise NoaaGfsError(
+            f"Decoded forecast semantics {decoded_window} do not match sidecar semantics "
+            f"{expected_window} for {entry.variable}:{entry.level}"
+        )
+
+    expected_data_date = int(expected_cycle.strftime("%Y%m%d"))
+    expected_data_time = int(expected_cycle.strftime("%H%M"))
+    if (message.data_date, message.data_time) != (expected_data_date, expected_data_time):
+        raise NoaaGfsError(
+            f"Decoded cycle {message.data_date:08d} {message.data_time:04d} does not match "
+            f"requested cycle {expected_data_date:08d} {expected_data_time:04d}"
+        )
+    expected_valid = expected_cycle + pd.Timedelta(message.end_step, unit="h")
+    expected_validity = (
+        int(expected_valid.strftime("%Y%m%d")),
+        int(expected_valid.strftime("%H%M")),
+    )
+    if (message.validity_date, message.validity_time) != expected_validity:
+        raise NoaaGfsError(
+            f"Decoded valid time {message.validity_date:08d} {message.validity_time:04d} does "
+            f"not equal cycle plus forecast step, {expected_validity[0]:08d} "
+            f"{expected_validity[1]:04d}"
+        )
+
+
+def _decoded_message_contract(variables: Sequence[str]) -> dict[str, Any]:
+    return {
+        variable: {
+            "aggregation": GFS_VARIABLES[variable].aggregation,
+            "messages": [
+                {
+                    "index_variable": message.index_variable,
+                    "index_level": message.index_level,
+                    "short_name": message.short_name,
+                    "name": message.name,
+                    "units": message.units,
+                    "type_of_level": message.type_of_level,
+                    "level": message.level,
+                    "step_units": "hours",
+                }
+                for message in GFS_VARIABLES[variable].messages
+            ],
+        }
+        for variable in variables
+    }
 
 
 def _validate_variables(variables: Sequence[str]) -> tuple[str, ...]:
@@ -879,19 +1089,24 @@ def _object_head(key: str, url: str, headers: Mapping[str, str]) -> GfsObjectHea
 
 
 def _weighted_sample(samples: Sequence[float], points: Sequence[Any]) -> float:
+    _validate_samples(samples, points)
+    return sum(
+        float(value) * float(point.weight)
+        for value, point in zip(samples, points, strict=True)
+    )
+
+
+def _validate_samples(samples: Sequence[float], points: Sequence[Any]) -> None:
     if len(samples) != len(points):
         raise NoaaGfsError(
             f"The decoder returned {len(samples)} samples for {len(points)} declared points"
         )
-    total = 0.0
     for value, point in zip(samples, points, strict=True):
         if not math.isfinite(float(value)):
             raise NoaaGfsError(
                 f"Sampling point {point.point_id!r} decoded a non-finite value; a missing grid "
                 "value is not averaged into a declared aggregate"
             )
-        total += float(value) * float(point.weight)
-    return total
 
 
 def _feature_rows(
@@ -909,20 +1124,31 @@ def _feature_rows(
         for variable in variables:
             spec = GFS_VARIABLES[variable]
             if spec.aggregation == "instant":
-                contributing = [messages[(offset, name, level)] for name, level in spec.messages]
-                value = _combine_instant(variable, contributing)
+                contributing = [
+                    messages[(offset, message.index_variable, message.index_level)]
+                    for message in spec.messages
+                ]
+                value = _combine_instant(variable, contributing, geography.points)
             else:
                 end_step = offset + 1
-                current = messages[(end_step,) + spec.messages[0]]
+                message_spec = spec.messages[0]
+                message_key = (message_spec.index_variable, message_spec.index_level)
+                current = messages[(end_step,) + message_key]
                 previous = (
                     None
                     if end_step - 1 == bucket_start_step(end_step)
-                    else messages[(end_step - 1,) + spec.messages[0]]
+                    else messages[(end_step - 1,) + message_key]
                 )
                 contributing = [current] if previous is None else [current, previous]
-                value = deaverage_bucket_mean(
-                    end_step, current.sampled, None if previous is None else previous.sampled
+                local_hourly_means = tuple(
+                    deaverage_bucket_mean(
+                        end_step,
+                        current_value,
+                        None if previous is None else previous.samples[position],
+                    )
+                    for position, current_value in enumerate(current.samples)
                 )
+                value = _weighted_sample(local_hourly_means, geography.points)
             rows.append(
                 _feature_row(
                     start=start,
@@ -938,16 +1164,26 @@ def _feature_rows(
     return rows
 
 
-def _combine_instant(variable: str, contributing: Sequence[_MessagePayload]) -> float:
+def _combine_instant(
+    variable: str, contributing: Sequence[_MessagePayload], points: Sequence[Any]
+) -> float:
     if variable == "wind_speed_10m":
-        eastward, northward = (payload.sampled for payload in contributing)
-        return math.hypot(eastward, northward)
+        eastward, northward = (payload.samples for payload in contributing)
+        if len(eastward) != len(northward):
+            raise NoaaGfsError(
+                "The decoded eastward and northward wind components have different point counts"
+            )
+        local_speeds = tuple(
+            math.hypot(east, north)
+            for east, north in zip(eastward, northward, strict=True)
+        )
+        return _weighted_sample(local_speeds, points)
     if len(contributing) != 1:
         raise NoaaGfsError(
             f"{variable} is built from {len(contributing)} messages but declares no rule for "
             "combining them"
         )
-    return contributing[0].sampled
+    return _weighted_sample(contributing[0].samples, points)
 
 
 def _feature_row(
