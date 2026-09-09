@@ -43,6 +43,10 @@ Retrieval summaries now record `feature_semantics_version = 2`, the complete dec
 and the complete decoded-message contract. Feature rows continue to carry the 00 UTC D-1 issue
 time and name every contributing source document and digest.
 
+Shard recombination treats the semantics version and decoded-message contract as required identity
+fields. It refuses shards that omit them or disagree, so an older table cannot enter a combined
+artifact merely because its CSV shape still validates.
+
 Every GFS feature table produced before this correction used semantics version 1 implicitly. All
 such tables, including any private artifacts from the incomplete 4 September retrieval attempts,
 must be rebuilt. No old feature-set digest or acceptance identity may be silently reused.
@@ -56,8 +60,8 @@ bucket average is required. Feature tests cover the opposite-wind example and ra
 steps and reset boundaries.
 
 The final local gate ran on Windows with Python 3.13.7, ecCodes 2.48.0, pytest 8.4.2 and
-Hypothesis 6.168.0. Ruff passed, mypy reported no issues in 65 source files, all 637 tests passed
-in 119.61 seconds, and the isolated wheel build completed successfully. GitHub CI remains the
+Hypothesis 6.168.0. Ruff passed, mypy reported no issues in 65 source files, all 639 tests passed
+in 117.92 seconds, and the isolated wheel build completed successfully. GitHub CI remains the
 clean Python 3.12/3.13 review gate.
 
 ## Interpretation

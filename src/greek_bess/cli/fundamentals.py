@@ -40,6 +40,7 @@ from ..data.availability_audit import audit_feature_availability
 from ..data.feature_shards import combine_feature_shards
 from ..data.gfs import (
     FIRST_HOURLY_DELIVERY_DAY,
+    GFS_FEATURE_SEMANTICS_VERSION,
     GFS_VARIABLES,
     NOAA_GFS_ATTRIBUTION,
     NOAA_GFS_SOURCE,
@@ -192,6 +193,8 @@ def run_fetch_fundamentals(args: argparse.Namespace) -> int:
         "variables": sorted(args.variables),
         "geography_id": geography.geography_id,
         "geography": geography.to_dict(),
+        "feature_semantics_version": GFS_FEATURE_SEMANTICS_VERSION,
+        "decoded_message_contract": per_day[0]["decoded_message_contract"],
         "start_day": args.start_day.isoformat(),
         "end_day": args.end_day.isoformat(),
         "retrieved_at_utc": retrieved_at,

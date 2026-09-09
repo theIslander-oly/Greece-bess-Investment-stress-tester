@@ -474,7 +474,8 @@ For `wind_speed_10m`, the U/V magnitude is calculated at each declared grid poin
 declared weights are applied. For `dswrf_surface`, the source bucket means are de-averaged to
 local one-hour means before weighting, including at six-hour bucket resets. The retrieval summary
 records the full geography, decoded-message contract and `feature_semantics_version`. Tables made
-before version 2 must be rebuilt and cannot retain an earlier acceptance identity.
+before version 2 must be rebuilt and cannot retain an earlier acceptance identity. Shard
+recombination refuses a missing or mixed semantics identity.
 
 **Three conditions exclude a delivery day by name and let the window continue**, and they are the
 only three:
