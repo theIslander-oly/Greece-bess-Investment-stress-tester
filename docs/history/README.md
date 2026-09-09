@@ -20,3 +20,5 @@ rather than implementing one.
 Cross-platform baseline corrections that do not change a versioned analytical milestone are
 recorded by date, including
 [`implementation_report_windows_determinism_2026-09-09.md`](implementation_report_windows_determinism_2026-09-09.md).
+Execution-plan corrections are likewise recorded by date, including
+[`implementation_report_gfs_feature_semantics_2026-09-09.md`](implementation_report_gfs_feature_semantics_2026-09-09.md).

@@ -6,6 +6,16 @@ All notable project changes are documented here.
 
 ### Fixed
 
+- **GFS decoded-message and feature-value semantics.** Every selected GRIB2 message must now
+  agree with its sidecar and request on parameter identity, units, level, source cycle, valid
+  time, forecast window, step units and instant/average semantics. Wind speed is calculated at
+  each declared grid point before the declared geographic weights are applied; this prevents
+  opposite signed components at different locations from cancelling before magnitude is taken.
+  Radiation is de-averaged at each point before weighting. Retrieval summaries now carry the
+  complete geography, decoded-message contract and feature-semantics version. Any GFS feature
+  table produced by the earlier implementation must be rebuilt and receive a new acceptance
+  identity before use. No official-data workflow was launched by this change.
+
 - **Cross-platform deterministic demo manifests.** Run-manifest JSON now forces LF newlines
   instead of accepting the host platform's text translation, and the committed byte-checked
   sample report is pinned to LF through `.gitattributes`. Windows therefore records the same

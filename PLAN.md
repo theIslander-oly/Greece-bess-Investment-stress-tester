@@ -12,9 +12,9 @@ The staged plan in `Greek_BESS_Execution_Plan.md` is active. Only one stage move
 
 | Stage | Status | Evidence or next gate |
 | --- | --- | --- |
-| Entry | In progress | Windows exact-byte portability correction; final CI and merge pending |
+| Entry | Complete | Cross-platform baseline validated and merged in PR #56 (`84ec878`) |
 | 1 | Complete | Retrieval repair merged as `f149f61`; tree matches reviewed PR #55 head |
-| 2 | Pending | Begin `fix-gfs-feature-semantics` only from current main after Entry closes |
+| 2 | In progress | GFS value semantics implemented; final validation, review and merge pending |
 | 3–10 | Pending | Follow the fixed plan in order |
 
 Suggested future branch sequence:

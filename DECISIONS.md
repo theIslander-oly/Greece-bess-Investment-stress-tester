@@ -1,5 +1,20 @@
 # Decision log
 
+## 2026-09-09 — Validate GRIB meaning and aggregate physical wind speed locally
+
+- **Decision:** A NOAA GFS message is usable only when its decoded parameter identity, unit,
+  vertical level, cycle, valid time, hourly step and instant/average semantics agree with both
+  the declared message contract and the selected sidecar record. Wind component magnitude is
+  calculated independently at every declared point before the declared weights are applied;
+  radiation de-averaging is likewise performed per point before weighting.
+- **Reason:** Byte-range selection proves where bytes came from, not what those bytes decode to.
+  Separately weighting signed eastward and northward components before taking their magnitude can
+  cancel winds that occur at different locations and is not a weighted mean of local wind speed.
+- **Consequence:** Wrong metadata stops with a named integrity refusal. Retrieval summaries carry
+  feature-semantics version 2, the full unchanged geography and the decoded-message contract.
+  Every earlier GFS feature table and any acceptance identity derived from it are invalidated and
+  must be rebuilt; this decision authorizes no new geography and no official-data run.
+
 ## 2026-09-09 — Make exact-byte report identity independent of host newlines
 
 - **Decision:** Write run-manifest JSON with explicit LF newlines and pin the committed
