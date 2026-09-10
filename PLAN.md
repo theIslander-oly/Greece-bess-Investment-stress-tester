@@ -18,8 +18,64 @@ The staged plan in `Greek_BESS_Execution_Plan.md` is active. Only one stage move
 | 3 | Complete | Unit 1 merged as `8dc72e3`, unit 2 as `61afae0` |
 | 4 | Complete | Dated cash-flow NPV and IRR merged as `d5f0ca1` |
 | 5 | Complete | Degradation result basis merged as `df7ffec` |
-| 6 | In progress | Matched-training control amended and implemented; ready for review |
-| 7–10 | Pending | Follow the fixed plan in order |
+| 6 | Complete | Matched-training control merged as `196a5c1` (amendment `cba04f0`) |
+| 7 | Blocked | Needs operator authorization for official-data retrieval; see the handoff below |
+| 8–10 | Pending | Follow the fixed plan in order |
+
+### Session handoff — 10 September 2026
+
+**Active stage:** 7, blocked before its first step. Stages 1–6 are complete and on `main`.
+
+**Branch and commit:** `main` at `196a5c1`. The working branch
+`claude/greece-bess-execution-wyyn94` carries no unmerged work.
+
+**What changed this session.** Six correctness milestones, none of which altered a dispatch
+decision, degradation model or cost assumption:
+
+| Stage | Merged | What it corrected |
+| --- | --- | --- |
+| 2 | `316e9f5` | Decoded GRIB metadata validated; wind speed and radiation aggregated locally |
+| 3 unit 1 | `8dc72e3` | `retrieved_at_utc` is a per-message receipt, not the run's start |
+| 3 unit 2 | `61afae0` | Shards reconciled against what they hold, not what they declare |
+| 4 | `d5f0ca1` | NPV and IRR read one dated cash-flow series |
+| 5 | `df7ffec` | The degraded aggregate is a simulation, not an upper bound |
+| 6 | `196a5c1` | A matched-training control isolates the weather columns |
+
+**Counterexample and test evidence.** Stage 4: EUR 1,000 out and EUR 1,200 received evenly across
+365 days gives 45.586% on the dated series against 20.015% under annual relocation; the repository's
+existing ambiguity fixture was confirmed to have two roots and the synthetic demonstration exactly
+one. Stage 5: one warranted cycle and two days of EUR 1 and EUR 100 spreads gives EUR 1 for the
+daily policy against EUR 100 for a policy that waits. Stage 6: matched refits are proved identical
+by training row and target digests computed independently of the feature columns. The suite grew
+from 637 to 684 tests; Ruff, mypy and a clean wheel build pass on every merged head.
+
+**Changed figures.** Only IRR. Every previously reported IRR is superseded; the committed synthetic
+demonstration moved from `-0.9798843527086536` to `-0.9800653165183428`. No accepted official result
+carries an IRR, so the acceptance record is unchanged.
+
+**CI and PR state.** PRs #57–#62 are merged, each green on both Python 3.12 and 3.13 on its final
+head. No PR is open and no CI is failing.
+
+**Blocker.** Stage 7 is the official weather experiment. Its first step is a live retrieval against
+the NOAA archive, followed by the full declared window — 27 February 2021 to 25 August 2026, about
+2,006 delivery days and roughly 200,000 HTTPS round trips — then custody records, a dated acceptance
+document and benchmark runs. It is outward-facing and expensive, it would produce this project's
+first accepted official-data evidence, and it runs the long manually dispatched workflows where the
+recorded GitHub billing constraint sits. It was not started, and needs an explicit operator
+decision rather than an implementer's judgement.
+
+**Next single action.** Obtain operator authorization for step 1 of stage 7 — the small live smoke
+retrieval with the corrected decoder and evidence logic, on previously failing cases where
+available — and report before proceeding to step 2. Work available without official data, if the
+operator prefers to defer: stage 8's design unit (`design-integrated-study`), which is a
+specification document reviewable on its own.
+
+**Standing observation for whoever continues.** Three fixture-versus-producer drifts were found in
+stage 3 alone: a renamed field the combiner still read, a `market_day`/`delivery_day` key mismatch,
+and a fixture that could not represent 23- or 25-hour market days. Each was invisible because a
+hand-written fixture stood in for a producer and silently stopped matching it. The
+retrieval-to-combination integration tests added in stage 3 guard that one path; the pattern is
+likely present in fixtures not touched this session.
 
 Suggested future branch sequence:
 
