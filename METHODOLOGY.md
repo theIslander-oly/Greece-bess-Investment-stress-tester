@@ -583,6 +583,35 @@ The retrieval summary records the complete geography, the decoded-message contra
 equivalent input and must be rebuilt rather than reused under its old digest or acceptance
 identity.
 
+## Feature observation time
+
+A feature row carries two instants and they answer different questions. `published_at_utc` is the
+provider's: when the source object became available, read from the object itself. For a derived
+value it is the latest publication instant among its contributing messages.
+
+`retrieved_at_utc` is this project's: when the value was *successfully received here*. It is
+recorded once per message, immediately after that message's transfer has completed and its
+declared byte count has been checked, and never before a request is issued. Transport retries
+happen inside the fetch, so the recorded instant is by construction the attempt that delivered
+the bytes; an earlier failed attempt observed nothing. A derived value inherits the latest
+receipt among its contributing messages, on the same reasoning that governs its publication
+instant: a 10 m wind speed has not been observed until both components have arrived, and an
+hourly radiation mean has not been observed until both bucket ends have.
+
+`retrieved_at_utc` is deliberately not the instant a retrieval run began. The availability audit
+grades a row `witnessed` only when its receipt falls strictly before the delivery day's declared
+decision cutoff, and a run may start before a cutoff and go on receiving messages long after it.
+A run-start stamp would report those later answers as observed in time, and `witnessed` is the
+one grade in this scheme that cannot be reconstructed afterwards — a provider publication instant
+can be read from the object at any point in the future, but a contemporaneous observation exists
+only if a retrieval actually happened in time. Run start is recorded separately, as a property of
+the run: retrieval summaries carry `run_started_at_utc`, `first_message_received_at_utc` and
+`last_message_received_at_utc` as three distinct instants.
+
+The summary records `observation_semantics_version = 2`, and the shard identity fields include
+it. A table built under version 1 carries run-start stamps, so it is not a slice of the same
+window as a corrected one and the two are refused rather than combined.
+
 ## Fundamentals official-run order
 
 The v0.9.5 workflow enforces: declaration validation; official-history and feature-table custody verification; strict publication-time availability audit; revision-aware point-in-time join without filling; DJF 2025–26 completeness preflight; forecast ablation from the accepted digest; and forecast-planned dispatch settled on realized prices using the unchanged 50 MW / 100 MWh battery. Hourly training and validation precede an entirely quarter-hour test, where each hourly GFS value is explicitly broadcast over four intervals. Missing, late, conflicting, interpolated, or inadmissibly graded observations cannot enter an accepted run.

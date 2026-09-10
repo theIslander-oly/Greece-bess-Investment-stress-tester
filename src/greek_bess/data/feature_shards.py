@@ -49,6 +49,7 @@ IDENTITY_FIELDS = (
     "geography_id",
     "geography",
     "feature_semantics_version",
+    "observation_semantics_version",
     "decoded_message_contract",
 )
 
@@ -93,7 +94,8 @@ def read_feature_shard(features: Path) -> FeatureShard:
         raise FeatureShardError(
             f"{summary_path} is missing retrieval identity fields: "
             f"{', '.join(missing_identity)}. A shard without an explicit feature semantics "
-            "identity predates the current value contract and must be rebuilt."
+            "and observation semantics identity predates the current value and receipt-time "
+            "contracts and must be rebuilt."
         )
 
     manifest: dict[str, Any] | None = None
@@ -224,6 +226,7 @@ def combine_feature_shards(
         "geography_id": first.get("geography_id"),
         "geography": first.get("geography"),
         "feature_semantics_version": first.get("feature_semantics_version"),
+        "observation_semantics_version": first.get("observation_semantics_version"),
         "decoded_message_contract": first.get("decoded_message_contract"),
         "start_day": start_day.isoformat(),
         "end_day": end_day.isoformat(),

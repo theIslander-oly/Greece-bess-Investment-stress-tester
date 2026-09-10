@@ -30,10 +30,12 @@ from unittest import mock
 import pandas as pd
 
 from greek_bess.cli import main
+from greek_bess.data.availability_audit import effective_evidence_grade
 from greek_bess.data.gfs import (
     ATMOS_LAYOUT_FROM_CYCLE_DAY,
     FIRST_HOURLY_DELIVERY_DAY,
     GFS_FEATURE_SEMANTICS_VERSION,
+    GFS_OBSERVATION_SEMANTICS_VERSION,
     GFS_VARIABLES,
     MAXIMUM_HOURLY_FORECAST_STEP,
     MISSING_OBJECT,
@@ -61,7 +63,11 @@ from greek_bess.data.http import (
     OfficialDataDownloadError,
     validate_https_url,
 )
-from greek_bess.data.point_in_time import SamplingGeography
+from greek_bess.data.point_in_time import (
+    PROVIDER_DECLARED,
+    WITNESSED,
+    SamplingGeography,
+)
 
 GRID = Grib2Grid(
     ni=1440,
@@ -585,7 +591,7 @@ class DeliveryDayTests(unittest.TestCase):
             date(2026, 8, 20),
             geography=GEOGRAPHY,
             variables=["temperature_2m", "wind_speed_10m"],
-            retrieved_at_utc="2026-08-19T06:00:00+00:00",
+            run_started_at_utc="2026-08-19T06:00:00+00:00",
         )
         features = built.features
         self.assertEqual(len(features), 48)
@@ -1052,6 +1058,198 @@ class NamedExclusionTests(unittest.TestCase):
             self.assertIn("refused rather than written", stderr)
             self.assertIn("missing_object", stderr)
             self.assertFalse((directory / "features.csv").exists())
+
+
+class _StepClock:
+    """A clock that advances a fixed amount every time it is read.
+
+    Receipt time is evidence, so the tests that matter here are about *when* the client reads
+    the clock, not about what it does with a value handed to it. A clock that moves on every
+    read makes the two distinguishable: run start, first receipt and last receipt all differ.
+    """
+
+    def __init__(self, start: str, *, step: timedelta = timedelta(minutes=1)) -> None:
+        self.now = pd.Timestamp(start)
+        self.step = step
+        self.reads = 0
+
+    def __call__(self) -> pd.Timestamp:
+        instant = self.now
+        self.reads += 1
+        self.now = self.now + self.step
+        return instant
+
+
+class MessageReceiptTimeTests(unittest.TestCase):
+    """A row's ``retrieved_at_utc`` is when its slowest input arrived, not when the run began."""
+
+    def _client(self, archive: _Archive, clock: Any) -> NoaaGfsClient:
+        return NoaaGfsClient(
+            fetcher=archive.fetch, head_reader=archive.head, decoder=_decoder(), clock=clock
+        )
+
+    def test_a_row_records_the_receipt_instant_not_the_run_start(self) -> None:
+        archive = _Archive()
+        clock = _StepClock("2026-08-19T06:00:00+00:00")
+        built = self._client(archive, clock).build_delivery_day_features(
+            date(2026, 8, 20),
+            geography=GEOGRAPHY,
+            variables=["temperature_2m"],
+            run_started_at_utc="2026-08-19T05:00:00+00:00",
+        )
+
+        received = built.features["retrieved_at_utc"]
+        # Not one row carries the run's start: every row is stamped with a real receipt.
+        self.assertFalse((received == pd.Timestamp("2026-08-19T05:00:00+00:00")).any())
+        self.assertTrue((received >= pd.Timestamp("2026-08-19T06:00:00+00:00")).all())
+        # The run start is still recorded — separately, as a property of the run.
+        self.assertEqual(built.summary["run_started_at_utc"], "2026-08-19T05:00:00+00:00")
+        self.assertLess(
+            pd.Timestamp(built.summary["first_message_received_at_utc"]),
+            pd.Timestamp(built.summary["last_message_received_at_utc"]),
+        )
+
+    def test_a_run_beginning_before_the_cutoff_is_not_witnessed_evidence_by_itself(self) -> None:
+        # The defect this stage exists to remove: a retrieval that starts at 09:00, an hour
+        # before a 10:00 cutoff, and is still receiving messages at 11:00. Under a run-start
+        # stamp every row of it claimed to have been observed before the cutoff.
+        archive = _Archive()
+        clock = _StepClock("2026-08-19T09:59:00+00:00", step=timedelta(minutes=2))
+        built = self._client(archive, clock).build_delivery_day_features(
+            date(2026, 8, 20),
+            geography=GEOGRAPHY,
+            variables=["temperature_2m"],
+            run_started_at_utc="2026-08-19T09:00:00+00:00",
+        )
+
+        cutoff = pd.Timestamp("2026-08-19T10:00:00+00:00")
+        received = built.features["retrieved_at_utc"]
+        self.assertTrue((received < cutoff).any(), "the first message did land in time")
+        self.assertTrue(
+            (received >= cutoff).any(),
+            "a run that kept receiving past the cutoff must show it in the rows",
+        )
+        # The audit grades each row on its own receipt, so the late ones fall to
+        # provider_declared while the early ones stay witnessed. A run-start stamp erased
+        # exactly this distinction.
+        grades = {
+            effective_evidence_grade(
+                str(row["availability_evidence_grade"]),
+                row["published_at_utc"],
+                row["retrieved_at_utc"],
+                cutoff,
+            )
+            for _, row in built.features.iterrows()
+        }
+        self.assertEqual(grades, {WITNESSED, PROVIDER_DECLARED})
+
+    def test_a_receipt_exactly_at_the_cutoff_is_not_witnessed(self) -> None:
+        cutoff = pd.Timestamp("2026-08-19T10:00:00+00:00")
+        published = pd.Timestamp("2026-08-19T03:00:00+00:00")
+
+        self.assertEqual(
+            effective_evidence_grade(
+                PROVIDER_DECLARED, published, cutoff - pd.Timedelta(1, unit="ns"), cutoff
+            ),
+            WITNESSED,
+        )
+        # Strictly before, or it is not an observation this project made in time.
+        self.assertEqual(
+            effective_evidence_grade(PROVIDER_DECLARED, published, cutoff, cutoff),
+            PROVIDER_DECLARED,
+        )
+
+    def test_a_derived_value_inherits_its_latest_contributing_receipt(self) -> None:
+        # Wind speed is built from two messages. The value is observed when the second of them
+        # has arrived, never when the first did.
+        archive = _Archive()
+        clock = _StepClock("2026-08-19T06:00:00+00:00")
+        built = self._client(archive, clock).build_delivery_day_features(
+            date(2026, 8, 20), geography=GEOGRAPHY, variables=["wind_speed_10m"]
+        )
+
+        # The two components of the first interval were received a minute apart. The row takes
+        # the later of them: a wind speed is not observed until both components have arrived.
+        by_document = {
+            str(record.local_path): pd.Timestamp(record.retrieved_at_utc)
+            for record in built.records
+        }
+        first = built.features.sort_values("delivery_start_utc").iloc[0]
+        contributing = [
+            by_document[f"{part.split('#m')[0]}.m{int(part.split('#m')[1]):04d}.grib2"]
+            for part in str(first["source_document_id"]).split("+")
+        ]
+        self.assertEqual(len(contributing), 2)
+        self.assertNotEqual(contributing[0], contributing[1])
+        self.assertEqual(first["retrieved_at_utc"], max(contributing))
+
+        # Consecutive intervals are therefore two message-receipts apart, not one.
+        receipts = sorted(built.features["retrieved_at_utc"].unique())
+        self.assertGreaterEqual(len(receipts), 2)
+        self.assertEqual(
+            pd.Timestamp(receipts[1]) - pd.Timestamp(receipts[0]), pd.Timedelta(2, unit="m")
+        )
+
+    def test_the_clock_is_read_after_a_transfer_succeeds_and_never_before_it(self) -> None:
+        # Transport retries happen inside the fetch, so the instant that matters is the one
+        # after bytes actually arrived. A fetch that takes an hour — because it was retried, or
+        # because it was simply slow — must be recorded as having landed an hour later, not at
+        # the moment the request was issued.
+        archive = _Archive()
+        clock = _StepClock("2026-08-19T06:00:00+00:00", step=timedelta(seconds=0))
+        real_fetch = archive.fetch
+        slow_ranges: list[tuple[int, int] | None] = []
+
+        def slow(url: str, byte_range: tuple[int, int] | None) -> bytes:
+            payload = real_fetch(url, byte_range)
+            if byte_range is not None:
+                # Time passes while the message is being retrieved and retried.
+                slow_ranges.append(byte_range)
+                clock.now = clock.now + timedelta(hours=1)
+            return payload
+
+        client = NoaaGfsClient(
+            fetcher=slow, head_reader=archive.head, decoder=_decoder(), clock=clock
+        )
+        built = client.build_delivery_day_features(
+            date(2026, 8, 20),
+            geography=GEOGRAPHY,
+            variables=["temperature_2m"],
+            run_started_at_utc="2026-08-19T06:00:00+00:00",
+        )
+
+        self.assertTrue(slow_ranges)
+        # One clock read per received message, all of them after their transfer.
+        self.assertEqual(clock.reads, built.summary["message_count"])
+        self.assertTrue(
+            (
+                built.features["retrieved_at_utc"]
+                >= pd.Timestamp("2026-08-19T07:00:00+00:00")
+            ).all()
+        )
+
+    def test_a_naive_receipt_clock_is_refused(self) -> None:
+        archive = _Archive()
+        client = NoaaGfsClient(
+            fetcher=archive.fetch,
+            head_reader=archive.head,
+            decoder=_decoder(),
+            clock=lambda: pd.Timestamp("2026-08-19T06:00:00"),
+        )
+        with self.assertRaisesRegex(NoaaGfsError, "naive timestamp"):
+            client.build_delivery_day_features(
+                date(2026, 8, 20), geography=GEOGRAPHY, variables=["temperature_2m"]
+            )
+
+    def test_the_observation_semantics_version_is_recorded(self) -> None:
+        archive = _Archive()
+        clock = _StepClock("2026-08-19T06:00:00+00:00")
+        built = self._client(archive, clock).build_delivery_day_features(
+            date(2026, 8, 20), geography=GEOGRAPHY, variables=["temperature_2m"]
+        )
+        self.assertEqual(
+            built.summary["observation_semantics_version"], GFS_OBSERVATION_SEMANTICS_VERSION
+        )
 
 
 if __name__ == "__main__":  # pragma: no cover - manual execution helper

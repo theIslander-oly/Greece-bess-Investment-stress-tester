@@ -1,5 +1,27 @@
 # Decision log
 
+## 2026-09-10 — Record when a feature was received, not when its run started
+
+- **Decision:** A point-in-time feature row's `retrieved_at_utc` is the instant its own data was
+  successfully received, read once per message immediately after that message's transfer
+  completed and never before its request. A derived value inherits the latest receipt among its
+  contributing messages. Provider publication time stays a separate field. Run start is recorded
+  as a property of the run and never as a row's observation instant.
+- **Reason:** The availability audit grades a row `witnessed` when its receipt is strictly before
+  the delivery day's declared decision cutoff. Stamping every row with the instant the run began
+  meant a retrieval that started before a cutoff and kept receiving messages after it recorded
+  every late value as observed in time. Unlike a provider publication instant, which can be read
+  from the object at any later date, a contemporaneous observation exists only if the retrieval
+  actually happened in time, so no downstream stage could have detected the error.
+- **Consequence:** Retrieval summaries carry `run_started_at_utc`,
+  `first_message_received_at_utc`, `last_message_received_at_utc` and
+  `observation_semantics_version = 2`, and shard identity includes that version, so run-start
+  tables are refused rather than combined with corrected ones. The seven existing successful
+  witness runs were reviewed against the declared cutoff and required no reclassification: each
+  completed by 06:24 UTC against a 10:00 UTC cutoff, a margin no per-message correction could
+  close. No historic receipt instant was invented, and this decision authorizes no official-data
+  run.
+
 ## 2026-09-09 — Validate GRIB meaning and aggregate physical wind speed locally
 
 - **Decision:** A NOAA GFS message is usable only when its decoded parameter identity, unit,

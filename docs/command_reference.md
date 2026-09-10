@@ -477,6 +477,15 @@ records the full geography, decoded-message contract and `feature_semantics_vers
 before version 2 must be rebuilt and cannot retain an earlier acceptance identity. Shard
 recombination refuses a missing or mixed semantics identity.
 
+Each row's `retrieved_at_utc` is the instant its own data was received, recorded per message
+after that message's transfer succeeded; a derived value carries the latest receipt among its
+contributing messages. It is not the instant the run began, because a run that starts before a
+delivery day's decision cutoff can go on receiving messages after it, and the audit grades a row
+`witnessed` only when its receipt is strictly before that cutoff. The summary reports
+`run_started_at_utc`, `first_message_received_at_utc` and `last_message_received_at_utc`
+separately, and records `observation_semantics_version`; shard recombination refuses a missing
+or mixed observation-semantics identity for the same reason it refuses a mixed value semantics.
+
 **Three conditions exclude a delivery day by name and let the window continue**, and they are the
 only three:
 

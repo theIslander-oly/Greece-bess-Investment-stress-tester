@@ -41,6 +41,7 @@ from ..data.feature_shards import combine_feature_shards
 from ..data.gfs import (
     FIRST_HOURLY_DELIVERY_DAY,
     GFS_FEATURE_SEMANTICS_VERSION,
+    GFS_OBSERVATION_SEMANTICS_VERSION,
     GFS_VARIABLES,
     NOAA_GFS_ATTRIBUTION,
     NOAA_GFS_SOURCE,
@@ -110,12 +111,27 @@ def configure_fetch_fundamentals(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--summary", type=Path, help="Retrieval summary JSON")
 
 
+def _extreme_instant(
+    per_day: Sequence[Mapping[str, object]], field: str, *, latest: bool
+) -> str:
+    """Return the earliest or latest of one instant field across every built delivery day.
+
+    The instants are compared as timestamps rather than as strings: they are all UTC and all
+    ISO-8601, but they need not carry the same number of fractional digits, and an ordering that
+    happens to work on today's formatting is not something an evidence field should rely on.
+    """
+
+    instants = [pd.Timestamp(str(day[field])) for day in per_day]
+    chosen = max(instants) if latest else min(instants)
+    return chosen.isoformat()
+
+
 def run_fetch_fundamentals(args: argparse.Namespace) -> int:
     if args.end_day < args.start_day:
         raise NoaaGfsError("--end-day must not precede --start-day")
     geography = _read_sampling_geography(args.geography)
     client = NoaaGfsClient()
-    retrieved_at = utc_now_iso()
+    run_started_at = utc_now_iso()
 
     frames: list[pd.DataFrame] = []
     records: list[RetrievalRecord] = []
@@ -143,7 +159,7 @@ def run_fetch_fundamentals(args: argparse.Namespace) -> int:
                 geography=geography,
                 variables=args.variables,
                 raw_dir=args.raw_dir,
-                retrieved_at_utc=retrieved_at,
+                run_started_at_utc=run_started_at,
             )
         except NoaaGfsError as exc:
             # A source condition is a fact about one delivery day, and the refusals that raise it
@@ -178,7 +194,7 @@ def run_fetch_fundamentals(args: argparse.Namespace) -> int:
     features = pd.concat(frames, ignore_index=True)
     write_point_in_time_csv(features, args.output)
     manifest_path = args.manifest or _sibling_path(args.output, ".retrieval_manifest.json")
-    write_gfs_retrieval_manifest(manifest_path, records, created_at_utc=retrieved_at)
+    write_gfs_retrieval_manifest(manifest_path, records, created_at_utc=run_started_at)
     coverage = feature_coverage(features)
     coverage_path = _sibling_path(args.output, ".coverage.csv")
     _write_plain_csv(coverage, coverage_path)
@@ -194,10 +210,20 @@ def run_fetch_fundamentals(args: argparse.Namespace) -> int:
         "geography_id": geography.geography_id,
         "geography": geography.to_dict(),
         "feature_semantics_version": GFS_FEATURE_SEMANTICS_VERSION,
+        "observation_semantics_version": GFS_OBSERVATION_SEMANTICS_VERSION,
         "decoded_message_contract": per_day[0]["decoded_message_contract"],
         "start_day": args.start_day.isoformat(),
         "end_day": args.end_day.isoformat(),
-        "retrieved_at_utc": retrieved_at,
+        # When the run began, and when its earliest and latest message actually arrived. These
+        # are three different instants and only the receipts are evidence of observation; a run
+        # that started before a cutoff may have kept receiving messages well after it.
+        "run_started_at_utc": run_started_at,
+        "first_message_received_at_utc": _extreme_instant(
+            per_day, "first_message_received_at_utc", latest=False
+        ),
+        "last_message_received_at_utc": _extreme_instant(
+            per_day, "last_message_received_at_utc", latest=True
+        ),
         "built_day_count": len(per_day),
         "excluded_day_count": len(excluded),
         # The list is capped so a long window cannot turn a summary into a day-by-day log; the

@@ -101,6 +101,7 @@ def _write_shard(
         "geography_id": "synthetic-geography",
         "geography": {"geography_id": "synthetic-geography"},
         "feature_semantics_version": 2,
+        "observation_semantics_version": 2,
         "decoded_message_contract": {"synthetic": "declared-for-test"},
         "start_day": (window[0] if window else min(days)).isoformat(),
         "end_day": (window[1] if window else max(days)).isoformat(),
@@ -222,6 +223,40 @@ class CombineFeatureShardsTests(unittest.TestCase):
                     [first, second], created_at_utc="2026-01-02T00:00:00+00:00"
                 )
             self.assertIn("feature_semantics_version", str(caught.exception))
+
+    def test_shards_from_different_observation_semantics_are_refused(self) -> None:
+        # A shard whose rows carry run-start stamps and one whose rows carry real receipts do
+        # not answer the same question about when anything was observed, so they are not two
+        # slices of one window.
+        with TemporaryDirectory() as raw:
+            directory = Path(raw)
+            first = _write_shard(directory, "first", _days("2026-03-01", 2))
+            second = _write_shard(directory, "second", _days("2026-03-03", 2))
+            summary_path = second.with_suffix(".summary.json")
+            summary = json.loads(summary_path.read_text(encoding="utf-8"))
+            summary["observation_semantics_version"] = 1
+            summary_path.write_text(
+                json.dumps(summary, indent=2) + "\n", encoding="utf-8"
+            )
+            with self.assertRaises(FeatureShardError) as caught:
+                combine_feature_shards(
+                    [first, second], created_at_utc="2026-01-02T00:00:00+00:00"
+                )
+            self.assertIn("observation_semantics_version", str(caught.exception))
+
+    def test_a_shard_without_an_observation_semantics_identity_requires_rebuilding(self) -> None:
+        with TemporaryDirectory() as raw:
+            directory = Path(raw)
+            first = _write_shard(directory, "first", _days("2026-03-01", 2))
+            summary_path = first.with_suffix(".summary.json")
+            summary = json.loads(summary_path.read_text(encoding="utf-8"))
+            del summary["observation_semantics_version"]
+            summary_path.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
+            with self.assertRaises(FeatureShardError) as caught:
+                combine_feature_shards(
+                    [first], created_at_utc="2026-01-02T00:00:00+00:00"
+                )
+            self.assertIn("must be rebuilt", str(caught.exception))
 
     def test_a_shard_without_a_feature_semantics_identity_requires_rebuilding(self) -> None:
         with TemporaryDirectory() as raw:

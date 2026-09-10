@@ -21,4 +21,6 @@ Cross-platform baseline corrections that do not change a versioned analytical mi
 recorded by date, including
 [`implementation_report_windows_determinism_2026-09-09.md`](implementation_report_windows_determinism_2026-09-09.md).
 Execution-plan corrections are likewise recorded by date, including
-[`implementation_report_gfs_feature_semantics_2026-09-09.md`](implementation_report_gfs_feature_semantics_2026-09-09.md).
+[`implementation_report_gfs_feature_semantics_2026-09-09.md`](implementation_report_gfs_feature_semantics_2026-09-09.md)
+and
+[`implementation_report_feature_observation_times_2026-09-10.md`](implementation_report_feature_observation_times_2026-09-10.md).
