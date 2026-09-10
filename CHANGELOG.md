@@ -43,6 +43,14 @@ All notable project changes are documented here.
 
 ### Fixed
 
+- **Official feature-table reconciliation now accepts equal intervals across pandas duration
+  storage units and discovers only numbered shard tables.** The first corrected full-window
+  retrieval exposed two representation defects before acceptance: the workflow glob counted each
+  `features_N.coverage.csv` sidecar as another shard, and interval validation used dtype-sensitive
+  `Series.equals`, rejecting equal 60-minute durations stored at different pandas resolutions.
+  Shard discovery now selects only `features_<integer>.csv`, and interval validation compares
+  duration values. Unequal and non-positive intervals remain refused.
+
 - **The degraded dispatch aggregate was labelled an upper bound and is not one.** Each market
   day is solved optimally under the limits it begins with, so every day is a perfect-foresight
   ceiling for that day — but those limits depend on what earlier days discharged, so the total

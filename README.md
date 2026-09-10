@@ -486,17 +486,18 @@ de-averaged per point before weighting. Summaries retain the full declared geogr
 this as feature-semantics version 2. Feature tables produced before this correction are not
 equivalent inputs and must be rebuilt before any acceptance or benchmark run.
 
-**The declarations exist; the run does not.** The decision cutoff, the decision lead and the
+**The declarations and corrected retrieval now exist; acceptance does not.** The decision cutoff, the decision lead and the
 sampling geography are operator declarations with no defaults, and the committed examples are
 refused by name; all three were declared on 3 September 2026
-(`docs/fundamentals_declarations_2026-09-03.md`), which lifted the refusal that had blocked every
-v0.9 surface. Nothing has been run through them to a result yet: no feature table has been
-accepted, no day has been audited against retrieved data, no acceptance document exists, and the
-witness workflow has accumulated no witnessed days — which are the one kind of evidence here that cannot be
-produced later. **Every figure this README reports still comes from the accepted price history
-alone, and the fundamentals question is unanswered rather than answered negatively.** A negative
-result would be recorded under the same labels, and a thin accepted coverage makes the run
-exploratory rather than general.
+(`docs/fundamentals_declarations_2026-09-03.md`). Stage 7 retrieval steps 1–3 rebuilt and
+reconciled the declared 2021-02-27 through 2026-08-25 window as 23 private shards and audited
+publication timing: 2,002 of 2,006 days per variable are provider-declared before cutoff, three
+are incomplete before cutoff and one has no publication. Nothing is filled. No feature table has
+been accepted, no acceptance document exists and this historic retrieval creates no witnessed
+day — the one kind of evidence that cannot be produced later. **Every figure this README reports
+still comes from the accepted price history alone, and the fundamentals question remains
+unanswered rather than answered negatively.** A negative result would be recorded under the same
+labels, and a thin accepted coverage makes the run exploratory rather than general.
 ADMIE load and RES forecasts stay out of scope by any route, including through another publisher.
 Percentile outputs (P5/P50/P95) and loss probabilities were removed from the roadmap because
 the seasonal bootstrap resamples a non-stationary 2020-2026 history uniformly and therefore

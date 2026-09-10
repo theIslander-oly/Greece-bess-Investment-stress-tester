@@ -1,5 +1,19 @@
 # Decision log
 
+## 2026-09-10 — Compare interval durations by value and select numbered shard tables exactly
+
+- **Decision:** Point-in-time interval validation compares each measured duration with its
+  declared duration by value rather than requiring identical pandas timedelta dtypes. The fetch
+  workflow discovers only filenames matching `features_<integer>.csv`; coverage CSVs are
+  sidecars, never shards.
+- **Reason:** The first corrected full-window retrieval produced equal one-hour durations stored
+  as `timedelta64[us]` and `timedelta64[s]`. Dtype-sensitive equality rejected them despite every
+  value comparing equal. The workflow's `features_*.csv` glob also counted the coverage sidecar
+  beside every real table, so 23 successful shards appeared to be 46.
+- **Consequence:** Representation differences no longer block a valid table, while any unequal or
+  non-positive duration is still refused. No source, feature value, geography, cutoff, window or
+  evidence grade changes.
+
 ## 2026-09-10 — Compare weather against a matched-training control, not the full history
 
 - **Decision:** The fundamentals ablation gains a third arm, `matched_control`: the baseline's

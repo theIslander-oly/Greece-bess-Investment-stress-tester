@@ -528,7 +528,7 @@ def _validate_intervals(frame: pd.DataFrame) -> None:
         raise PointInTimeSchemaError("Every delivery interval must have a positive duration")
     declared = pd.to_timedelta(frame["resolution_minutes"], unit="min")
     measured = frame["delivery_end_utc"] - frame["delivery_start_utc"]
-    if not measured.equals(declared):
+    if not bool(measured.eq(declared).all()):
         raise PointInTimeSchemaError(
             "resolution_minutes disagrees with the delivery interval it describes"
         )
