@@ -1,5 +1,30 @@
 # Decision log
 
+## 2026-09-10 — Compare weather against a matched-training control, not the full history
+
+- **Decision:** The fundamentals ablation gains a third arm, `matched_control`: the baseline's
+  price-only columns trained on exactly the challenger's eligible rows. The former `control` is
+  renamed `full_history_baseline` and retained. `challenger` minus `matched_control` is
+  attributable to the weather columns; `matched_control` minus `full_history_baseline` to
+  training coverage; the challenger-minus-baseline difference confounds the two and is not
+  reported as a weather effect. The dispatch comparison pairs a challenger with its matched
+  control. Every refit records digests of its training row identities and targets, and a run is
+  refused unless each matched pair agrees on both.
+- **Reason:** A challenger trains only on days whose accepted features are complete, because a
+  missing feature excludes its day rather than being imputed. A control trained on the full
+  history therefore differed from it in the feature columns and the training rows at once, so any
+  difference confounded weather value with lost coverage. The direction is not knowable in
+  advance: fewer rows would usually hurt the challenger, but the excluded days are exactly those
+  the weather source failed to cover and need not be a random sample of prices.
+- **Consequence:** No outcome changes, because none exists: no fundamentals benchmark has been
+  run against official data. The prospective amendment fixing this structure was recorded before
+  the implementation and before any outcome
+  (`docs/fundamentals_matched_control_amendment_2026-09-10.md`), which is what makes the eventual
+  result evidence rather than a description of a choice already made. The full-history baseline
+  remains the accepted computation bit for bit, asserted by test, because the coverage
+  measurement depends on it being unchanged. This decision authorizes no official-data run and
+  commits to recording the result whichever way it falls.
+
 ## 2026-09-10 — Record the degraded dispatch aggregate as a simulation, not a bound
 
 - **Decision:** A day-by-day dispatch under an evolving degradation state reports on a new

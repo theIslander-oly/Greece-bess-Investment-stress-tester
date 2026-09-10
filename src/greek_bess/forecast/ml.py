@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 from collections.abc import Sequence
 from dataclasses import asdict, dataclass
 from datetime import date, timedelta
@@ -384,6 +386,12 @@ def _walk_forward_predict(
                     "training_end_day": str(training["market_day"].max()),
                     "training_day_count": training_day_count,
                     "training_interval_count": int(len(training)),
+                    # Which rows this refit saw, and what it was asked to predict, recorded
+                    # independently of the feature columns it read. Two arms of a matched
+                    # comparison must agree on both digests at every refit: that is what makes
+                    # "only the feature columns differ" checkable rather than asserted.
+                    "training_row_digest": _training_row_digest(training),
+                    "training_target_digest": _training_target_digest(training),
                 }
             )
 
@@ -400,6 +408,30 @@ def _walk_forward_predict(
         )
 
     return pd.Series(predictions, dtype=float), refit_log
+
+
+def _training_row_digest(training: pd.DataFrame) -> str:
+    """Digest the identity of the training rows: which intervals, in order.
+
+    Feature columns are deliberately excluded. The point of the digest is to show that two
+    matched arms trained on the same rows while reading different columns, so a digest that
+    moved when the columns changed would answer a different question.
+    """
+
+    identities = [str(value) for value in training["delivery_start_utc"]]
+    payload = json.dumps(identities, separators=(",", ":"))
+    return hashlib.sha256(payload.encode()).hexdigest()
+
+
+def _training_target_digest(training: pd.DataFrame) -> str:
+    """Digest what the training rows were asked to predict, in the same order."""
+
+    targets = [
+        format(float(value), ".17g")
+        for value in training["actual_price_eur_per_mwh"].to_numpy(dtype=float)
+    ]
+    payload = json.dumps(targets, separators=(",", ":"))
+    return hashlib.sha256(payload.encode()).hexdigest()
 
 
 def _refuse_null_features(

@@ -35,11 +35,14 @@ from greek_bess.data.synthetic import generate_synthetic_prices
 from greek_bess.forecast import MLForecastConfig, generate_ml_forecasts
 from greek_bess.forecast.fundamentals import (
     EXPLORATORY_LABEL_SUFFIX,
+    FUNDAMENTALS_ARM_SUFFIX,
     FUNDAMENTALS_FEATURE_PROVENANCE,
     FUNDAMENTALS_FORECAST_BENCHMARK_LABEL,
+    MATCHED_CONTROL_SUFFIX,
     FundamentalsBenchmarkConfig,
     FundamentalsBenchmarkError,
     _complete_meteorological_seasons,
+    _refuse_unmatched_training,
     generate_fundamentals_benchmark,
 )
 from greek_bess.forecast.ml import MLForecastInputError, _walk_forward_predict
@@ -702,3 +705,133 @@ def _digest(frame: pd.DataFrame) -> str:
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class MatchedTrainingControlTests(unittest.TestCase):
+    """The matched control makes one comparison vary only the feature columns."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.prices = _prices()
+        # Days without weather. Both matched arms must exclude exactly these training rows.
+        cls.omitted = (date(2026, 3, 4), date(2026, 3, 11), date(2026, 4, 2))
+        cls.features, cls.summary = _feature_set(cls.prices, omit_days=cls.omitted)
+        cls.result = generate_fundamentals_benchmark(
+            cls.prices, cls.features, cls.summary, _config(cls.summary)
+        )
+
+    def test_three_arms_are_recorded_and_named(self) -> None:
+        arms = self.result.summary["ablation_arms"]
+        self.assertEqual(
+            sorted(key for key in arms if key != "attribution"),
+            ["baselines", "challenger", "full_history_baseline", "matched_control"],
+        )
+        # The matched control reads the baseline's columns, not the challenger's.
+        self.assertEqual(
+            arms["matched_control"]["feature_columns"],
+            arms["full_history_baseline"]["feature_columns"],
+        )
+        self.assertNotEqual(
+            arms["matched_control"]["feature_columns"], arms["challenger"]["feature_columns"]
+        )
+        self.assertIn("attributable to the weather columns", arms["attribution"])
+
+    def test_each_matched_refit_saw_identical_rows_and_targets(self) -> None:
+        # The acceptance check this stage turns on: only the feature columns may differ.
+        logs = self.result.summary["refit_logs"]
+        for model_name in _ml_config().models:
+            matched = logs[f"{model_name}{MATCHED_CONTROL_SUFFIX}"]
+            challenger = logs[f"{model_name}{FUNDAMENTALS_ARM_SUFFIX}"]
+            self.assertTrue(matched, "the matched control recorded no refit")
+            self.assertEqual(len(matched), len(challenger))
+            for left, right in zip(matched, challenger, strict=True):
+                self.assertEqual(left["forecast_start_day"], right["forecast_start_day"])
+                self.assertEqual(left["training_row_digest"], right["training_row_digest"])
+                self.assertEqual(
+                    left["training_target_digest"], right["training_target_digest"]
+                )
+                self.assertEqual(
+                    left["training_interval_count"], right["training_interval_count"]
+                )
+
+    def test_the_matched_pair_excludes_exactly_the_days_without_weather(self) -> None:
+        # A synthetic fixture with missing weather days, proving both matched arms drop the
+        # same training rows — and that the full-history baseline does not.
+        logs = self.result.summary["refit_logs"]
+        model_name = list(_ml_config().models)[0]
+        full_history = logs[model_name]
+        matched = logs[f"{model_name}{MATCHED_CONTROL_SUFFIX}"]
+        challenger = logs[f"{model_name}{FUNDAMENTALS_ARM_SUFFIX}"]
+
+        self.assertEqual(len(full_history), len(matched))
+        dropped_against_full_history = [
+            full["training_interval_count"] - part["training_interval_count"]
+            for full, part in zip(full_history, matched, strict=True)
+        ]
+        # The matched arms train on strictly fewer rows than the full history somewhere.
+        self.assertTrue(any(count > 0 for count in dropped_against_full_history))
+        # And the challenger drops exactly the same rows the matched control does.
+        for part, chal in zip(matched, challenger, strict=True):
+            self.assertEqual(
+                part["training_interval_count"], chal["training_interval_count"]
+            )
+
+    def test_a_matched_pair_trained_on_different_rows_is_refused(self) -> None:
+        # The guard that keeps the claim true as the code changes: if either arm's row
+        # selection drifts, the run is refused rather than reported as a weather effect.
+        logs = {
+            "ridge_matched": [
+                {"forecast_start_day": "2026-05-01", "training_row_digest": "aa",
+                 "training_target_digest": "bb"}
+            ],
+            "ridge_fundamentals": [
+                {"forecast_start_day": "2026-05-01", "training_row_digest": "cc",
+                 "training_target_digest": "bb"}
+            ],
+        }
+        with self.assertRaises(FundamentalsBenchmarkError) as caught:
+            _refuse_unmatched_training(logs, ["ridge_matched"], ["ridge_fundamentals"])
+        message = str(caught.exception)
+        self.assertIn("training_row_digest", message)
+        self.assertIn("measurement of training coverage", message)
+
+    def test_the_full_history_baseline_remains_the_accepted_computation(self) -> None:
+        # Its comparison with the matched control measures training coverage, not weather, so
+        # it must still be the unchanged accepted benchmark.
+        accepted = generate_ml_forecasts(self.prices, _ml_config())
+        control_columns = list(_ml_config().models)
+        merged = self.result.forecasts.loc[:, ["delivery_start_utc", *control_columns]]
+        expected = accepted.forecasts.loc[
+            accepted.forecasts["delivery_start_utc"].isin(merged["delivery_start_utc"]),
+            ["delivery_start_utc", *control_columns],
+        ].reset_index(drop=True)
+        pd.testing.assert_frame_equal(
+            merged.reset_index(drop=True), expected, check_dtype=False
+        )
+
+    def test_every_arm_is_evaluated_on_the_same_common_days(self) -> None:
+        arms = self.result.summary["ablation_arms"]
+        methods = [
+            *arms["baselines"]["methods"],
+            *arms["full_history_baseline"]["methods"],
+            *arms["matched_control"]["methods"],
+            *arms["challenger"]["methods"],
+        ]
+        common = self.result.forecasts.loc[self.result.forecasts["is_common_day"]]
+        for method in methods:
+            self.assertIn(method, common.columns)
+            self.assertFalse(
+                common[method].isna().any(),
+                f"{method} did not produce a value on every common day",
+            )
+        # Days excluded from the common set stay visible, each with its own named cause,
+        # rather than disappearing from the record.
+        self.assertIn("excluded_days_by_cause", self.result.summary)
+        self.assertIn("excluded_days", self.result.summary)
+        self.assertTrue(self.result.summary["excluded_days"], "no excluded day was recorded")
+
+    def test_a_matched_control_is_selected_on_validation_only(self) -> None:
+        self.assertIn("selected_matched_control", self.result.summary)
+        selected = self.result.summary["selected_matched_control"]
+        self.assertTrue(str(selected).endswith(MATCHED_CONTROL_SUFFIX))
+        self.assertIn("test metrics are not used", self.result.summary["model_selection_policy"])

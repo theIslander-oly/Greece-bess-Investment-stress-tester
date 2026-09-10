@@ -63,10 +63,14 @@ from tests.test_fundamentals_benchmark import (
     _schedule,
 )
 
-CONTROL = "ridge"
+#: The full-history price-only arm. Retained as a named baseline; it is not the challenger's
+#: comparator, because it trained on rows the challenger was never eligible for.
+FULL_HISTORY = "ridge"
+#: The challenger's comparator: identical model, identical training rows, price columns only.
+CONTROL = "ridge_matched"
 CHALLENGER = "ridge_fundamentals"
 BASELINE = "rolling_mean"
-SETTLED_METHODS = (BASELINE, CONTROL, CHALLENGER)
+SETTLED_METHODS = (BASELINE, FULL_HISTORY, CONTROL, CHALLENGER)
 
 
 def _battery(**overrides: Any) -> BatteryDispatchConfig:
@@ -163,7 +167,10 @@ class SettledComparisonTests(unittest.TestCase):
             accepted.summary["common_backtest_day_count"],
             self.result.summary["common_backtest_day_count"],
         )
-        for method in (BASELINE, CONTROL):
+        # The full-history arm is the accepted computation unchanged. The matched control is
+        # deliberately not: it trains on the challenger's eligible rows only, so it is a
+        # different fit and reproducing the accepted benchmark would mean the match failed.
+        for method in (BASELINE, FULL_HISTORY):
             recorded = accepted.method_summaries[method]
             settled = self.result.method_summaries[method]
             for key in (
@@ -354,7 +361,7 @@ class RefusalTests(unittest.TestCase):
 
     def test_a_challenger_named_without_its_control_is_refused(self) -> None:
         with self.assertRaisesRegex(
-            FundamentalsDispatchInputError, "beside its own control"
+            FundamentalsDispatchInputError, "beside its own matched control"
         ):
             self._run(methods=(BASELINE, CHALLENGER))
 
@@ -374,7 +381,7 @@ class RefusalTests(unittest.TestCase):
         with self.assertRaisesRegex(FundamentalsDispatchInputError, "feature_set_sha256"):
             self._run(benchmark_summary=stripped)
         without_arms = dict(self.benchmark.summary)
-        without_arms["ablation_arms"] = {"control": {"methods": ["ridge"]}}
+        without_arms["ablation_arms"] = {"full_history_baseline": {"methods": ["ridge"]}}
         with self.assertRaisesRegex(FundamentalsDispatchInputError, "ablation_arms"):
             self._run(benchmark_summary=without_arms)
 
@@ -386,7 +393,7 @@ class RefusalTests(unittest.TestCase):
         arms["challenger"]["methods"] = ["a_different_model_fundamentals"]
         edited["ablation_arms"] = arms
         with self.assertRaisesRegex(
-            FundamentalsDispatchInputError, "no control counterpart"
+            FundamentalsDispatchInputError, "no matched-control counterpart"
         ):
             self._run(benchmark_summary=edited)
 
@@ -709,7 +716,7 @@ class DispatchCommandTests(unittest.TestCase):
                     ]
                 )
             self.assertEqual(code, 1)
-            self.assertIn("beside its own control", errors.getvalue())
+            self.assertIn("beside its own matched control", errors.getvalue())
 
 
 if __name__ == "__main__":
