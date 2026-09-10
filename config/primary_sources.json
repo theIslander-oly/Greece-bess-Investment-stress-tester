@@ -1,15 +1,40 @@
 {
   "purpose": "Primary publications behind config/decision_cutoff.json and config/fundamentals_geography.json, which the repository tooling cannot verify and which must be retained with the acceptance evidence (docs/fundamentals_declarations_2026-09-03.md). Retrieved by the 'Retain primary sources' workflow; digests are cited under docs/primary_sources/.",
   "release_tag": "primary-sources-2026-09-10",
-  "search_terms": "gate closure|closure|12:00|12.00|Central Greece|Sterea|Peloponn|Thrace|Macedonia|2,293|2.293|639|534",
+  "search_terms": "gate closure|closure|order book|12:00|12.00|13:00|CET|EET|local time|Central Greece|Sterea|Peloponn|Thrace|Macedonia|2,293|2.293|639|534|16 December|15 December|1 October",
   "list_pages": [
-    "https://eletaen.gr/en/hwea-wind-statistics-2/",
-    "https://www.enexgroup.gr/trading-rulebooks",
-    "https://www.enexgroup.gr/markets-publications-en-day-ahead-market",
-    "https://www.enexgroup.gr/regulatory-framework",
-    "https://www.nemo-committee.eu/sdac_downloads",
-    "https://www.nemo-committee.eu/sdac",
-    "https://www.epexspot.com/en/news/extension-single-day-ahead-coupling-sdac-greece"
+    "https://www.enexgroup.gr/web/guest/library-dam-idm-trading-rulebooks-decisions",
+    "https://www.enexgroup.gr/web/guest/rulebooks",
+    "https://www.enexgroup.gr/markets-publications-en-day-ahead-market"
   ],
-  "documents": []
+  "documents": [
+    {
+      "role": "geography: HWEA/ELETAEN wind energy statistics at 31 December 2023",
+      "url": "https://eletaen.gr/wp-content/uploads/2024/01/2024-01-18-2023-HWEA_Statistics-Greece.pdf"
+    },
+    {
+      "role": "cutoff regime 2: SDAC extension to Greece, go-live 15 December 2020 for delivery day 16 December 2020",
+      "url": "https://www.nemo-committee.eu/assets/files/extension-of-single-day-ahead-coupling-(sdac)-to-greece-.pdf"
+    },
+    {
+      "role": "cutoff regime 2: RAE decision 2506/2020 on the commencement of market coupling",
+      "url": "https://www.enexgroup.gr/documents/20126/211889/20201217_RAE_Decision_2506_Commencement_Market_Coupling_EN.pdf"
+    },
+    {
+      "role": "cutoff regime 2: SDAC communication note on timings, 26 May 2021",
+      "url": "https://www.nemo-committee.eu/assets/files/sdac-communicaton-note-on-new-timings.pdf"
+    },
+    {
+      "role": "cutoff regime 2: HEnEx DAM/IDM Technical Decision 10, timeline procedures for the day-ahead market (current version)",
+      "url": "https://www.enexgroup.gr/documents/20126/0/20260331_HEnEx_DAM_IDM_Technical_Decision_10_EN.pdf"
+    },
+    {
+      "role": "cutoff regime 2: 15-minute MTU go-live confirmed for delivery day 1 October 2025",
+      "url": "https://www.nemo-committee.eu/assets/files/market-coupling-steering-committee-confirms-go-live-of-15-minute-mtu-in-sdac-on-trading-day-30-september-2025-for-delivery-day-1-october-2025.pdf"
+    },
+    {
+      "role": "cutoff regime 2: 15-minute MTU implemented in SDAC, 7 October 2025",
+      "url": "https://www.nemo-committee.eu/assets/files/successful-implementation-of-15-minute-market-time-unit-(mtu)-in-sdac.pdf"
+    }
+  ]
 }
