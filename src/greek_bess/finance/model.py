@@ -21,6 +21,10 @@ FINANCE_RESULT_LABEL = (
 )
 OPERATING_MARGIN_CASES = (
     "perfect_foresight_upper_bound",
+    # A day-by-day dispatch under an evolving degradation state. Optimal per day, but the total
+    # is one policy's outcome rather than a ceiling, so it must not inherit the upper-bound
+    # wording of the case above.
+    "daily_policy_degraded_simulation",
     "historical_forecast_backtest",
     "user_supplied_scenario",
 )
@@ -631,6 +635,14 @@ def _margin_interpretation(case: str) -> str:
         return (
             "The supplied operating margins use future prices and remain a gross-margin "
             "upper bound; they are not expected or achievable investment revenue."
+        )
+    if case == "daily_policy_degraded_simulation":
+        return (
+            "The supplied operating margins are a day-by-day perfect-foresight simulation "
+            "under an evolving degradation state. Each day is optimal under the limits it "
+            "began with, but those limits depend on what earlier days discharged, so the total "
+            "is what that daily policy achieved and not a lifetime optimum or an upper bound "
+            "on achievable margin. They are not expected investment revenue."
         )
     if case == "historical_forecast_backtest":
         return (

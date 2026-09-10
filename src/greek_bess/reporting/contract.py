@@ -62,6 +62,12 @@ REPORT_CONTRACT_VERSION = 1
 #: figure responsibly: the same euro amount means something different in each of these.
 RESULT_BASES = (
     "historical_replay_upper_bound",
+    # A day-by-day simulation is not a bound. Each day is solved optimally under the state it
+    # begins with, but the state evolves with what the previous days chose, so the aggregate is
+    # the outcome of one policy rather than a ceiling over all of them. A battery with one
+    # lifetime cycle left spends it on today's small spread and cannot take tomorrow's large
+    # one, which a lifetime optimum would never do.
+    "historical_replay_simulation",
     "historical_forecast_backtest",
     "synthetic_scenario",
     "screening_arithmetic",
@@ -77,6 +83,20 @@ STANDING_EXCLUSIONS = (
     "not expected or forecast investment revenue",
     "not investment evidence, financial advice or a bankable study",
 )
+
+
+#: Bases a result kind used to report on, and why it no longer does. A manifest stored under a
+#: superseded basis is refused with this explanation rather than read: the figure it holds was
+#: produced by code that described it differently, and only re-running can produce the result
+#: the corrected basis claims. Keyed by (kind_id, superseded basis).
+SUPERSEDED_BASES: dict[tuple[str, str], str] = {
+    ("degradation_dispatch", "historical_replay_upper_bound"): (
+        "A day-by-day dispatch under an evolving degradation state was recorded as an upper "
+        "bound until 10 September 2026. It is not one: each day is optimal under the limits it "
+        "begins with, but those limits depend on what earlier days discharged, so the total is "
+        "what one myopic policy achieved rather than a ceiling over all policies."
+    ),
+}
 
 
 class ReportContractError(ValueError):
@@ -130,8 +150,9 @@ def _kinds() -> dict[str, ResultKind]:
         ),
         ResultKind(
             "degradation_dispatch",
-            "historical_replay_upper_bound",
-            "Daily perfect-foresight upper bound under an illustrative degradation state.",
+            "historical_replay_simulation",
+            "Day-by-day perfect-foresight simulation under an evolving illustrative "
+            "degradation state; not a lifetime optimum and not a bound.",
         ),
         ResultKind(
             "annual_replay_decomposition",
@@ -463,6 +484,16 @@ def read_run_manifest(path: Path) -> RunManifest:
             f"Run manifest declares unknown result_kind {kind_id!r}; the registry is closed"
         )
     if str(payload["basis"]) != kind.basis:
+        superseded = SUPERSEDED_BASES.get((kind_id, str(payload["basis"])))
+        if superseded is not None:
+            raise ReportContractError(
+                f"Run manifest records {kind_id} under basis {payload['basis']!r}, which that "
+                f"kind no longer reports on. {superseded} Re-run the command that produced this "
+                "manifest to record the result under its corrected basis. The stored figures "
+                "are not relabelled in place: the same number means something different under "
+                "the two bases, and rewriting the label without re-deriving the result would "
+                "assert evidence this project never produced."
+            )
         raise ReportContractError(
             f"Run manifest declares basis {payload['basis']!r} for result kind {kind_id}, "
             f"which reports on {kind.basis!r}"

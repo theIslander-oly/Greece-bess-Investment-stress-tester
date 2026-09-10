@@ -9,7 +9,9 @@ from greek_bess.backtest import (
 )
 from greek_bess.data.synthetic import generate_synthetic_prices
 from greek_bess.degradation import AugmentationEvent, DegradationConfig
-from greek_bess.dispatch import BatteryDispatchConfig
+from greek_bess.dispatch import BatteryDispatchConfig, optimize_perfect_foresight
+from greek_bess.finance.model import OPERATING_MARGIN_CASES, _margin_interpretation
+from greek_bess.reporting.contract import RESULT_KINDS, SUPERSEDED_BASES
 
 
 def arbitrage_prices(start: date, end: date, *, resolution_minutes: int = 60):
@@ -147,3 +149,105 @@ class DegradationDispatchTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def budgeted_two_day_prices():
+    """Two market days whose spreads are EUR 1 and EUR 100 per MWh."""
+
+    frame = generate_synthetic_prices(
+        date(2026, 1, 1), date(2026, 1, 3), resolution_minutes=60, negative_price_share=0
+    )
+    market_day = frame["delivery_start_market"].dt.date
+    spreads = [(0.0, 1.0), (0.0, 100.0)]
+    for day, (cheap, dear) in zip(sorted(market_day.unique()), spreads, strict=True):
+        positions = frame.index[market_day == day]
+        frame.loc[positions, "price_eur_per_mwh"] = (cheap + dear) / 2.0
+        frame.loc[positions[0], "price_eur_per_mwh"] = cheap
+        frame.loc[positions[-1], "price_eur_per_mwh"] = dear
+    return frame
+
+
+class DegradationResultBasisTests(unittest.TestCase):
+    """The evolving-state aggregate is a simulation, and says so."""
+
+    def _one_cycle_budget(self) -> DegradationConfig:
+        return DegradationConfig(
+            project_start_day=date(2026, 1, 1),
+            calendar_fade_fraction_per_year=0.0,
+            cycle_fade_fraction_per_equivalent_cycle=0.0,
+            warranty_max_equivalent_full_cycles=1.0,
+            enforce_warranty_throughput_limit=True,
+        )
+
+    def test_the_daily_policy_earns_one_euro_where_waiting_earns_one_hundred(self) -> None:
+        # The counterexample that settles what this result is. One warranted cycle and two
+        # days: the daily policy spends the cycle on the EUR 1 spread because that day is
+        # solved in isolation, and has nothing left for the EUR 100 spread the next day.
+        result = simulate_degradation_dispatch(
+            budgeted_two_day_prices(), battery(), self._one_cycle_budget()
+        )
+        self.assertAlmostEqual(result.summary["net_market_margin_eur"], 1.0, places=9)
+        self.assertEqual(
+            [round(float(value), 9) for value in result.daily_results["net_market_margin_eur"]],
+            [1.0, 0.0],
+        )
+
+        # A feasible policy that waits spends the same single cycle on the second day.
+        prices = budgeted_two_day_prices()
+        market_day = prices["delivery_start_market"].dt.date
+        second = prices[market_day == sorted(market_day.unique())[1]].reset_index(drop=True)
+        waited = optimize_perfect_foresight(second, battery())
+        self.assertAlmostEqual(
+            float(waited.summary["net_market_margin_eur"]), 100.0, places=9
+        )
+
+        # So the aggregate cannot be a ceiling: a feasible policy beat it a hundredfold.
+        self.assertLess(
+            result.summary["net_market_margin_eur"],
+            float(waited.summary["net_market_margin_eur"]),
+        )
+
+    def test_the_aggregate_is_not_labelled_a_lifetime_upper_bound(self) -> None:
+        result = simulate_degradation_dispatch(
+            budgeted_two_day_prices(), battery(), self._one_cycle_budget()
+        )
+        label = result.summary["result_label"]
+        self.assertIn("simulation", label.lower())
+        self.assertIn("not a lifetime optimum or an upper bound", label.lower())
+        # The superseded wording called the aggregate a bound outright.
+        self.assertNotIn("gross-margin upper bound", label.lower())
+        self.assertIn("result_basis_note", result.summary)
+        self.assertIn("myopic", result.summary["result_basis_note"].lower())
+
+    def test_the_kind_reports_on_a_simulation_basis(self) -> None:
+        kind = RESULT_KINDS["degradation_dispatch"]
+        self.assertEqual(kind.basis, "historical_replay_simulation")
+        self.assertIn("not a lifetime optimum", kind.description)
+
+    def test_a_stored_upper_bound_manifest_is_refused_with_a_migration_message(self) -> None:
+        # Never silently relabelled: the same number means something different under the two
+        # bases, so the stored manifest is refused and the operator is told to re-run.
+        self.assertIn(
+            ("degradation_dispatch", "historical_replay_upper_bound"), SUPERSEDED_BASES
+        )
+        message = SUPERSEDED_BASES[
+            ("degradation_dispatch", "historical_replay_upper_bound")
+        ]
+        self.assertIn("not one", message)
+
+    def test_a_genuine_fixed_capacity_upper_bound_keeps_its_basis(self) -> None:
+        # Only the evolving-state aggregate is reclassified. A perfect-foresight solve over a
+        # fixed battery is still a real ceiling and must keep saying so.
+        for kind_id in ("perfect_foresight_dispatch", "daily_perfect_foresight_dispatch"):
+            self.assertEqual(
+                RESULT_KINDS[kind_id].basis, "historical_replay_upper_bound", kind_id
+            )
+
+    def test_the_finance_interpretation_does_not_inherit_upper_bound_wording(self) -> None:
+        self.assertIn("daily_policy_degraded_simulation", OPERATING_MARGIN_CASES)
+        interpretation = _margin_interpretation("daily_policy_degraded_simulation")
+        self.assertIn("not a lifetime optimum or an upper bound", interpretation)
+        # The genuine bound case is unchanged.
+        self.assertIn(
+            "upper bound", _margin_interpretation("perfect_foresight_upper_bound")
+        )

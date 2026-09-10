@@ -156,8 +156,27 @@ result carries an IRR, so the acceptance record is unchanged; NPV, payback, brea
 totals, fees and augmentation costs are unchanged. See
 `docs/history/implementation_report_dated_cash_flow_irr_2026-09-10.md`.
 
-Next: Stage 5 — identify the evolving-state degradation aggregate as a day-by-day
-perfect-foresight simulation rather than a lifetime optimum (`fix-degradation-result-basis`).
+## Stage 5 — the degraded aggregate is a simulation, not a bound
+
+A degradation dispatch solves each market day optimally under the limits it begins with, so every
+day is a perfect-foresight ceiling for that day. The total is not: those limits depend on what
+earlier days discharged, so the aggregate is one myopic policy's outcome rather than a ceiling
+over all policies. Given one warranted equivalent full cycle and two days whose spreads are EUR 1
+and EUR 100 per MWh, the daily policy earns EUR 1 and a feasible policy that waits earns EUR 100.
+
+The result now reports on a new `historical_replay_simulation` basis, its label states that it is
+not a lifetime optimum or an upper bound, and it carries a note explaining the myopia. Finance
+gains a matching operating-margin case so the claim cannot return downstream. Perfect-foresight
+dispatch over a fixed battery keeps its genuine upper-bound basis. The daily policy is retained
+and no lifetime optimizer is introduced.
+
+No computed figure changes. A manifest stored under the superseded basis is refused with an
+actionable re-run message rather than relabelled; no accepted record carries the kind, so nothing
+in the acceptance record changes. See
+`docs/history/implementation_report_degradation_result_basis_2026-09-10.md`.
+
+Next: Stage 6 — record the prospective amendment adding a matched-training price-only control,
+then compare the three arms (`benchmark-matched-training-control`).
 
 ## v0.9.7 — the first real retrieval of the declared window, and the three defects it found
 

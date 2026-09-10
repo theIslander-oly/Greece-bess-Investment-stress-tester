@@ -209,6 +209,25 @@ allocated proportionally across active cohorts. Capacity additions, replacements
 retained-capacity thresholds and optional EFC warranty limits are explicit. The model is a
 transparent approximation and not an electrochemical lifetime model.
 
+### 5.1 What the degraded aggregate is
+
+A degradation dispatch solves each market day optimally under the limits that day begins with,
+so every *day* is a perfect-foresight ceiling for that day. The total over many days is not.
+The limits a day begins with depend on what earlier days discharged, so the aggregate is the
+outcome of one policy rather than a ceiling over all of them, and that policy is myopic with
+respect to any lifetime budget.
+
+The counterexample is small enough to check by hand. Give a 1 MW / 1 MWh battery a single
+warranted equivalent full cycle and two delivery days whose spreads are EUR 1 and EUR 100 per
+MWh. Solving each day in isolation spends the cycle on the first day and earns EUR 1, leaving no
+warranted throughput for the second. A feasible policy that simply waits earns EUR 100.
+
+The result is therefore recorded on the `historical_replay_simulation` basis, and a lifetime
+optimum is at least as large as it — which makes the total a lower bound on that optimum, not an
+upper bound on achievable margin. The daily policy is retained and no lifetime optimizer is
+introduced; what changed is that the result says what it is. Perfect-foresight dispatch over a
+fixed, non-degrading battery remains a genuine upper bound and keeps that basis.
+
 ## 6. Finance
 
 The finance engine requires a continuous daily operating path and preserves its provenance
