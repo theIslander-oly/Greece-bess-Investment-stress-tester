@@ -87,6 +87,11 @@ BASIS_WORDING: dict[str, str] = {
         "a perfect-foresight ceiling over real history — the most the modelled battery could "
         "have earned knowing every price in advance, never revenue and never a forecast"
     ),
+    "historical_replay_simulation": (
+        "a day-by-day simulation over real history — each day dispatched optimally under the "
+        "state it began with, so the total is what this one policy achieved and not a ceiling "
+        "over all policies; never revenue and never a forecast"
+    ),
     "historical_forecast_backtest": (
         "a settled backtest — a strictly time-ordered forecast planned in advance and settled "
         "at the prices that actually occurred"
@@ -109,6 +114,7 @@ BASIS_WORDING: dict[str, str] = {
 #: distinction the structure of the document rather than a footnote.
 BASIS_HEADING: dict[str, str] = {
     "historical_replay_upper_bound": "Historical replay upper bounds",
+    "historical_replay_simulation": "Historical replay simulations",
     "historical_forecast_backtest": "Historical forecast backtests",
     "synthetic_scenario": "Synthetic scenarios",
     "screening_arithmetic": "Screening arithmetic",

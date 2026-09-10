@@ -1,5 +1,30 @@
 # Decision log
 
+## 2026-09-10 — Record the degraded dispatch aggregate as a simulation, not a bound
+
+- **Decision:** A day-by-day dispatch under an evolving degradation state reports on a new
+  `historical_replay_simulation` basis. Its label states that the total is what the daily policy
+  achieved and not a lifetime optimum or an upper bound, and it carries a `result_basis_note`
+  giving the reason. Finance gains a `daily_policy_degraded_simulation` operating-margin case so
+  the claim cannot be reintroduced downstream. Perfect-foresight dispatch over a fixed battery
+  keeps the genuine `historical_replay_upper_bound` basis. The daily policy is retained and no
+  lifetime optimizer is introduced.
+- **Reason:** Each day is optimal under the limits it begins with, but those limits depend on
+  what earlier days discharged, so the aggregate is one policy's outcome rather than a ceiling.
+  With one warranted equivalent full cycle and two days whose spreads are EUR 1 and EUR 100 per
+  MWh, the daily policy earns EUR 1 and a feasible policy that waits earns EUR 100 — a feasible
+  policy beating the declared bound a hundredfold. A lifetime optimum is at least as large as the
+  aggregate, which makes it a lower bound on that optimum.
+- **Consequence:** No computed figure changes; the basis, label and interpretation those figures
+  are recorded under do. A manifest stored under the superseded basis is refused with an
+  actionable re-run message rather than relabelled in place, because the same number means
+  something different under the two bases. **Material assumption:** the refusal is absolute
+  because `degradation_dispatch` appears in no accepted record, custody document or committed
+  report — only in command-reference usage examples — so no accepted evidence is invalidated. Had
+  an accepted record carried the kind, the compatible-interpretation route the execution plan
+  also permits would have been required instead. `docs/sample_report.html` is regenerated for the
+  absent-basis line alone. This decision authorizes no official-data run.
+
 ## 2026-09-10 — Compute every monetary metric from one dated cash-flow series
 
 - **Decision:** NPV and IRR are computed from the same dated series — initial capex at the

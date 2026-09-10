@@ -1,4 +1,17 @@
-"""Day-by-day perfect-foresight dispatch with evolving degraded capacity."""
+"""Day-by-day perfect-foresight dispatch with evolving degraded capacity.
+
+**The aggregate is a simulation, not a bound.** Each market day is solved optimally under the
+limits it begins with, which makes every *day* a perfect-foresight ceiling for that day. The
+total over many days is not, because the state those days begin with depends on what the earlier
+days chose to discharge. The daily policy is myopic with respect to any lifetime budget: given
+one warranted cycle and two days whose spreads are EUR 1 and EUR 100, it spends the cycle on the
+first day and earns EUR 1, where waiting earns EUR 100. A lifetime optimum is therefore at least
+as large as this total, which makes it a lower bound on that optimum and not an upper bound on
+achievable margin.
+
+This module keeps the daily policy. It does not introduce a lifetime optimizer; it declares what
+the result it produces actually is, so nothing downstream can read the total as a ceiling.
+"""
 
 from __future__ import annotations
 
@@ -21,8 +34,22 @@ from ..degradation import (
 from ..dispatch import BatteryDispatchConfig, optimize_perfect_foresight
 
 DEGRADED_DISPATCH_LABEL = (
-    "Daily perfect-foresight Greek DAM gross-margin upper bound with endogenous "
-    "illustrative degradation and augmentation; not expected investment revenue."
+    "Day-by-day perfect-foresight Greek DAM gross-margin simulation with endogenous "
+    "illustrative degradation and augmentation. Each day is solved optimally under the state "
+    "it begins with; because that state evolves with what earlier days chose, the total is "
+    "what this daily policy achieved and not a lifetime optimum or an upper bound. Not "
+    "expected investment revenue."
+)
+
+#: Why the aggregate is a simulation rather than a bound, in one recordable sentence. A reader
+#: who sees only the total needs the reason attached to it, not left in a docstring.
+DEGRADED_DISPATCH_BASIS_NOTE = (
+    "Each market day is dispatched optimally under its beginning-of-day degraded limits, and "
+    "those limits depend on what earlier days discharged. The daily policy is therefore myopic "
+    "with respect to any lifetime budget: with one warranted cycle remaining it takes today's "
+    "small spread and cannot take tomorrow's larger one. A lifetime optimum would be at least "
+    "as large, so this total is a lower bound on that optimum rather than an upper bound on "
+    "achievable margin."
 )
 
 
@@ -272,6 +299,7 @@ def simulate_degradation_dispatch(
     augmentation_cost = float(daily_results["augmentation_cost_eur"].sum())
     summary = {
         "result_label": DEGRADED_DISPATCH_LABEL,
+        "result_basis_note": DEGRADED_DISPATCH_BASIS_NOTE,
         "market_day_count": int(len(daily_results)),
         "interval_count": int(len(interval_schedule)),
         "first_market_day": str(daily_results["market_day"].min()),

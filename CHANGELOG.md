@@ -6,6 +6,25 @@ All notable project changes are documented here.
 
 ### Fixed
 
+- **The degraded dispatch aggregate was labelled an upper bound and is not one.** Each market
+  day is solved optimally under the limits it begins with, so every day is a perfect-foresight
+  ceiling for that day — but those limits depend on what earlier days discharged, so the total
+  is the outcome of one myopic policy rather than a ceiling over all policies. With one warranted
+  equivalent full cycle and two days whose spreads are EUR 1 and EUR 100 per MWh, the daily
+  policy spends the cycle on the first day and earns EUR 1; a feasible policy that waits earns
+  EUR 100. The result now reports on a new `historical_replay_simulation` basis, its label states
+  that it is not a lifetime optimum or an upper bound, and it carries a `result_basis_note`
+  saying why. Finance gains a `daily_policy_degraded_simulation` operating-margin case so a
+  degraded path fed into it cannot inherit the upper-bound wording. Perfect-foresight dispatch
+  over a fixed battery is unchanged and keeps its genuine upper-bound basis. The daily policy is
+  retained and no lifetime optimizer is introduced.
+
+  A manifest stored under the superseded basis is refused with a message naming what changed and
+  telling the operator to re-run, never silently relabelled: the same number means something
+  different under the two bases. No accepted record, custody document or committed report carries
+  this kind, so nothing in the acceptance record changes. `docs/sample_report.html` is
+  regenerated because the report now lists the new basis among those it does not represent.
+
 - **NPV and IRR described different cash-flow timings.** NPV discounted the daily table, in which
   each delivery day's cash flow carries its own date; IRR solved on the annual table, which sums
   a project year's flows and dates the total at that year's final day. The two metrics therefore
