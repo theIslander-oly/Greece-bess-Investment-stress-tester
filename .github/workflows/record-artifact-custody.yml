@@ -39,12 +39,12 @@ on:
       feature_run_id:
         description: Run ID holding the point-in-time-fundamentals artifact; empty skips it
         required: false
-        default: ""
+        default: "34503398871"
         type: string
       feature_digest:
         description: SHA-256 GitHub publishes for the feature-table artifact archive
         required: false
-        default: ""
+        default: "3d988aba2b003f43f735fb5b935c9779670cda299b4fc6cc6758f52565dbe74b"
         type: string
       record_mode:
         description: >-
@@ -82,8 +82,10 @@ jobs:
         ${{ inputs.reconciliation_digest
         || 'bee557eaf4f2fa449fe9284bf2d80225e51350c622321cf921f3cbab033b816a' }}
       RECORD_MODE: ${{ inputs.record_mode || 'auto' }}
-      FEATURE_RUN_ID: ${{ inputs.feature_run_id || '' }}
-      FEATURE_DIGEST: ${{ inputs.feature_digest || '' }}
+      FEATURE_RUN_ID: ${{ inputs.feature_run_id || '34503398871' }}
+      FEATURE_DIGEST: >-
+        ${{ inputs.feature_digest
+        || '3d988aba2b003f43f735fb5b935c9779670cda299b4fc6cc6758f52565dbe74b' }}
 
     steps:
       - name: Check out repository
