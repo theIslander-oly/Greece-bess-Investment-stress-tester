@@ -1,5 +1,29 @@
 # Decision log
 
+## 2026-09-10 — Correct the pre-coupling gate closure to 12:00 CET on the retained primary text
+
+- **Decision:** `config/decision_cutoff.json` declares one gate-closure regime from delivery day
+  2020-11-01: 12:00 on D-1 in `Europe/Brussels`, under the new schedule id
+  `greek-dam-gate-closure-2026-09-10`. The 3 September 2026 declaration's first regime, 12:00
+  `Europe/Athens` for delivery days before 2020-12-16, is superseded; its id
+  `greek-dam-gate-closure-2026-09-03` is retired and the guards that pin the id in the preflight
+  and benchmark workflows and in the declaration test follow the new one.
+- **Reason:** The declaration required the primary rulebook text to be retained before any
+  official acceptance and stated that a contradiction must be corrected before any test run.
+  The retained HEnEx Decision 10 of 20 October 2020 (ref. 2205/20.10.2020), the day-ahead
+  timeline in force at the 1 November 2020 launch and the only version before September 2021 in
+  the HEnEx library, states "12:00 (CET), D-1 / 13:00 (EET), D-1 — The Day-Ahead Market Gate
+  Closure Time", and its September 2021 and March 2026 successors state the same. The declared
+  Athens-clock closure was one hour early. Two regimes with one closure would be a label without
+  a rule change behind it, so one regime is declared and the SDAC and 15-minute-MTU dates are
+  recorded in its reference as events that did not move the gate. The id changes because the
+  content changed; an id that named two schedules would defeat its purpose.
+- **Consequence:** No accepted observation changes: the first GFS-usable delivery day is
+  2021-02-27 and no feature exists on any day the superseded regime covered, which the re-run
+  preflight is to confirm by reproducing the accepted feature-set digest. The schedule file's
+  digest changes and is re-recorded by that preflight. No benchmark has been run, so this is a
+  correction of a declaration and not a revision of a result.
+
 ## 2026-09-10 — Recombine retrieved slices from their run; record feature-table custody; expired artifacts leave the verification defaults
 
 - **Decision:** `Fetch point-in-time fundamentals` accepts an optional `shards_from_run_id`. When

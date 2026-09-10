@@ -26,6 +26,19 @@ The first regime covers the isolated Greek DAM period. The second begins with Gr
 delivery-day go-live. The 15-minute market-time-unit change on 1 October 2025 does not create a
 third closure regime: it changes delivery resolution, not the declared SDAC order-book gate.
 
+> **Amendment, 10 September 2026 — the pre-coupling closure was corrected before any test run.**
+> The retained HEnEx Decision 10 of 20 October 2020 (ref. 2205/20.10.2020), the day-ahead
+> timeline in force at the 1 November 2020 launch, states "The Day-Ahead Market Gate Closure
+> Time" at 12:00 (CET) / 13:00 (EET) on D-1 — one hour later than the 12:00 Europe/Athens
+> declared above for delivery days before 2020-12-16. As this section requires, the declaration
+> was corrected before any benchmark run: `config/decision_cutoff.json` now declares one regime
+> from 2020-11-01 at 12:00 Europe/Brussels under the schedule id
+> `greek-dam-gate-closure-2026-09-10`; the superseded id `greek-dam-gate-closure-2026-09-03`
+> named the two-regime schedule tabulated above. No admitted feature exists before 2021-02-27,
+> so no accepted observation changes. The primary text, its digests and the reading are in
+> `docs/primary_sources/README.md`; the decision is recorded in `DECISIONS.md`. The table above
+> is kept as the record of what was declared on 3 September 2026.
+
 The isolated-period value is the weakest element of this declaration. Research located the
 HEnEx/EnExGroup trading rulebook and SDAC notices, but the primary text was not retrievable from
 the research environment. The operator approved the two-regime schedule with that limitation.

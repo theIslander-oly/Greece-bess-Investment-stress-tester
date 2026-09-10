@@ -19,9 +19,37 @@ The staged plan in `Greek_BESS_Execution_Plan.md` is active. Only one stage move
 | 4 | Complete | Dated cash-flow NPV and IRR merged as `d5f0ca1` |
 | 5 | Complete | Degradation result basis merged as `df7ffec` |
 | 6 | Complete | Matched-training control merged as `196a5c1` (amendment `cba04f0`) |
-| 7 | In progress | Steps 1–4 done: retrieval, combination, custody and preflight (`docs/history/implementation_report_stage7_custody_preflight_2026-09-10.md`); step 5 waits on primary-source documents the operator must supply |
+| 7 | In progress | Steps 1–5 done: retrieval, combination, custody, preflight and the dated acceptance (`docs/fundamentals_acceptance_2026-09-10.md`); steps 6–7, the benchmarks and their result, are next |
 | 8 | In progress | Design unit proposed in `docs/integrated_study_design.md`; implementation follows adoption |
 | 9–10 | Pending | Follow the fixed plan in order |
+
+### Session handoff — 10 September 2026, stage 7 step 5
+
+**Active stage:** 7, steps 1–5 done, steps 6–7 not started. Stages 1–6 are complete and on `main`.
+
+**Branch and commit:** `claude/epic-cannon-zp4ypu`, open as a pull request against `main`.
+
+**Exact changes.** `Retain primary sources`, a manual and declaration-driven workflow that
+downloads publisher documents, records their digests, prints the passages that bear on a
+declaration and attaches the files to a private release without ever overwriting a retained copy;
+`config/primary_sources.json` declaring nine documents; `docs/primary_sources/README.md` citing
+each with digests and quoted passages; the cutoff correction to one regime at 12:00
+`Europe/Brussels` under id `greek-dam-gate-closure-2026-09-10`, with the three guards that pin the
+id; and `docs/fundamentals_acceptance_2026-09-10.md`, verdict accepted.
+
+**Evidence.** Preflight run `34519415488` after the correction: accepted feature set
+`a718f46265678cf1e37c31fca439b9f2f03479901fe8f0ac126766431b99aefc`, unchanged from run
+`34503999540`; 2,002 complete days, 122 excluded by name, 6,006 accepted variable-days, 0
+witnessed, DJF 2025-26 fully common so not exploratory. Retention runs `34517968860` and
+`34518723361`, release `primary-sources-2026-09-10`.
+
+**Blocker.** None. Steps 6 and 7 are dispatchable now.
+
+**Next single action.** Dispatch `Benchmark point-in-time fundamentals` with
+`history_run_id=33483975614`, `feature_run_id=34503398871`,
+`accepted_feature_set_sha256=a718f46265678cf1e37c31fca439b9f2f03479901fe8f0ac126766431b99aefc`
+and the SHA-256 of the committed acceptance document. Then commit the aggregate result and run
+references whichever way the comparison goes, and render it through the existing report contract.
 
 ### Session handoff — 10 September 2026, stage 7 step 4
 
@@ -655,10 +683,12 @@ plan it as one whenever the host is refused.
   3. ~~Record and verify custody of the accepted feature table through
      `Record official artifact custody` and `Publish encrypted custody copies`.~~ Done: record
      run `34504032804`, verification run `34504409514`, release `custody-2026-09-10`.
-  4. Commit the dated acceptance document, which must name the accepted feature-set digest and
-     carry the primary rulebook and capacity sources the tooling cannot verify
-     (`docs/templates/fundamentals_acceptance.md`). *Waits on the operator supplying those
-     primary documents; nothing else is outstanding.*
+  4. ~~Commit the dated acceptance document, which must name the accepted feature-set digest and
+     carry the primary rulebook and capacity sources the tooling cannot verify.~~ Done:
+     `docs/fundamentals_acceptance_2026-09-10.md`, on nine documents retained by runs
+     `34517968860` and `34518723361` and cited in `docs/primary_sources/README.md`. Retaining
+     them corrected the pre-coupling gate closure; preflight run `34519415488` confirmed the
+     accepted digest is unchanged.
   5. Dispatch `Benchmark point-in-time fundamentals` from that digest, and commit its result
      regardless of sign (`docs/templates/fundamentals_benchmark.md`).
 

@@ -6,6 +6,41 @@ All notable project changes are documented here.
 
 ### Added
 
+- **The point-in-time feature table is accepted, and the primary text the declarations rest on is
+  retained.** `docs/fundamentals_acceptance_2026-09-10.md` records the verdict `accepted` for the
+  table combined by run `34503398871`, naming the accepted feature set
+  `a718f462…99aefc`, every declared input by digest, 2,002 complete delivery days and 122 excluded
+  by name out of 2,124 joined, 6,006 accepted variable-days with none witnessed and none
+  quarantined, the custody outcome and seven recorded limitations. The verdict is data
+  suitability: no benchmark had been run when it was written, and no forecast, margin or cash flow
+  had been computed from this feature set.
+
+  Both operator declarations require their primary publications to be retained with the acceptance
+  evidence. `Retain primary sources` is a manual, declaration-driven workflow that downloads the
+  documents named in `config/primary_sources.json`, records byte size and SHA-256, prints the
+  passages that bear on a declaration for review, and attaches the files to a private release —
+  **never overwriting a retained copy**, since a differing digest is a finding. Nine documents are
+  retained on release `primary-sources-2026-09-10` and cited with digests and quoted passages in
+  `docs/primary_sources/README.md`. The guard fired in earnest: one retrieval of the HWEA
+  statistics returned a 12 KB non-PDF response, nothing was overwritten, and the next retrieval
+  matched the retained digest.
+
+### Fixed
+
+- **The declared pre-coupling gate closure was an hour early, and the retained primary text is
+  what showed it.** The 3 September 2026 declaration set the Greek day-ahead closure at 12:00
+  `Europe/Athens` on D-1 for delivery days before 2020-12-16, called that its weakest element, and
+  required correction before any test run if the primary text disagreed. HEnEx Decision 10 of
+  20 October 2020 — the timeline in force at the 1 November 2020 launch, and the only version
+  before September 2021 in the HEnEx library — tabulates the Day-Ahead Market Gate Closure Time at
+  12:00 (CET) / 13:00 (EET) on D-1, as do its 2021 and 2026 successors. The schedule now declares
+  one regime from 2020-11-01 at 12:00 `Europe/Brussels` under the id
+  `greek-dam-gate-closure-2026-09-10`; the coupling and 15-minute-MTU dates are recorded in its
+  reference as events that did not move the gate. Preflight run `34519415488` confirmed rather
+  than assumed that no accepted observation changes: the accepted feature-set digest and every
+  count are identical to the run before the correction, because no admitted feature predates
+  2021-02-27. No benchmark had been run, so this corrects a declaration and revises no result.
+
 - **Retrieved fundamentals slices can be recombined without being re-retrieved.**
   `Fetch point-in-time fundamentals` gains an optional `shards_from_run_id`: retrieval is skipped
   and the combine job reads the named earlier run's slice artifacts under the same slice-count

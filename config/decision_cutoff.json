@@ -1,19 +1,12 @@
 {
-  "schedule_id": "greek-dam-gate-closure-2026-09-03",
+  "schedule_id": "greek-dam-gate-closure-2026-09-10",
   "regimes": [
     {
       "effective_from_delivery_day": "2020-11-01",
       "closure_day_offset": -1,
       "closure_local_time": "12:00:00",
-      "closure_timezone": "Europe/Athens",
-      "reference": "Operator declaration dated 2026-09-03. HEnEx isolated Greek DAM trading schedule effective 2020-11-01 through 2020-12-15: order gate closure 12:00 Europe/Athens on D-1. Primary rulebook text must be retained with the acceptance evidence; the repository tooling cannot verify this declared rule."
-    },
-    {
-      "effective_from_delivery_day": "2020-12-16",
-      "closure_day_offset": -1,
-      "closure_local_time": "12:00:00",
       "closure_timezone": "Europe/Brussels",
-      "reference": "Operator declaration dated 2026-09-03. Single Day-Ahead Coupling operating procedure following Greece's SDAC go-live for delivery day 2020-12-16: order-book gate closure 12:00 CET/CEST on D-1. The 15-minute MTU go-live for delivery day 2025-10-01 did not change this closure. Primary procedure text and effective-date notices must be retained with the acceptance evidence; the repository tooling cannot verify this declared rule."
+      "reference": "Operator declaration dated 2026-09-03, corrected 2026-09-10 against the retained primary text (docs/primary_sources/README.md). HEnEx Decision 10 'Timeline Procedures for the Day-Ahead and Intra-Day Market' of 20 October 2020 (ref. 2205/20.10.2020), in force at the 1 November 2020 launch of the Greek Day-Ahead Market: 'The Day-Ahead Market Gate Closure Time' at 12:00 (CET) / 13:00 (EET) on D-1. The same closure is stated by Decision 10 of 20 September 2021 (ref. 1371/20.09.2021) and of 31 March 2026 (ref. 700/31.03.2026). Greece's SDAC coupling from delivery day 2020-12-16 (NEMO Committee notice of 15 December 2020; RAE Decision 1574/2020) and the 15-minute market time unit from delivery day 2025-10-01 (SDAC notices of 12 September and 7 October 2025) changed neither the closure time nor its clock, so one regime is declared. The superseded 2026-09-03 declaration placed the closure before 2020-12-16 at 12:00 Europe/Athens; no admitted feature exists before 2021-02-27, so the correction changes no accepted observation. The repository tooling cannot verify this rule; the cited text is retained with the acceptance evidence."
     }
   ]
 }

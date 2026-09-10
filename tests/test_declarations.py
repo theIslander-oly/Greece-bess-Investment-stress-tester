@@ -22,10 +22,17 @@ class FundamentalsDeclarationTests(unittest.TestCase):
     def test_cutoff_regimes_resolve_at_the_declared_utc_instants(self) -> None:
         schedule = read_decision_cutoff_schedule(CONFIG / "decision_cutoff.json")
 
-        self.assertEqual(schedule.schedule_id, "greek-dam-gate-closure-2026-09-03")
+        self.assertEqual(schedule.schedule_id, "greek-dam-gate-closure-2026-09-10")
+        # One closure throughout: 12:00 CET/CEST on D-1 from the 1 November 2020 launch, as the
+        # retained HEnEx timeline decisions state (docs/primary_sources/README.md). The
+        # superseded 2026-09-03 declaration placed the pre-coupling closure one hour earlier.
+        self.assertEqual(
+            schedule.closure_utc(date(2020, 11, 1)).isoformat(),
+            "2020-10-31T11:00:00+00:00",
+        )
         self.assertEqual(
             schedule.closure_utc(date(2020, 12, 15)).isoformat(),
-            "2020-12-14T10:00:00+00:00",
+            "2020-12-14T11:00:00+00:00",
         )
         self.assertEqual(
             schedule.closure_utc(date(2020, 12, 16)).isoformat(),

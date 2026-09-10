@@ -50,7 +50,7 @@ jobs:
           import hashlib, json, os
           from pathlib import Path
           schedule=json.loads(Path("config/decision_cutoff.json").read_text())
-          assert schedule["schedule_id"] == "greek-dam-gate-closure-2026-09-03"
+          assert schedule["schedule_id"] == "greek-dam-gate-closure-2026-09-10"
           geography=json.loads(Path("config/fundamentals_geography.json").read_text())
           assert len(geography["points"]) == 3
           digest=os.environ["ACCEPTED_FEATURE_SET_SHA256"]
