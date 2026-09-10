@@ -9,6 +9,11 @@ Counts under `interval_counts_by_delivery_year` use the CET/CEST market clock, n
 market day belongs entirely to one delivery year. This differs by one interval at a year
 boundary from a UTC-grouped count; see the procedure document for the worked 2020 case.
 
+`accepted-fundamentals-feature-table.json` fingerprints the combined point-in-time feature table.
+Its `content` section is empty by construction: no file in that artifact is a canonical price
+history, so the record holds per-file byte digests only, and a feature value can no more be
+recovered from it than a price can from the others.
+
 This directory covers **retrieved official artifacts only**. Derived evidence produced by this
 project from an already-custodied history — the `annual-replay-decomposition` artifact, for
 instance — gets no record here: it has no provider that could revise it, and its inputs are

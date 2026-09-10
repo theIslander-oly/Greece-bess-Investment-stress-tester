@@ -19,9 +19,43 @@ The staged plan in `Greek_BESS_Execution_Plan.md` is active. Only one stage move
 | 4 | Complete | Dated cash-flow NPV and IRR merged as `d5f0ca1` |
 | 5 | Complete | Degradation result basis merged as `df7ffec` |
 | 6 | Complete | Matched-training control merged as `196a5c1` (amendment `cba04f0`) |
-| 7 | Blocked | Needs operator authorization for official-data retrieval; see the handoff below |
+| 7 | In progress | Steps 1–4 done: retrieval, combination, custody and preflight (`docs/history/implementation_report_stage7_custody_preflight_2026-09-10.md`); step 5 waits on primary-source documents the operator must supply |
 | 8 | In progress | Design unit proposed in `docs/integrated_study_design.md`; implementation follows adoption |
 | 9–10 | Pending | Follow the fixed plan in order |
+
+### Session handoff — 10 September 2026, stage 7 step 4
+
+**Active stage:** 7, steps 1–4 done, step 5 not started. Stages 1–6 are complete and on `main`.
+
+**Branch and commit:** `claude/epic-cannon-zp4ypu`, opened as a PR against `main` at `c59f7a4`.
+
+**Exact changes.** `Fetch point-in-time fundamentals` gains `shards_from_run_id` (combine an
+earlier run's slices without retrieving); the feature-table custody label names the producing
+workflow; the custody workflows' reconciliation default is empty because that artifact expired;
+the record workflow prints generated records; `docs/custody/accepted-fundamentals-feature-table.json`
+is committed as emitted. Runs: combination `34503398871`, custody record `34504032804`,
+verification `34504409514`, preflight `34503999540`, encrypted copies `34504908065`
+(release `custody-2026-09-10`). No source module changed.
+
+**Evidence.** Preflight: accepted feature set
+`a718f46265678cf1e37c31fca439b9f2f03479901fe8f0ac126766431b99aefc`; 2,002 complete days, 122
+excluded by name; 0 witnessed; DJF 2025-26 fully common, so not exploratory under the
+pre-registered rule. Details in
+`docs/history/implementation_report_stage7_custody_preflight_2026-09-10.md`. Ruff, mypy, 696
+tests and a clean wheel build pass.
+
+**Blocker.** Step 5, the dated acceptance document, must name primary-source support the tooling
+cannot verify: the HWEA/ELETAEN wind-capacity statistics at 31 December 2023, the HEnEx
+isolated-market rulebook text for delivery days before 2020-12-16, and the SDAC operating
+procedure and effective-date notices. None was supplied. Writing the document without them would
+be inventing its support, so it was not written.
+
+**Next single action.** The operator supplies those three documents (retained with the acceptance
+evidence, outside Git if their terms require). Then complete `docs/fundamentals_acceptance_<date>.md`
+from the template and the report above, commit it, and dispatch `Benchmark point-in-time
+fundamentals` with `history_run_id=33483975614`, `feature_run_id=34503398871`, the feature-set
+digest above and the SHA-256 of the committed document. Step 7 commits the result whichever way
+it goes.
 
 ### Session handoff — 10 September 2026
 
@@ -613,15 +647,18 @@ plan it as one whenever the host is refused.
 - [x] Exercise the generic renderer for all three v0.9 kinds and add dated-document templates.
 - [ ] **The official run, in this fixed order and no other.** The engineering above merged on
   3 September 2026, so nothing here waits on a branch any more:
-  1. Dispatch `Fetch point-in-time fundamentals` over the declared window and read its
-     availability audit. *Measured but not yet run against the declared window — see v0.9.6.*
-  2. Check the complete-season preflight, which decides whether the run is labelled exploratory
-     before any result is seen rather than after.
-  3. Record and verify custody of the accepted feature table through
-     `Record official artifact custody` and `Publish encrypted custody copies`.
+  1. ~~Dispatch `Fetch point-in-time fundamentals` over the declared window and read its
+     availability audit.~~ Done: retrieval run `34476720910`, combination run `34503398871`
+     (10 September 2026).
+  2. ~~Check the complete-season preflight, which decides whether the run is labelled exploratory
+     before any result is seen rather than after.~~ Done: preflight run `34503999540`.
+  3. ~~Record and verify custody of the accepted feature table through
+     `Record official artifact custody` and `Publish encrypted custody copies`.~~ Done: record
+     run `34504032804`, verification run `34504409514`, release `custody-2026-09-10`.
   4. Commit the dated acceptance document, which must name the accepted feature-set digest and
      carry the primary rulebook and capacity sources the tooling cannot verify
-     (`docs/templates/fundamentals_acceptance.md`).
+     (`docs/templates/fundamentals_acceptance.md`). *Waits on the operator supplying those
+     primary documents; nothing else is outstanding.*
   5. Dispatch `Benchmark point-in-time fundamentals` from that digest, and commit its result
      regardless of sign (`docs/templates/fundamentals_benchmark.md`).
 

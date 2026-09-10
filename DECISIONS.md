@@ -1,5 +1,31 @@
 # Decision log
 
+## 2026-09-10 — Recombine retrieved slices from their run; record feature-table custody; expired artifacts leave the verification defaults
+
+- **Decision:** `Fetch point-in-time fundamentals` accepts an optional `shards_from_run_id`. When
+  set, retrieval is skipped and the combine job reads the named run's slice artifacts under the
+  unchanged slice-count guard and official reconciliation. The combined table of run
+  `34503398871`, built from the 23 slices run `34476720910` retrieved, is fingerprinted in
+  `docs/custody/accepted-fundamentals-feature-table.json`, and the custody workflow's
+  feature-table defaults follow that record. The workflow's reconciliation default is empty,
+  because the artifact it named expired on 3 September 2026. The feature-table custody step in
+  every workflow names `Fetch point-in-time fundamentals` as the source workflow.
+- **Reason:** The step 2 retrieval succeeded slice by slice and failed only at combination, on a
+  workflow defect corrected since. Re-retrieving 2,006 delivery days would not reproduce those
+  slices — receipt times would move and the archive may have — so the evidence that exists is the
+  evidence to combine. The custody record is committed as the tooling emitted it in run
+  `34504032804` and was verified by the push-triggered run `34504409514` with zero differences.
+  It holds byte digests only: no file in the artifact is a canonical price history, so the
+  content-fingerprint section is empty by construction, not by omission. The reconciliation
+  artifact cannot be downloaded or regenerated (`ENTSOE_SECURITY_TOKEN` is unset), so a default
+  pointing at it turned every custody verification into a download failure; its committed record
+  remains verifiable against the decrypted release copy by the documented drill. The source
+  workflow label previously named the benchmark, which consumes the artifact and does not produce
+  it: a correct fingerprint under a wrong provenance label.
+- **Consequence:** Custody proves that a copy is this artifact; it accepts no feature value.
+  No feature value, source declaration, cutoff, geography, window or evidence grade changes, and
+  no acceptance verdict is recorded by this entry.
+
 ## 2026-09-10 — Compare interval durations by value and select numbered shard tables exactly
 
 - **Decision:** Point-in-time interval validation compares each measured duration with its
