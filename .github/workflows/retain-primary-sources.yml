@@ -73,11 +73,13 @@ jobs:
         if: ${{ env.LIST_PAGES != '' }}
         shell: bash
         run: |
-          set -uo pipefail
+          set -u +e +o pipefail
           for url in $LIST_PAGES; do
             echo "::group::${url}"
-            if ! curl -fsSL --retry 3 --retry-delay 5 -A "$USER_AGENT" -o page.html "$url"; then
-              echo "FAILED to fetch ${url} (curl exit $?)"
+            curl -fsSL --retry 3 --retry-delay 5 -A "$USER_AGENT" -o page.html "$url"
+            status=$?
+            if [[ "$status" -ne 0 ]]; then
+              echo "FAILED to fetch ${url} (curl exit ${status})"
               echo "::endgroup::"
               continue
             fi
@@ -162,9 +164,12 @@ jobs:
 
       - name: Print metadata and the passages that match the search terms
         if: ${{ env.DOCUMENT_URLS != '' }}
+        # Review output only. Truncating a long text with head closes the pipe early, which is
+        # not a failure, and a failure here must never stop the retention below.
+        continue-on-error: true
         shell: bash
         run: |
-          set -uo pipefail
+          set -u +e +o pipefail
           shopt -s nullglob
           for file in retained/*; do
             [[ "$(basename "$file")" == "RETRIEVAL.json" ]] && continue
