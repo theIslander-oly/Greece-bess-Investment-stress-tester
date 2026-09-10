@@ -114,7 +114,28 @@ invented. This code change ran no official-data workflow and accepts no feature 
 benchmark result; see
 `docs/history/implementation_report_feature_observation_times_2026-09-10.md`.
 
-Next: Stage 3, unit 2 — shard coverage and provenance reconciliation.
+## Stage 3, unit 2 — shards are reconciled against what they hold
+
+Shard combination checked that shards shared one retrieval identity and that their *declared*
+windows tiled without overlap or gap, then concatenated. Nothing checked those declarations
+against the shards' contents, so a shard whose table lost a delivery day still declared its
+original window, still listed the day among those it built and still reported zero exclusions —
+and the combined summary repeated all three claims. Downstream that is indistinguishable from a
+delivery day the provider never published.
+
+Every shard is now reconciled before concatenation: days claimed but not held, days held but not
+claimed, rows outside the declared window, a day recorded as both built and excluded, and a day
+short of one row per variable per delivery interval are each refused, with the interval count
+taken from the market day itself. The built-day count is the reconciled one. The window's
+partition is checked by count arithmetic rather than as a set, because the exclusion list is
+capped and a shard that hit its cap lists fewer days than it excluded. `combine-feature-tables`
+gains `--official`, set in the retrieval workflow, which requires a retrieval manifest per shard,
+one digest per named document and a manifest no shorter than the reported document count. A valid
+tiling still reproduces the equivalent unsplit table exactly. This code change ran no
+official-data workflow and accepts no feature table or benchmark result; see
+`docs/history/implementation_report_feature_shard_reconciliation_2026-09-10.md`.
+
+Next: Stage 4 — align finance metrics on one dated cash-flow series (`fix-dated-cash-flow-irr`).
 
 ## v0.9.7 — the first real retrieval of the declared window, and the three defects it found
 

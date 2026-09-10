@@ -266,12 +266,21 @@ def configure_combine_feature_tables(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--output", required=True, type=Path, help="Combined feature CSV")
     parser.add_argument("--manifest", type=Path, help="Combined retrieval manifest JSON")
     parser.add_argument("--summary", type=Path, help="Combined retrieval summary JSON")
+    parser.add_argument(
+        "--official",
+        action="store_true",
+        help=(
+            "Require every shard to carry the retrieval manifest tracing its rows to the source "
+            "messages they were built from. Use for any combination that will support an "
+            "acceptance document"
+        ),
+    )
 
 
 def run_combine_feature_tables(args: argparse.Namespace) -> int:
     created_at = utc_now_iso()
     features, summary, records = combine_feature_shards(
-        list(args.shards), created_at_utc=created_at
+        list(args.shards), created_at_utc=created_at, official=args.official
     )
     write_point_in_time_csv(features, args.output)
 

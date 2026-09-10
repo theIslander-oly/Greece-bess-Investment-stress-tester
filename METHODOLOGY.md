@@ -619,6 +619,34 @@ summary reports each shard's three instants and a receipt window spanning them a
 its own reassembly instant `combined_at_utc` so that no field called a retrieval time means
 anything but a receipt.
 
+## Shard reconciliation
+
+Shards are combined only after each is reconciled against its own contents. Tiling the declared
+windows establishes that the shards claim to cover the window once; it says nothing about
+whether a shard holds the days it claims.
+
+For each shard, the days its frame holds, the days its retrieval records say it built, the days
+it says it excluded and its declared window must agree. A day claimed as built but holding no
+row is refused, as is a day holding rows that no record claims, a row outside the declared
+window, and a day recorded as both built and excluded. A built day carries one row per requested
+variable for every delivery interval the market day actually has, so a 23-hour and a 25-hour day
+answer for themselves, and the resolution is read from the day's own rows rather than assumed;
+a day short of that is refused rather than passed on as thin coverage.
+
+The declared window must partition into built days and days excluded by name. That is checked by
+arithmetic — an *n*-day window recording *b* built days must report exactly *n − b* exclusions —
+rather than as a set difference, because a shard caps the day-by-day exclusion list it writes
+while reporting its counts in full. A set check would refuse a correct shard that hit its cap.
+The listed entries are still held to every claim they make.
+
+An official combination, used wherever the result will support an acceptance document, further
+requires each shard to carry the retrieval manifest tracing its rows to source messages. Two
+records naming one document must agree on its digest, since disagreement means two byte
+sequences under one name and no later stage could tell which produced a row, and a shard's
+reported document count must match the records its manifest holds.
+
+A valid tiling still reproduces the equivalent unsplit table exactly.
+
 ## Fundamentals official-run order
 
 The v0.9.5 workflow enforces: declaration validation; official-history and feature-table custody verification; strict publication-time availability audit; revision-aware point-in-time join without filling; DJF 2025–26 completeness preflight; forecast ablation from the accepted digest; and forecast-planned dispatch settled on realized prices using the unchanged 50 MW / 100 MWh battery. Hourly training and validation precede an entirely quarter-hour test, where each hourly GFS value is explicitly broadcast over four intervals. Missing, late, conflicting, interpolated, or inadmissibly graded observations cannot enter an accepted run.

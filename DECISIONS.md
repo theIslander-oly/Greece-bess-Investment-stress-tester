@@ -1,5 +1,26 @@
 # Decision log
 
+## 2026-09-10 — Reconcile a shard against what it holds, not what it declares
+
+- **Decision:** Before any shard is concatenated, its stored delivery days, the days its own
+  retrieval records say it built, the days it says it excluded and its declared window must all
+  agree. A built day carries one row per requested variable for every interval the market day
+  actually has. The declared window's partition into built and excluded days is established by
+  count arithmetic, not by set difference, because the listed exclusions are a capped sample.
+  An official combination additionally requires a retrieval manifest per shard, one digest per
+  named document, and a manifest no shorter than the document count its shard reports.
+- **Reason:** Tiling the declared windows proved only that the shards *claimed* to cover the
+  window once. A shard whose table lost a delivery day kept its declaration, kept the day among
+  those it built and reported no exclusion, and the combiner repeated all three. Downstream a day
+  missing that way is indistinguishable from a day the provider never published, which is the one
+  distinction this project records by name and never infers.
+- **Consequence:** `built_day_count` is now the reconciled count. Days claimed but not held, days
+  held but not claimed, rows outside the declared window, a day both built and excluded, a short
+  day and an exclusion count that does not close the window are each refused by name.
+  `combine-feature-tables` gains `--official`, set in the retrieval workflow. A valid tiling still
+  reproduces the equivalent unsplit table exactly. No feature value, evidence grade or accepted
+  result changes, and this decision authorizes no official-data run.
+
 ## 2026-09-10 — Record when a feature was received, not when its run started
 
 - **Decision:** A point-in-time feature row's `retrieved_at_utc` is the instant its own data was

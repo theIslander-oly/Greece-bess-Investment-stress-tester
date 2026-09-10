@@ -490,6 +490,19 @@ or mixed observation-semantics identity for the same reason it refuses a mixed v
 them per shard alongside a combined receipt window. Its own top-level `combined_at_utc` is when
 the shards were reassembled, which is not when any of them observed anything.
 
+Each shard is also reconciled against its own contents before anything is concatenated. Its
+stored days, the days its records say it built, the days it says it excluded and its declared
+window must agree; a built day carries one row per requested variable for every interval the
+market day actually has. Days claimed but not held, days held but not claimed, rows outside the
+declared window, a day recorded as both built and excluded, a short day, and an exclusion count
+that does not close the window are each refused by name. The partition is checked by count
+arithmetic, so a shard whose exclusion list hit its cap still reconciles.
+
+`--official` additionally requires every shard to carry the retrieval manifest tracing its rows
+to source messages, refuses two records naming one document with different digests, and refuses a
+manifest shorter than the document count its shard reports. Use it for any combination that will
+support an acceptance document; the retrieval workflow sets it.
+
 **Three conditions exclude a delivery day by name and let the window continue**, and they are the
 only three:
 
