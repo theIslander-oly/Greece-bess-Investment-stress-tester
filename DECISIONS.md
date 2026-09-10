@@ -16,7 +16,9 @@
 - **Consequence:** Retrieval summaries carry `run_started_at_utc`,
   `first_message_received_at_utc`, `last_message_received_at_utc` and
   `observation_semantics_version = 2`, and shard identity includes that version, so run-start
-  tables are refused rather than combined with corrected ones. The seven existing successful
+  tables are refused rather than combined with corrected ones. Recombination requires those
+  receipt fields of every shard rather than defaulting them, reports them per shard with a
+  combined receipt window, and names its own reassembly instant `combined_at_utc`. The seven existing successful
   witness runs were reviewed against the declared cutoff and required no reclassification: each
   completed by 06:24 UTC against a 10:00 UTC cutoff, a margin no per-message correction could
   close. No historic receipt instant was invented, and this decision authorizes no official-data

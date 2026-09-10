@@ -20,9 +20,11 @@ All notable project changes are documented here.
   `run_started_at_utc`, `first_message_received_at_utc` and `last_message_received_at_utc` as
   three distinct instants. `GFS_OBSERVATION_SEMANTICS_VERSION` is 2 and joins the shard identity
   fields, so tables carrying run-start stamps are refused rather than combined with corrected
-  ones. The seven existing successful witness runs were reviewed against the declared cutoff and
-  needed no reclassification: each completed by 06:24 UTC against a 10:00 UTC cutoff. No
-  official-data workflow was launched by this change.
+  ones. Shard recombination now requires and carries those receipt fields instead of the removed
+  `retrieved_at_utc`, and its own combination instant is named `combined_at_utc`. The seven
+  existing successful witness runs were reviewed against the declared cutoff and needed no
+  reclassification: each completed by 06:24 UTC against a 10:00 UTC cutoff. No official-data
+  workflow was launched by this change.
 
 - **GFS decoded-message and feature-value semantics.** Every selected GRIB2 message must now
   agree with its sidecar and request on parameter identity, units, level, source cycle, valid

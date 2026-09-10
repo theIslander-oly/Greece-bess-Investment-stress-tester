@@ -31,6 +31,11 @@ import pandas as pd
 
 from greek_bess.cli import main
 from greek_bess.data.availability_audit import effective_evidence_grade
+from greek_bess.data.feature_shards import (
+    IDENTITY_FIELDS,
+    REQUIRED_RECEIPT_FIELDS,
+    combine_feature_shards,
+)
 from greek_bess.data.gfs import (
     ATMOS_LAYOUT_FROM_CYCLE_DAY,
     FIRST_HOURLY_DELIVERY_DAY,
@@ -1250,6 +1255,89 @@ class MessageReceiptTimeTests(unittest.TestCase):
         self.assertEqual(
             built.summary["observation_semantics_version"], GFS_OBSERVATION_SEMANTICS_VERSION
         )
+
+
+class RetrievalToCombinationTests(unittest.TestCase):
+    """The combiner reads real retrieval summaries, so it is tested against the real producer.
+
+    A test that builds its own shard summary by hand can only prove the combiner is
+    self-consistent. When a retrieval field is renamed, a hand-written fixture keeps the old
+    name and the combiner keeps reading it, so the combined summary silently records ``None``
+    for something a reader would take as evidence. These tests run the actual
+    ``fetch-fundamentals`` command and combine what it wrote.
+    """
+
+    def _retrieve(self, directory: Path, name: str, start_day: str, end_day: str) -> Path:
+        archive = _Archive()
+        geography = directory / "geography.json"
+        geography.write_text(json.dumps(GEOGRAPHY.to_dict()), encoding="utf-8")
+        output = directory / f"{name}.csv"
+
+        def factory() -> NoaaGfsClient:
+            return NoaaGfsClient(
+                fetcher=archive.fetch, head_reader=archive.head, decoder=_decoder()
+            )
+
+        with mock.patch("greek_bess.cli.fundamentals.NoaaGfsClient", factory):
+            with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
+                code = main(
+                    [
+                        "fetch-fundamentals",
+                        "--source",
+                        "noaa_gfs",
+                        "--variables",
+                        "temperature_2m",
+                        "--geography",
+                        str(geography),
+                        "--start-day",
+                        start_day,
+                        "--end-day",
+                        end_day,
+                        "--output",
+                        str(output),
+                    ]
+                )
+        self.assertEqual(code, 0)
+        return output
+
+    def test_a_real_retrieval_summary_carries_every_field_the_combiner_reads(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            directory = Path(raw)
+            output = self._retrieve(directory, "first", "2026-08-20", "2026-08-21")
+            summary = json.loads(
+                output.with_suffix(".summary.json").read_text(encoding="utf-8")
+            )
+            for field in IDENTITY_FIELDS + REQUIRED_RECEIPT_FIELDS:
+                self.assertIn(
+                    field,
+                    summary,
+                    f"the retrieval no longer writes {field}, which the combiner requires",
+                )
+
+    def test_combining_real_retrievals_records_their_receipts_rather_than_nothing(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            directory = Path(raw)
+            first = self._retrieve(directory, "first", "2026-08-20", "2026-08-21")
+            second = self._retrieve(directory, "second", "2026-08-22", "2026-08-23")
+
+            _, summary, _ = combine_feature_shards(
+                [first, second], created_at_utc="2026-08-24T00:00:00+00:00"
+            )
+
+            self.assertEqual(summary["combined_at_utc"], "2026-08-24T00:00:00+00:00")
+            self.assertEqual(len(summary["combined_from_shards"]), 2)
+            for entry in summary["combined_from_shards"]:
+                # The defect this guards: a renamed retrieval field left these silently None.
+                for field in REQUIRED_RECEIPT_FIELDS:
+                    self.assertIsNotNone(
+                        entry[field], f"{field} was not carried through from the shard summary"
+                    )
+            # The combined receipt window spans the shards rather than restating one of them.
+            self.assertLessEqual(
+                pd.Timestamp(summary["first_message_received_at_utc"]),
+                pd.Timestamp(summary["last_message_received_at_utc"]),
+            )
+            self.assertNotIn("retrieved_at_utc", summary)
 
 
 if __name__ == "__main__":  # pragma: no cover - manual execution helper

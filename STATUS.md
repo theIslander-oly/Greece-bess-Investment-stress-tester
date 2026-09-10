@@ -103,7 +103,9 @@ Provider publication time is unchanged and remains a separate field. Run start i
 as a property of the run: summaries carry `run_started_at_utc`,
 `first_message_received_at_utc` and `last_message_received_at_utc` as three distinct instants.
 `observation_semantics_version = 2` joins the shard identity fields, so run-start tables are
-refused rather than combined with corrected ones.
+refused rather than combined with corrected ones. Shard recombination requires and reports those
+receipt instants instead of the removed `retrieved_at_utc`, and names its own reassembly instant
+`combined_at_utc`.
 
 The seven existing successful witness runs were reviewed against the declared cutoff. All
 completed by 06:24 UTC against a 10:00 UTC cutoff — a margin of at least three hours and

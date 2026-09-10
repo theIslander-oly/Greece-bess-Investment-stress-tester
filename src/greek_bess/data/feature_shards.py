@@ -89,6 +89,13 @@ def read_feature_shard(features: Path) -> FeatureShard:
     summary = json.loads(summary_path.read_text(encoding="utf-8"))
     if not isinstance(summary, dict):
         raise FeatureShardError(f"{summary_path} does not hold a retrieval summary object")
+    missing_receipts = [field for field in REQUIRED_RECEIPT_FIELDS if field not in summary]
+    if missing_receipts:
+        raise FeatureShardError(
+            f"{summary_path} is missing retrieval receipt fields: "
+            f"{', '.join(missing_receipts)}. A shard that cannot say when its messages arrived "
+            "cannot contribute to the combined table's receipt window and must be rebuilt."
+        )
     missing_identity = [field for field in IDENTITY_FIELDS if field not in summary]
     if missing_identity:
         raise FeatureShardError(
@@ -157,6 +164,25 @@ def _refuse_untiled_window(shards: list[FeatureShard]) -> tuple[date, date]:
                 "indistinguishable downstream from a provider that published nothing."
             )
     return ordered[0].start_day, ordered[-1].end_day
+
+
+#: Instant fields every shard summary must carry for the combined summary to describe when the
+#: table's values were observed. They are required rather than defaulted: a shard that cannot
+#: say when its messages arrived cannot contribute to a receipt window, and silently recording
+#: ``None`` would leave the combined table claiming a span it never established.
+REQUIRED_RECEIPT_FIELDS = (
+    "run_started_at_utc",
+    "first_message_received_at_utc",
+    "last_message_received_at_utc",
+)
+
+
+def _shard_receipt(shards: list[FeatureShard], field: str, *, latest: bool) -> str:
+    """Return the earliest or latest of one receipt field across every shard."""
+
+    instants = [pd.Timestamp(str(shard.summary[field])) for shard in shards]
+    chosen = max(instants) if latest else min(instants)
+    return str(chosen.isoformat())
 
 
 def combine_feature_shards(
@@ -230,7 +256,16 @@ def combine_feature_shards(
         "decoded_message_contract": first.get("decoded_message_contract"),
         "start_day": start_day.isoformat(),
         "end_day": end_day.isoformat(),
-        "retrieved_at_utc": created_at_utc,
+        # When the shards were put back together, which is not when any of them observed
+        # anything. The receipt window below spans the shards' own message receipts, so a reader
+        # can see when the combined table's earliest and latest values actually arrived.
+        "combined_at_utc": created_at_utc,
+        "first_message_received_at_utc": _shard_receipt(
+            ordered, "first_message_received_at_utc", latest=False
+        ),
+        "last_message_received_at_utc": _shard_receipt(
+            ordered, "last_message_received_at_utc", latest=True
+        ),
         "built_day_count": len(per_day),
         "excluded_day_count": excluded_count,
         "excluded_day_count_by_cause": dict(cause_counts),
@@ -250,7 +285,13 @@ def combine_feature_shards(
                 "features": shard.features.name,
                 "start_day": shard.start_day.isoformat(),
                 "end_day": shard.end_day.isoformat(),
-                "retrieved_at_utc": shard.summary.get("retrieved_at_utc"),
+                "run_started_at_utc": shard.summary.get("run_started_at_utc"),
+                "first_message_received_at_utc": shard.summary.get(
+                    "first_message_received_at_utc"
+                ),
+                "last_message_received_at_utc": shard.summary.get(
+                    "last_message_received_at_utc"
+                ),
                 "feature_row_count": shard.summary.get("feature_row_count"),
                 "document_count": shard.summary.get("document_count"),
             }

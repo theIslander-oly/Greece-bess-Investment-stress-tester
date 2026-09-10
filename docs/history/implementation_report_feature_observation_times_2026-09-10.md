@@ -68,6 +68,27 @@ The strict-before comparison itself was already correct and is unchanged: a rece
 the cutoff is late. It is now covered by a test, because it is the boundary this stage's
 acceptance checks name.
 
+## Recombination
+
+`combine_feature_shards` reported each contributing shard's `retrieved_at_utc`, the field this
+unit removed from retrieval summaries. Left unchanged it would have recorded `None` for every
+shard while still presenting `combined_from_shards` as evidence of when each slice was
+retrieved. The combined summary now carries each shard's `run_started_at_utc`,
+`first_message_received_at_utc` and `last_message_received_at_utc`, and its own top-level
+receipt window spanning every shard. Its `retrieved_at_utc` — which was the *combination*
+instant, not a retrieval one — is renamed `combined_at_utc`, because after this unit that name
+means a receipt everywhere else. No workflow or downstream module read the old field.
+
+Those three receipt fields are now required of every shard summary, beside the identity fields,
+rather than defaulted. A shard that cannot say when its messages arrived cannot contribute to a
+receipt window, and silently recording `None` would leave the combined table claiming a span it
+never established.
+
+This defect was found by re-reading the unit's own diff and is guarded by a test that drives the
+real `fetch-fundamentals` command and combines what it actually wrote, rather than a hand-built
+shard summary. A hand-written fixture can only prove the combiner self-consistent: it keeps the
+old field name after a rename, so the combiner keeps reading it and the loss stays invisible.
+
 ## Review of existing witness records
 
 The daily witness workflow has run eight times. Each run witnesses the following delivery day,
@@ -103,7 +124,7 @@ feeds that audit. Leaving them unchanged keeps this unit to the demonstrated def
 
 - Ruff
 - mypy (65 source files)
-- pytest: 648 passed, up from 637
+- pytest: 650 passed, up from 637
 - isolated wheel build
 
 New regression tests cover: a row stamped with a receipt rather than the run start; a run
@@ -112,3 +133,8 @@ rows from one retrieval; a receipt exactly at the cutoff failing the strict-befo
 derived value inheriting the later of its two contributing receipts; the clock being read after
 a transfer rather than before it; a naive clock being refused; and shard combination refusing
 mixed or absent observation-semantics identities.
+
+Two further tests run the real `fetch-fundamentals` command and combine its output: one asserts
+the retrieval still writes every field the combiner requires, and one asserts the combined
+summary carries each shard's receipts rather than `None`. Reintroducing the renamed-field read
+makes the second fail with `run_started_at_utc was not carried through from the shard summary`.

@@ -486,6 +486,10 @@ delivery day's decision cutoff can go on receiving messages after it, and the au
 separately, and records `observation_semantics_version`; shard recombination refuses a missing
 or mixed observation-semantics identity for the same reason it refuses a mixed value semantics.
 
+`combine-feature-tables` requires each shard summary to carry those three instants and reports
+them per shard alongside a combined receipt window. Its own top-level `combined_at_utc` is when
+the shards were reassembled, which is not when any of them observed anything.
+
 **Three conditions exclude a delivery day by name and let the window continue**, and they are the
 only three:
 

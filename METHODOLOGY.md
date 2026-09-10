@@ -612,6 +612,13 @@ The summary records `observation_semantics_version = 2`, and the shard identity 
 it. A table built under version 1 carries run-start stamps, so it is not a slice of the same
 window as a corrected one and the two are refused rather than combined.
 
+Recombination carries the same distinction. Every shard summary must state its run start and its
+first and last message receipt; a shard that cannot say when its messages arrived cannot
+contribute to a receipt window, and is refused rather than recorded as unknown. The combined
+summary reports each shard's three instants and a receipt window spanning them all, and names
+its own reassembly instant `combined_at_utc` so that no field called a retrieval time means
+anything but a receipt.
+
 ## Fundamentals official-run order
 
 The v0.9.5 workflow enforces: declaration validation; official-history and feature-table custody verification; strict publication-time availability audit; revision-aware point-in-time join without filling; DJF 2025–26 completeness preflight; forecast ablation from the accepted digest; and forecast-planned dispatch settled on realized prices using the unchanged 50 MW / 100 MWh battery. Hourly training and validation precede an entirely quarter-hour test, where each hourly GFS value is explicitly broadcast over four intervals. Missing, late, conflicting, interpolated, or inadmissibly graded observations cannot enter an accepted run.
