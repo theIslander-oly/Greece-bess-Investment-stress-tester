@@ -486,15 +486,19 @@ de-averaged per point before weighting. Summaries retain the full declared geogr
 this as feature-semantics version 2. Feature tables produced before this correction are not
 equivalent inputs and must be rebuilt before any acceptance or benchmark run.
 
-**The declarations and corrected retrieval now exist; acceptance does not.** The decision cutoff, the decision lead and the
-sampling geography are operator declarations with no defaults, and the committed examples are
-refused by name; all three were declared on 3 September 2026
-(`docs/fundamentals_declarations_2026-09-03.md`). Stage 7 retrieval steps 1–3 rebuilt and
-reconciled the declared 2021-02-27 through 2026-08-25 window as 23 private shards and audited
-publication timing: 2,002 of 2,006 days per variable are provider-declared before cutoff, three
-are incomplete before cutoff and one has no publication. Nothing is filled. No feature table has
-been accepted, no acceptance document exists and this historic retrieval creates no witnessed
-day — the one kind of evidence that cannot be produced later. **Every figure this README reports
+**The declarations, the corrected retrieval, its custody and the acceptance preflight now exist;
+acceptance does not.** The decision cutoff, the decision lead and the sampling geography are
+operator declarations with no defaults, and the committed examples are refused by name; all three
+were declared on 3 September 2026 (`docs/fundamentals_declarations_2026-09-03.md`). Stage 7 steps
+1–4 rebuilt the declared 2021-02-27 through 2026-08-25 window as 23 private shards, combined them
+inside Actions, fingerprinted and encrypted the combined table under the existing custody
+procedure, and ran the acceptance preflight: 2,002 of 2,006 days per variable are
+provider-declared before cutoff, three are incomplete before cutoff and one has no publication;
+the joined feature set is identified by digest; and all 90 days of winter 2025-26 are common, so
+the pre-registered rule does not label the run exploratory. Nothing is filled. No feature table
+has been accepted, no acceptance document exists — it waits on primary-source documents the
+tooling cannot verify — and this historic retrieval creates no witnessed day, the one kind of
+evidence that cannot be produced later. **Every figure this README reports
 still comes from the accepted price history alone, and the fundamentals question remains
 unanswered rather than answered negatively.** A negative result would be recorded under the same
 labels, and a thin accepted coverage makes the run exploratory rather than general.

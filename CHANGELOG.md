@@ -6,6 +6,21 @@ All notable project changes are documented here.
 
 ### Added
 
+- **Retrieved fundamentals slices can be recombined without being re-retrieved.**
+  `Fetch point-in-time fundamentals` gains an optional `shards_from_run_id`: retrieval is skipped
+  and the combine job reads the named earlier run's slice artifacts under the same slice-count
+  guard and official reconciliation. A failed or cancelled retrieval still stops the combination.
+  Run `34503398871` combined the 23 slices run `34476720910` retrieved into the private
+  `point-in-time-fundamentals` artifact; the run summary states that nothing was retrieved.
+
+- **Custody of the combined fundamentals feature table is recorded and verified.**
+  `docs/custody/accepted-fundamentals-feature-table.json` fingerprints the seven files of that
+  artifact as the tooling emitted the record (run `34504032804`); the push-triggered verification
+  (run `34504409514`) reports zero differences for both the price history and the feature table.
+  The custody workflow prints each generated record in its log so a record can be reviewed where
+  the artifact cannot be fetched, and its feature-table defaults follow the committed record.
+  Custody accepts no feature value.
+
 - **A design of record for the integrated study runner.** The repository can already plan a day on
   a causal forecast and settle it at realized prices, evolve a cohort degradation state across
   days, and turn a daily operating path into dated cash flows — but not together. Answering
@@ -42,6 +57,16 @@ All notable project changes are documented here.
   workflow was launched and no outcome was produced.
 
 ### Fixed
+
+- **The feature-table custody record named the wrong producer, and the custody workflow's
+  reconciliation default named an expired artifact.** The record, publish and benchmark
+  workflows labelled the feature table's source workflow as the benchmark that consumes it; every
+  feature-table custody step now names `Fetch point-in-time fundamentals`. The reconciliation
+  artifact of run `33073631530` expired on 3 September 2026 and cannot be regenerated while
+  `ENTSOE_SECURITY_TOKEN` is unset, so a default pointing at it made every push that touched a
+  custody record fail on a download rather than a verification; the default is empty, the input
+  says why, and the committed reconciliation record remains verifiable against the decrypted
+  release copy by the documented drill.
 
 - **Official feature-table reconciliation now accepts equal intervals across pandas duration
   storage units and discovers only numbered shard tables.** The first corrected full-window

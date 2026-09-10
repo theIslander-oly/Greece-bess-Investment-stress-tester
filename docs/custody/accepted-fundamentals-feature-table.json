@@ -1,0 +1,48 @@
+{
+  "record_version": 1,
+  "artifact_name": "accepted-fundamentals-feature-table",
+  "source_run_id": "34503398871",
+  "source_workflow": "Fetch point-in-time fundamentals",
+  "published_artifact_digest_sha256": "3d988aba2b003f43f735fb5b935c9779670cda299b4fc6cc6758f52565dbe74b",
+  "recorded_at_utc": "2026-09-10T16:45:58.258504+00:00",
+  "file_count": 7,
+  "total_size_bytes": 360769797,
+  "files": [
+    {
+      "relative_path": "delivery_days.csv",
+      "size_bytes": 1092336,
+      "sha256": "b99efbcaee4000dfa1affda529f7246e5f3ca5d48225b4332563e79b7318b94a"
+    },
+    {
+      "relative_path": "delivery_days.observations.csv",
+      "size_bytes": 130055676,
+      "sha256": "26b5eb503bc923dc18c4d618319453673db74c4d6ed182dafa176378c86cf5c4"
+    },
+    {
+      "relative_path": "delivery_days.summary.json",
+      "size_bytes": 8964,
+      "sha256": "39293eba9807e69354e750d59aa1648a8a4bd0470403790d9a95557412fa5184"
+    },
+    {
+      "relative_path": "features.coverage.csv",
+      "size_bytes": 208579,
+      "sha256": "3e2ec01304422bbbee0fcb942edf99787ccc7c463501cce0556e2f0d5fbc24f8"
+    },
+    {
+      "relative_path": "features.csv",
+      "size_bytes": 64737162,
+      "sha256": "c2fd25b97b7c40c6e1fe72b510b6e94cb0a83899a89bff6a715d13e54ab921de"
+    },
+    {
+      "relative_path": "features.summary.json",
+      "size_bytes": 8911533,
+      "sha256": "f18f4df0a608917b6349130fb5f75e9efed9fe59688282a01f23dc90de794672"
+    },
+    {
+      "relative_path": "retrieval_manifest.json",
+      "size_bytes": 155755547,
+      "sha256": "8536b7b083d6260601e183cb86c089bb281700efe35546bfde08637833d75b48"
+    }
+  ],
+  "content": {}
+}

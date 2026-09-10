@@ -135,6 +135,35 @@ tiling still reproduces the equivalent unsplit table exactly. This code change r
 official-data workflow and accepts no feature table or benchmark result; see
 `docs/history/implementation_report_feature_shard_reconciliation_2026-09-10.md`.
 
+## Stage 7, step 4 — custody recorded and verified; the acceptance preflight has run
+
+The 23 slices retrieval run `34476720910` uploaded were combined inside Actions by run
+`34503398871`, which read them through the fetch workflow's new `shards_from_run_id` mode instead
+of retrieving the window again, and reproduced step 3's reconciliation exactly: 2,005 built days,
+144,357 feature rows, 200,496 traced source documents, one day excluded by name. Its
+`point-in-time-fundamentals` artifact is fingerprinted in
+`docs/custody/accepted-fundamentals-feature-table.json` (record run `34504032804`), verified with
+zero differences by the push-triggered run `34504409514`, and encrypted to the operator's recipient
+and attached to release `custody-2026-09-10` by run `34504908065`, beside a second copy of the
+accepted price history. The reconciliation artifact expired on 3 September 2026; its release copy
+is its only surviving form, and the custody workflows no longer default to it.
+
+Preflight run `34503999540` joined the accepted price history and that table under the declared
+cutoff and lead: accepted feature set
+`a718f46265678cf1e37c31fca439b9f2f03479901fe8f0ac126766431b99aefc`; 2,002 complete delivery days
+and 122 excluded by name out of 2,124 (118 before the first GFS-usable day, three late, one
+absent); 6,006 accepted variable-days, none witnessed, none quarantined; and every one of the 90
+days of DJF 2025-26 common, so the pre-registered rule classifies the run as **not exploratory**.
+That is a coverage classification made before any result exists; it is not an acceptance and says
+nothing about skill.
+
+**Step 5 has not started.** The dated acceptance document must name primary-source support the
+tooling cannot verify — the HWEA/ELETAEN 2023 wind-capacity statistics, the HEnEx isolated-market
+rulebook text and the SDAC procedure and effective-date notices — and none was supplied. No
+acceptance document is committed and the benchmark workflow still refuses. Every other item the
+document must state is recorded in
+`docs/history/implementation_report_stage7_custody_preflight_2026-09-10.md`.
+
 ## Stage 7, steps 1–3 — corrected official weather retrieval and timing audit
 
 Smoke run `34476165832` rebuilt 18–19 April 2026 with feature semantics version 2 and per-message

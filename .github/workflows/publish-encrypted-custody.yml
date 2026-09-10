@@ -34,9 +34,13 @@ on:
         default: "33483975614"
         type: string
       reconciliation_run_id:
-        description: Run ID holding the henex-entsoe-reconciliation artifact; empty skips it
+        description: >-
+          Run ID holding the henex-entsoe-reconciliation artifact; empty skips it. The recorded
+          artifact of run 33073631530 expired on 3 September 2026; its only surviving form is the
+          encrypted copy in release custody-2026-09-01. An empty dispatch input falls back to this
+          default, so the default is empty.
         required: false
-        default: "33073631530"
+        default: ""
         type: string
       feature_run_id:
         description: Run ID holding accepted-fundamentals-feature-table; empty skips it
@@ -133,7 +137,7 @@ jobs:
           fi
           if [[ -n "$FEATURE_RUN_ID" ]]; then
             .github/scripts/custody_step.sh accepted-fundamentals-feature-table \
-              "$FEATURE_RUN_ID" "Benchmark point-in-time fundamentals" "" auto
+              "$FEATURE_RUN_ID" "Fetch point-in-time fundamentals" "" auto
           fi
           if [[ -f custody/verification_failed ]]; then
             echo "An artifact does not match its committed custody record; refusing to publish it."
