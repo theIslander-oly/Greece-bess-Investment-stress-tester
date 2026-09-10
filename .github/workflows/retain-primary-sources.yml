@@ -7,41 +7,25 @@ name: Retain primary sources
 # 2026-09-03.md`). The publishers' sites have not been reachable from the working environments
 # this project has used, and the runner is where every live retrieval already happens.
 #
-# `list-links` prints every link on the given pages so the exact document URLs can be chosen.
-# `retain` downloads each URL, records byte size and SHA-256, prints the document's metadata and
-# the passages matching `search_terms` for review in the log, uploads the files as a private
-# artifact and, when `release_tag` is set, attaches them to a release of this private repository.
-# The committed citation record under `docs/primary_sources/` carries the digests; the bytes stay
+# The document set is declared in `config/primary_sources.json`: pages whose links are listed so
+# the exact document URLs can be chosen, and documents to retain. For each document the job
+# records byte size and SHA-256, prints its metadata and the passages matching the declared
+# search terms for review in the log, uploads the files as a private artifact and attaches them to
+# the declared release of this private repository. An asset already on the release is never
+# overwritten: a retained copy that differs from a fresh download is a finding, not an update. The
+# committed citation record under `docs/primary_sources/` carries the digests; the bytes stay
 # outside Git.
 #
-# This workflow retrieves published documents and nothing else. It accepts nothing, and it does
-# not read, verify or alter any declaration: a person reads the passages it prints and decides.
+# The job runs when the declaration or this file changes on any branch, and on demand. It
+# retrieves published documents and nothing else: it accepts nothing, and it does not read,
+# verify or alter any operator declaration. A person reads the passages it prints and decides.
 
 on:
   workflow_dispatch:
-    inputs:
-      mode:
-        description: list-links prints the links on each page; retain downloads each URL
-        required: true
-        default: list-links
-        type: choice
-        options:
-          - list-links
-          - retain
-      urls:
-        description: Whitespace-separated URLs (pages for list-links, documents for retain)
-        required: true
-        type: string
-      search_terms:
-        description: Extended regular expression; matching passages are printed for review
-        required: false
-        default: "gate closure|closure|12:00|12.00|Central Greece|Peloponn|Thrace|Macedonia"
-        type: string
-      release_tag:
-        description: retain mode only; when set, the files are attached to this release
-        required: false
-        default: ""
-        type: string
+  push:
+    paths:
+      - config/primary_sources.json
+      - .github/workflows/retain-primary-sources.yml
 
 permissions:
   # Creating or updating the release the retained documents are attached to.
@@ -52,10 +36,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      MODE: ${{ inputs.mode }}
-      URLS: ${{ inputs.urls }}
-      SEARCH_TERMS: ${{ inputs.search_terms }}
-      RELEASE_TAG: ${{ inputs.release_tag }}
       # Some publishers refuse the default curl agent; identify as an ordinary browser.
       USER_AGENT: >-
         Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko)
@@ -70,12 +50,31 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq poppler-utils >/dev/null
 
+      - name: Read the declared document set
+        id: declared
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - >> "$GITHUB_ENV" <<'PY'
+          import json
+          from pathlib import Path
+          declared = json.loads(Path("config/primary_sources.json").read_text(encoding="utf-8"))
+          pages = " ".join(declared.get("list_pages", []))
+          documents = " ".join(d["url"] for d in declared.get("documents", []))
+          for url in (pages + " " + documents).split():
+              assert url.startswith("https://"), url
+          print(f"LIST_PAGES={pages}")
+          print(f"DOCUMENT_URLS={documents}")
+          print(f"SEARCH_TERMS={declared['search_terms']}")
+          print(f"RELEASE_TAG={declared.get('release_tag', '')}")
+          PY
+
       - name: List the links on each page
-        if: ${{ env.MODE == 'list-links' }}
+        if: ${{ env.LIST_PAGES != '' }}
         shell: bash
         run: |
           set -uo pipefail
-          for url in $URLS; do
+          for url in $LIST_PAGES; do
             echo "::group::${url}"
             if ! page=$(curl -fsSL --retry 3 --retry-delay 5 -A "$USER_AGENT" "$url"); then
               echo "FAILED to fetch ${url} (curl exit $?)"
@@ -105,7 +104,7 @@ jobs:
           done
 
       - name: Download each document and record its identity
-        if: ${{ env.MODE == 'retain' }}
+        if: ${{ env.DOCUMENT_URLS != '' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -120,7 +119,7 @@ jobs:
           from urllib.parse import unquote, urlparse
 
           records = []
-          for url in os.environ["URLS"].split():
+          for url in os.environ["DOCUMENT_URLS"].split():
               parsed = urlparse(url)
               name = unquote(Path(parsed.path).name) or "index.html"
               if "." not in name:
@@ -161,7 +160,7 @@ jobs:
           PY
 
       - name: Print metadata and the passages that match the search terms
-        if: ${{ env.MODE == 'retain' }}
+        if: ${{ env.DOCUMENT_URLS != '' }}
         shell: bash
         run: |
           set -uo pipefail
@@ -194,7 +193,7 @@ jobs:
           done
 
       - name: Upload the retained documents
-        if: ${{ env.MODE == 'retain' }}
+        if: ${{ env.DOCUMENT_URLS != '' }}
         uses: actions/upload-artifact@v4
         with:
           name: primary-sources
@@ -202,24 +201,48 @@ jobs:
           if-no-files-found: error
           retention-days: 90
 
-      - name: Attach the documents to a private release
-        if: ${{ env.MODE == 'retain' && env.RELEASE_TAG != '' }}
+      - name: Attach the documents to a private release without overwriting any
+        if: ${{ env.DOCUMENT_URLS != '' && env.RELEASE_TAG != '' }}
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release upload "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --clobber retained/*
-          else
+          # RETRIEVAL.json is per run and is not attached: the artifact keeps it, and the
+          # committed citation record carries the digests that matter.
+          mapfile -t files < <(find retained -type f ! -name RETRIEVAL.json | sort)
+          if ! gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release create "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
               --title "Retained primary sources behind the fundamentals declarations" \
               --notes "Publisher documents retained as acceptance evidence. Their citation record, with digests, is committed under docs/primary_sources/." \
-              retained/*
+              "${files[@]}"
+            exit 0
+          fi
+          existing=$(gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
+            --json assets --jq '.assets[] | "\(.name) \(.digest // "")"')
+          new=()
+          for file in "${files[@]}"; do
+            name=$(basename "$file")
+            line=$(printf '%s\n' "$existing" | awk -v n="$name" '$1 == n {print; exit}')
+            if [[ -z "$line" ]]; then
+              new+=("$file")
+              continue
+            fi
+            have=${line#* }
+            want="sha256:$(sha256sum "$file" | cut -d' ' -f1)"
+            if [[ -n "$have" && "$have" != "$want" ]]; then
+              echo "::error::${name} is already on ${RELEASE_TAG} with ${have}; this download is"
+              echo "::error::${want}. The retained copy is not overwritten. Investigate the difference."
+              exit 1
+            fi
+            echo "${name}: already retained with the same digest."
+          done
+          if (( ${#new[@]} )); then
+            gh release upload "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" "${new[@]}"
           fi
 
       - name: Record what was retained
-        if: ${{ env.MODE == 'retain' }}
+        if: ${{ env.DOCUMENT_URLS != '' }}
         shell: bash
         run: |
           {

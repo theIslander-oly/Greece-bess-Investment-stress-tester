@@ -1,0 +1,15 @@
+{
+  "purpose": "Primary publications behind config/decision_cutoff.json and config/fundamentals_geography.json, which the repository tooling cannot verify and which must be retained with the acceptance evidence (docs/fundamentals_declarations_2026-09-03.md). Retrieved by the 'Retain primary sources' workflow; digests are cited under docs/primary_sources/.",
+  "release_tag": "primary-sources-2026-09-10",
+  "search_terms": "gate closure|closure|12:00|12.00|Central Greece|Sterea|Peloponn|Thrace|Macedonia|2,293|2.293|639|534",
+  "list_pages": [
+    "https://eletaen.gr/en/hwea-wind-statistics-2/",
+    "https://www.enexgroup.gr/trading-rulebooks",
+    "https://www.enexgroup.gr/markets-publications-en-day-ahead-market",
+    "https://www.enexgroup.gr/regulatory-framework",
+    "https://www.nemo-committee.eu/sdac_downloads",
+    "https://www.nemo-committee.eu/sdac",
+    "https://www.epexspot.com/en/news/extension-single-day-ahead-coupling-sdac-greece"
+  ],
+  "documents": []
+}
