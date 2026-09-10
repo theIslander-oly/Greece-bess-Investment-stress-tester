@@ -116,6 +116,7 @@ jobs:
           import hashlib
           import json
           import os
+          import re
           import subprocess
           from datetime import datetime, timezone
           from pathlib import Path
@@ -127,7 +128,10 @@ jobs:
               name = unquote(Path(parsed.path).name) or "index.html"
               if "." not in name:
                   name = f"{name}.html"
-              name = f"{parsed.netloc}__{name}".replace("/", "_")
+              # GitHub renames release assets whose names carry characters outside
+              # [A-Za-z0-9._-], replacing each with a dot; apply the same rule here so the
+              # retained file, the artifact and the release asset share one name.
+              name = re.sub(r"[^A-Za-z0-9._-]", ".", f"{parsed.netloc}__{name}")
               target = Path("retained") / name
               retrieved_at = datetime.now(timezone.utc).isoformat()
               subprocess.run(
@@ -229,19 +233,24 @@ jobs:
           new=()
           for file in "${files[@]}"; do
             name=$(basename "$file")
+            want="sha256:$(sha256sum "$file" | cut -d' ' -f1)"
+            # Retained already, under whatever name the release gave it.
+            if printf '%s\n' "$existing" | awk -v d="$want" '$2 == d {found=1} END {exit !found}'; then
+              echo "${name}: already retained with the same digest."
+              continue
+            fi
             line=$(printf '%s\n' "$existing" | awk -v n="$name" '$1 == n {print; exit}')
             if [[ -z "$line" ]]; then
               new+=("$file")
               continue
             fi
             have=${line#* }
-            want="sha256:$(sha256sum "$file" | cut -d' ' -f1)"
             if [[ -n "$have" && "$have" != "$want" ]]; then
               echo "::error::${name} is already on ${RELEASE_TAG} with ${have}; this download is"
               echo "::error::${want}. The retained copy is not overwritten. Investigate the difference."
               exit 1
             fi
-            echo "${name}: already retained with the same digest."
+            echo "${name}: already on the release without a digest to compare; not overwritten."
           done
           if (( ${#new[@]} )); then
             gh release upload "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" "${new[@]}"
