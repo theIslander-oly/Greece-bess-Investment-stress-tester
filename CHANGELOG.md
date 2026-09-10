@@ -4,6 +4,27 @@ All notable project changes are documented here.
 
 ## [Unreleased]
 
+### Added
+
+- **A matched-training control for the fundamentals ablation.** The declared ablation compared a
+  price-only control trained on every day against a weather challenger trained only on days whose
+  weather features are complete, so the two arms differed in the feature columns *and* the
+  training rows and any difference confounded weather value with lost training coverage. A third
+  arm now trains on exactly the challenger's eligible rows with the baseline's columns, and the
+  original full-history arm is retained under its own name. `challenger − matched_control` is
+  attributable to the weather columns; `matched_control − full_history_baseline` to training
+  coverage; the challenger-minus-baseline difference confounds the two and is not reported as a
+  weather effect. The prospective amendment fixing this structure was recorded before the
+  implementation and before any comparison outcome exists
+  (`docs/fundamentals_matched_control_amendment_2026-09-10.md`).
+
+  The match is enforced rather than asserted: every refit records a digest of its training row
+  identities and of its training targets, computed independently of the feature columns read, and
+  the benchmark refuses a run unless each matched pair agrees on both at every refit. The dispatch
+  comparison now pairs a challenger with its matched control rather than the full-history
+  baseline, so the confound cannot be carried into euro. No retrieval, acceptance or benchmark
+  workflow was launched and no outcome was produced.
+
 ### Fixed
 
 - **The degraded dispatch aggregate was labelled an upper bound and is not one.** Each market

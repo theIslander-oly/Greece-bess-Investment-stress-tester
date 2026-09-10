@@ -57,6 +57,11 @@ from .point_in_time_join import frame_digest
 #: forecast table and keys in the recorded metrics, so they are part of the contract.
 FUNDAMENTALS_ARM_SUFFIX = "_fundamentals"
 
+#: The matched control's model names are the baseline's with this suffix. It trains on exactly
+#: the rows the weather challenger is eligible for and reads only the price columns, so the
+#: challenger-minus-matched-control difference is attributable to the weather columns alone.
+MATCHED_CONTROL_SUFFIX = "_matched"
+
 FUNDAMENTALS_FORECAST_BENCHMARK_LABEL = (
     "Leakage-safe walk-forward Greek DAM fundamentals ablation on one held-out period; "
     "research benchmark of price error, not expected investment revenue."
@@ -217,6 +222,7 @@ def generate_fundamentals_benchmark(
     training_rows_dropped = int(len(table) - len(challenger_table))
 
     control_models = list(config.ml.models)
+    matched_control_models = [f"{name}{MATCHED_CONTROL_SUFFIX}" for name in control_models]
     challenger_models = [f"{name}{FUNDAMENTALS_ARM_SUFFIX}" for name in control_models]
     evaluation = table.loc[table["market_day"].ge(config.ml.validation_start_day)].copy()
     evaluation["split"] = np.where(
@@ -230,6 +236,20 @@ def generate_fundamentals_benchmark(
         evaluation[model_name] = evaluation["delivery_start_utc"].map(control)
         refit_logs[model_name] = control_log
 
+        # The matched control: the challenger's training rows, the baseline's feature columns.
+        # Without it, a challenger-minus-baseline difference confounds two changes at once —
+        # the weather columns, and the training coverage lost by requiring them complete.
+        matched_name = f"{model_name}{MATCHED_CONTROL_SUFFIX}"
+        matched, matched_log = _walk_forward_predict(
+            challenger_table,
+            target_days,
+            model_name,
+            config.ml,
+            feature_columns=FEATURE_COLUMNS,
+        )
+        evaluation[matched_name] = evaluation["delivery_start_utc"].map(matched)
+        refit_logs[matched_name] = matched_log
+
         challenger_name = f"{model_name}{FUNDAMENTALS_ARM_SUFFIX}"
         challenger, challenger_log = _walk_forward_predict(
             challenger_table,
@@ -242,7 +262,9 @@ def generate_fundamentals_benchmark(
         evaluation[challenger_name] = evaluation["delivery_start_utc"].map(challenger)
         refit_logs[challenger_name] = challenger_log
 
-    methods = [*FORECAST_METHODS, *control_models, *challenger_models]
+    _refuse_unmatched_training(refit_logs, matched_control_models, challenger_models)
+
+    methods = [*FORECAST_METHODS, *control_models, *matched_control_models, *challenger_models]
     common_days, excluded_days = _common_days(
         evaluation, methods, feature_complete_days, join_summary
     )
@@ -267,6 +289,9 @@ def generate_fundamentals_benchmark(
         for split in ("validation", "test")
     }
     selected_control = _select_on_validation(metrics["validation"], control_models)
+    selected_matched_control = _select_on_validation(
+        metrics["validation"], matched_control_models
+    )
     selected_challenger = _select_on_validation(metrics["validation"], challenger_models)
 
     common_test = common.loc[common["split"].eq("test")]
@@ -310,19 +335,42 @@ def generate_fundamentals_benchmark(
                 "feature_columns": [],
                 "description": "Causal naïve forecasts from price history only",
             },
-            "control": {
+            "full_history_baseline": {
                 "methods": control_models,
                 "feature_columns": list(FEATURE_COLUMNS),
-                "description": "Calendar and price-history features only",
+                "training_rows": "every day in the causal feature table",
+                "description": (
+                    "Calendar and price-history features only, trained on the full history. "
+                    "Retained as a separately named baseline; its comparison with the matched "
+                    "control measures the effect of reduced training coverage, not the value "
+                    "of weather"
+                ),
+            },
+            "matched_control": {
+                "methods": matched_control_models,
+                "feature_columns": list(FEATURE_COLUMNS),
+                "training_rows": "exactly the days the challenger is eligible for",
+                "description": (
+                    "Calendar and price-history features only, trained on exactly the "
+                    "challenger's eligible rows. This is the comparator that isolates the "
+                    "weather columns: against it, only the feature columns differ"
+                ),
             },
             "challenger": {
                 "methods": challenger_models,
                 "feature_columns": [*FEATURE_COLUMNS, *feature_columns],
+                "training_rows": "exactly the days with complete accepted features",
                 "description": (
-                    "The control features plus the accepted point-in-time exogenous columns; "
+                    "The baseline features plus the accepted point-in-time exogenous columns; "
                     "identical models, hyperparameters, seed, cadence and days"
                 ),
             },
+            "attribution": (
+                "challenger minus matched_control is attributable to the weather columns; "
+                "matched_control minus full_history_baseline is attributable to training "
+                "coverage. The challenger-minus-baseline difference confounds the two and is "
+                "not reported as a weather effect"
+            ),
         },
         "feature_set_sha256": config.feature_set_sha256,
         "fundamentals_feature_columns": list(feature_columns),
@@ -349,6 +397,7 @@ def generate_fundamentals_benchmark(
         "sliced_split": "test",
         "price_regime_bands": list(config.price_regime_bands),
         "selected_control": selected_control,
+        "selected_matched_control": selected_matched_control,
         "selected_challenger": selected_challenger,
         "model_selection_policy": (
             "Lowest validation RMSE on the common days; test metrics are not used for "
@@ -580,6 +629,47 @@ def _cause_counts(excluded_days: Sequence[Mapping[str, Any]]) -> dict[str, int]:
         cause = str(record["cause"])
         counts[cause] = counts.get(cause, 0) + 1
     return dict(sorted(counts.items()))
+
+
+def _refuse_unmatched_training(
+    refit_logs: dict[str, list[dict[str, Any]]],
+    matched_control_models: Sequence[str],
+    challenger_models: Sequence[str],
+) -> None:
+    """Refuse unless each matched pair refit on identical rows with identical targets.
+
+    The matched control exists so that one comparison varies only the feature columns. That is
+    a claim about which rows each arm was fitted on, and a claim is worth no more than its
+    check: the two arms record a digest of their training row identities and of their targets
+    at every refit, and this refuses the run unless every pair agrees on both.
+
+    Without it, a later change to how either arm selects rows would silently reintroduce the
+    confound the matched control was added to remove, and the recorded comparison would go on
+    describing itself as attributable to weather.
+    """
+
+    for matched_name, challenger_name in zip(
+        matched_control_models, challenger_models, strict=True
+    ):
+        matched_log = refit_logs[matched_name]
+        challenger_log = refit_logs[challenger_name]
+        if len(matched_log) != len(challenger_log):
+            raise FundamentalsBenchmarkError(
+                f"{matched_name} refit {len(matched_log)} times and {challenger_name} "
+                f"{len(challenger_log)} times; a matched pair refits on the same cadence"
+            )
+        for matched_entry, challenger_entry in zip(
+            matched_log, challenger_log, strict=True
+        ):
+            day = matched_entry["forecast_start_day"]
+            for field in ("training_row_digest", "training_target_digest"):
+                if matched_entry[field] != challenger_entry[field]:
+                    raise FundamentalsBenchmarkError(
+                        f"{matched_name} and {challenger_name} disagree on {field} at the "
+                        f"refit for {day}. A matched pair must differ only in the feature "
+                        "columns it reads; differing training rows would make the comparison "
+                        "a measurement of training coverage rather than of the weather columns"
+                    )
 
 
 def _select_on_validation(

@@ -44,7 +44,11 @@ from typing import Any
 import pandas as pd
 
 from ..dispatch import BatteryDispatchConfig
-from ..forecast.fundamentals import EXPLORATORY_LABEL_SUFFIX, FUNDAMENTALS_ARM_SUFFIX
+from ..forecast.fundamentals import (
+    EXPLORATORY_LABEL_SUFFIX,
+    FUNDAMENTALS_ARM_SUFFIX,
+    MATCHED_CONTROL_SUFFIX,
+)
 from .forecast_dispatch import ForecastDispatchBacktestResult, ForecastDispatchInputError
 from .ml_dispatch import _backtest_precomputed_forecast
 
@@ -145,7 +149,8 @@ def backtest_fundamentals_dispatch(
         raise FundamentalsDispatchInputError(
             "No challenger arm was named beside its own control arm, so nothing here is an "
             "ablation. Name at least one "
-            f"'<model>{FUNDAMENTALS_ARM_SUFFIX}' method together with '<model>'"
+            f"'<model>{FUNDAMENTALS_ARM_SUFFIX}' method together with "
+            f"'<model>{MATCHED_CONTROL_SUFFIX}'"
         )
 
     exploratory_causes = [
@@ -163,7 +168,12 @@ def backtest_fundamentals_dispatch(
         ),
         "arm_membership": {
             "baselines": [m for m in comparison_methods if m in arms["baselines"]],
-            "control": [m for m in comparison_methods if m in arms["control"]],
+            "full_history_baseline": [
+                m for m in comparison_methods if m in arms["full_history_baseline"]
+            ],
+            "matched_control": [
+                m for m in comparison_methods if m in arms["matched_control"]
+            ],
             "challenger": [m for m in comparison_methods if m in arms["challenger"]],
         },
         "common_backtest_day_count": len(common_days),
@@ -235,7 +245,7 @@ def _arms(benchmark_summary: Mapping[str, Any]) -> dict[str, tuple[str, ...]]:
     if not isinstance(recorded, Mapping):
         raise FundamentalsDispatchInputError("ablation_arms must be an object")
     arms: dict[str, tuple[str, ...]] = {}
-    for name in ("baselines", "control", "challenger"):
+    for name in ("baselines", "full_history_baseline", "matched_control", "challenger"):
         entry = recorded.get(name)
         if not isinstance(entry, Mapping) or not isinstance(
             entry.get("methods"), (list, tuple)
@@ -253,17 +263,23 @@ def _arms(benchmark_summary: Mapping[str, Any]) -> dict[str, tuple[str, ...]]:
     # ablation applies, and every later step relies on it. Checking it here rather than trusting
     # it means a hand-edited summary is refused at the doorway instead of silently pairing a
     # challenger with a method that is not the identical model on price history alone.
+    #
+    # The counterpart is the *matched* control, not the full-history baseline. Both read price
+    # history alone, but only the matched control trained on the challenger's own eligible rows,
+    # so only that pair differs in the feature columns and nothing else. Settling a challenger
+    # against the full-history baseline would carry the training-coverage confound into euro.
     unpairable = [
         method
         for method in arms["challenger"]
         if not method.endswith(FUNDAMENTALS_ARM_SUFFIX)
-        or _control_of(method) not in arms["control"]
+        or _control_of(method) not in arms["matched_control"]
     ]
     if unpairable:
         raise FundamentalsDispatchInputError(
-            "The forecast benchmark records challenger arms with no control counterpart: "
-            f"{', '.join(unpairable)}. A challenger must be named "
-            f"'<control>{FUNDAMENTALS_ARM_SUFFIX}' for a control arm the same run recorded"
+            "The forecast benchmark records challenger arms with no matched-control "
+            f"counterpart: {', '.join(unpairable)}. A challenger must be named "
+            f"'<model>{FUNDAMENTALS_ARM_SUFFIX}' for a matched control named "
+            f"'<model>{MATCHED_CONTROL_SUFFIX}' the same run recorded"
         )
     return arms
 
@@ -298,15 +314,23 @@ def _validated_methods(
     ]
     if unpaired:
         raise FundamentalsDispatchInputError(
-            "Every challenger must be settled beside its own control arm, and these were named "
-            f"without it: {', '.join(unpaired)}. Comparing a challenger against anything but "
-            "the identical model on price history alone is not the ablation"
+            "Every challenger must be settled beside its own matched control, and these were "
+            f"named without it: {', '.join(unpaired)}. Comparing a challenger against anything "
+            "but the identical model trained on the identical rows is not the ablation"
         )
     return named
 
 
 def _control_of(challenger: str) -> str:
-    return challenger[: -len(FUNDAMENTALS_ARM_SUFFIX)]
+    """The matched control that pairs with one challenger.
+
+    ``ridge_fundamentals`` pairs with ``ridge_matched``, not with ``ridge``: the matched control
+    is the arm that trained on the same rows, so it is the only comparator against which a
+    difference is attributable to the feature columns.
+    """
+
+    base = challenger[: -len(FUNDAMENTALS_ARM_SUFFIX)]
+    return f"{base}{MATCHED_CONTROL_SUFFIX}"
 
 
 def _held_out_common_rows(

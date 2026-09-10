@@ -165,6 +165,36 @@ Price error is the secondary measure here and is reported because it explains a 
 primary measure is realized settled dispatch value, computed by the settled comparison of section
 4.2 rather than by the ablation itself.
 
+### 4.1.1 Matched training and the three arms
+
+A weather challenger trains only on days whose accepted features are complete, because a missing
+feature excludes its day and is never imputed. A price-only control trained on the full history
+therefore differs from it in two ways at once, and their difference confounds the value of the
+weather columns with the cost of the training coverage lost to requiring them.
+
+Three arms are compared, so that each difference varies one thing:
+
+| Arm | Feature columns | Training rows |
+| --- | --- | --- |
+| `full_history_baseline` | calendar and price history | every day in the causal feature table |
+| `matched_control` | calendar and price history | exactly the challenger's eligible days |
+| `challenger` | those columns plus accepted weather | exactly the challenger's eligible days |
+
+`challenger` minus `matched_control` is attributable to the weather columns. `matched_control`
+minus `full_history_baseline` is attributable to training coverage. The
+challenger-minus-baseline difference confounds the two and is not reported as a weather effect.
+
+Model families, hyperparameters, seed, refit cadence, refit dates and evaluation days are held
+fixed for the matched pair, and every arm settles on the same declared held-out days. Each refit
+records a digest of its training row identities and of its training targets, computed
+independently of the columns read, and a run is refused unless each matched pair agrees on both
+at every refit: the claim that only the feature columns differ is the entire basis for
+attributing a difference to weather, and a claim stated only in prose stops being true the first
+time either arm's row selection changes.
+
+The structure was fixed prospectively, before any comparison outcome existed
+(`docs/fundamentals_matched_control_amendment_2026-09-10.md`).
+
 ### 4.2 Settled fundamentals dispatch comparison
 
 The v0.9.4 comparison answers the question the project actually asks: on the same delivery days,

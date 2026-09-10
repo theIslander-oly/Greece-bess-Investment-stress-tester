@@ -28,5 +28,7 @@ Execution-plan corrections are likewise recorded by date, including
 [`implementation_report_feature_shard_reconciliation_2026-09-10.md`](implementation_report_feature_shard_reconciliation_2026-09-10.md)
 ,
 [`implementation_report_dated_cash_flow_irr_2026-09-10.md`](implementation_report_dated_cash_flow_irr_2026-09-10.md)
+,
+[`implementation_report_degradation_result_basis_2026-09-10.md`](implementation_report_degradation_result_basis_2026-09-10.md)
 and
-[`implementation_report_degradation_result_basis_2026-09-10.md`](implementation_report_degradation_result_basis_2026-09-10.md).
+[`implementation_report_matched_training_control_2026-09-10.md`](implementation_report_matched_training_control_2026-09-10.md).

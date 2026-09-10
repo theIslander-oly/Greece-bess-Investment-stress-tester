@@ -175,8 +175,32 @@ actionable re-run message rather than relabelled; no accepted record carries the
 in the acceptance record changes. See
 `docs/history/implementation_report_degradation_result_basis_2026-09-10.md`.
 
-Next: Stage 6 — record the prospective amendment adding a matched-training price-only control,
-then compare the three arms (`benchmark-matched-training-control`).
+## Stage 6 — the weather comparison now has a matched control
+
+The declared ablation compared a price-only control trained on every day against a weather
+challenger trained only on days whose accepted features are complete. Those arms differed in the
+feature columns *and* the training rows, so any difference confounded the value of weather with
+the coverage lost to requiring it.
+
+A third arm, `matched_control`, trains on exactly the challenger's eligible rows with the
+baseline's columns; the original full-history arm is retained under its own name. Challenger
+minus matched control is attributable to the weather columns, matched control minus full-history
+baseline to training coverage, and the challenger-minus-baseline difference is not reported as a
+weather effect. The dispatch comparison pairs a challenger with its matched control, so the
+confound cannot reach euro.
+
+The match is enforced, not asserted: every refit records digests of its training row identities
+and targets, computed independently of the columns read, and a run is refused unless each matched
+pair agrees on both at every refit.
+
+The prospective amendment was recorded before the implementation and before any comparison
+outcome exists — no benchmark has been run against official data, the declared window has not
+been retrieved and no feature table has been accepted
+(`docs/fundamentals_matched_control_amendment_2026-09-10.md`,
+`docs/history/implementation_report_matched_training_control_2026-09-10.md`).
+
+Next: Stage 7 — execute the official weather experiment in the plan's declared order, beginning
+with a small live smoke retrieval using the corrected decoder and evidence logic.
 
 ## v0.9.7 — the first real retrieval of the declared window, and the three defects it found
 
