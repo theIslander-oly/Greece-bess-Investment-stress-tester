@@ -175,6 +175,35 @@ actionable re-run message rather than relabelled; no accepted record carries the
 in the acceptance record changes. See
 `docs/history/implementation_report_degradation_result_basis_2026-09-10.md`.
 
+## Stage 8 design unit — the integrated study runner is specified
+
+Each step of the analytical chain exists; nothing connects them. Forecast-planned dispatch settles
+at realized prices against a *fixed* battery; degradation dispatch evolves state across days but
+plans with *perfect foresight*; finance consumes a daily operating path produced elsewhere. The
+question this project exists to ask — whether a better forecast pays for itself once the battery
+ages under the throughput that forecast causes — currently requires joining three command outputs
+by hand, and no contract governs that join.
+
+`docs/integrated_study_design.md` is the design of record for closing it. It fixes one study
+configuration and the contracts between the modules it drives: what each strategy may read at its
+declared decision time; that each strategy owns a private degradation state advanced only by its
+own settled throughput; that a declared window's gaps are refused rather than bridged and finance
+uses exactly that horizon; that physical fade and the monetary dispatch adder stay distinct and are
+not double-counted; and that no single perfect-foresight ceiling is asserted across strategies once
+their states diverge. The study will record under a new `integrated_study` kind on the
+`historical_replay_simulation` basis added in stage 5.
+
+The design adds no source code, accepts no dataset, produces no figure and authorizes no
+official-data run. Tests keep its [Verified] claims checkable against the code, so it fails when
+the repository moves out from under it rather than when someone re-reads it.
+
+**Stage 7 remains blocked** and is unaffected: it needs operator authorization for the live NOAA
+retrieval and the acceptance document that follows. The stage 8 design unit was taken first
+because it requires no official data.
+
+Next: adopt this design, then the stage 8 implementation unit (`build-integrated-study`), or
+stage 7 if its authorization arrives first.
+
 ## Stage 6 — the weather comparison now has a matched control
 
 The declared ablation compared a price-only control trained on every day against a weather

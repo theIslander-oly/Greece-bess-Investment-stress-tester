@@ -6,6 +6,22 @@ All notable project changes are documented here.
 
 ### Added
 
+- **A design of record for the integrated study runner.** The repository can already plan a day on
+  a causal forecast and settle it at realized prices, evolve a cohort degradation state across
+  days, and turn a daily operating path into dated cash flows — but not together. Answering
+  whether a better forecast pays for itself once the battery ages under the throughput that
+  forecast causes currently means running three commands and joining their outputs by hand, and no
+  contract governs that join. `docs/integrated_study_design.md` specifies one study configuration
+  and the contracts between the modules it drives: what each strategy may read at its declared
+  decision time; that each strategy owns a private degradation state advanced only by its own
+  settled throughput; that a declared window's gaps are refused rather than bridged and finance
+  uses exactly that horizon; that physical fade and the monetary dispatch adder stay distinct and
+  are not double-counted; and that no single perfect-foresight ceiling is asserted across
+  strategies once their states diverge. It records the result kind and basis the study will use,
+  the artifacts it will write, and what would make the design wrong. Tests keep its [Verified]
+  claims checkable against the code. The design adds no source code, accepts no dataset, produces
+  no figure and authorizes no official-data run; the implementation unit follows adoption.
+
 - **A matched-training control for the fundamentals ablation.** The declared ablation compared a
   price-only control trained on every day against a weather challenger trained only on days whose
   weather features are complete, so the two arms differed in the feature columns *and* the
