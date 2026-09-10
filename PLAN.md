@@ -20,7 +20,8 @@ The staged plan in `Greek_BESS_Execution_Plan.md` is active. Only one stage move
 | 5 | Complete | Degradation result basis merged as `df7ffec` |
 | 6 | Complete | Matched-training control merged as `196a5c1` (amendment `cba04f0`) |
 | 7 | Blocked | Needs operator authorization for official-data retrieval; see the handoff below |
-| 8–10 | Pending | Follow the fixed plan in order |
+| 8 | In progress | Design unit proposed in `docs/integrated_study_design.md`; implementation follows adoption |
+| 9–10 | Pending | Follow the fixed plan in order |
 
 ### Session handoff — 10 September 2026
 
@@ -64,11 +65,12 @@ first accepted official-data evidence, and it runs the long manually dispatched 
 recorded GitHub billing constraint sits. It was not started, and needs an explicit operator
 decision rather than an implementer's judgement.
 
-**Next single action.** Obtain operator authorization for step 1 of stage 7 — the small live smoke
-retrieval with the corrected decoder and evidence logic, on previously failing cases where
-available — and report before proceeding to step 2. Work available without official data, if the
-operator prefers to defer: stage 8's design unit (`design-integrated-study`), which is a
-specification document reviewable on its own.
+**Next single action.** Adopt `docs/integrated_study_design.md`, then run the stage 8
+implementation unit (`build-integrated-study`) against it. Stage 7 remains blocked on operator
+authorization for step 1 — the small live smoke retrieval with the corrected decoder and evidence
+logic, on previously failing cases where available — and would be reported before step 2. The
+stage 8 design unit was taken ahead of stage 7 because it requires no official data; stage 7's
+own sequence is unchanged and it is not started.
 
 **Standing observation for whoever continues.** Three fixture-versus-producer drifts were found in
 stage 3 alone: a renamed field the combiner still read, a `market_day`/`delivery_day` key mismatch,
