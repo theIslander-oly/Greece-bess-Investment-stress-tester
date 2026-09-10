@@ -486,22 +486,27 @@ de-averaged per point before weighting. Summaries retain the full declared geogr
 this as feature-semantics version 2. Feature tables produced before this correction are not
 equivalent inputs and must be rebuilt before any acceptance or benchmark run.
 
-**The declarations, the corrected retrieval, its custody and the acceptance preflight now exist;
-acceptance does not.** The decision cutoff, the decision lead and the sampling geography are
-operator declarations with no defaults, and the committed examples are refused by name; all three
-were declared on 3 September 2026 (`docs/fundamentals_declarations_2026-09-03.md`). Stage 7 steps
-1–4 rebuilt the declared 2021-02-27 through 2026-08-25 window as 23 private shards, combined them
-inside Actions, fingerprinted and encrypted the combined table under the existing custody
-procedure, and ran the acceptance preflight: 2,002 of 2,006 days per variable are
+**The feature table is accepted; no benchmark has been run on it.** The decision cutoff, the
+decision lead and the sampling geography are operator declarations with no defaults, and the
+committed examples are refused by name; all three were declared on 3 September 2026
+(`docs/fundamentals_declarations_2026-09-03.md`). Stage 7 rebuilt the declared 2021-02-27 through
+2026-08-25 window as 23 private shards, combined them inside Actions, fingerprinted and encrypted
+the combined table under the existing custody procedure, ran the acceptance preflight, retained
+the primary publications the declarations rest on, and committed the dated acceptance
+(`docs/fundamentals_acceptance_2026-09-10.md`): 2,002 of 2,006 days per variable are
 provider-declared before cutoff, three are incomplete before cutoff and one has no publication;
-the joined feature set is identified by digest; and all 90 days of winter 2025-26 are common, so
-the pre-registered rule does not label the run exploratory. Nothing is filled. No feature table
-has been accepted, no acceptance document exists — it waits on primary-source documents the
-tooling cannot verify — and this historic retrieval creates no witnessed day, the one kind of
-evidence that cannot be produced later. **Every figure this README reports
-still comes from the accepted price history alone, and the fundamentals question remains
-unanswered rather than answered negatively.** A negative result would be recorded under the same
-labels, and a thin accepted coverage makes the run exploratory rather than general.
+122 of the 2,124 joined delivery days are excluded by name; and all 90 days of winter 2025-26 are
+common, so the pre-registered rule does not label the run exploratory. Nothing is filled.
+
+Retaining the primary text corrected a declaration before any result existed: the HEnEx day-ahead
+timeline in force in November 2020 puts the gate closure an hour later than the declared
+pre-coupling value, so the schedule now declares one regime at 12:00 CET throughout, and the
+re-run preflight confirmed that no accepted observation changes
+(`docs/primary_sources/README.md`). This historic retrieval creates no witnessed day, the one kind
+of evidence that cannot be produced later. **Every figure this README reports still comes from
+the accepted price history alone, and the fundamentals question remains unanswered rather than
+answered negatively.** A negative result would be recorded under the same labels, and a thin
+accepted coverage makes a run exploratory rather than general.
 ADMIE load and RES forecasts stay out of scope by any route, including through another publisher.
 Percentile outputs (P5/P50/P95) and loss probabilities were removed from the roadmap because
 the seasonal bootstrap resamples a non-stationary 2020-2026 history uniformly and therefore

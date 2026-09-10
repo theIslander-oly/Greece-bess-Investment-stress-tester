@@ -135,6 +135,37 @@ tiling still reproduces the equivalent unsplit table exactly. This code change r
 official-data workflow and accepts no feature table or benchmark result; see
 `docs/history/implementation_report_feature_shard_reconciliation_2026-09-10.md`.
 
+## Stage 7, step 5 — the feature table is accepted, and retaining the primary text corrected a declaration
+
+`docs/fundamentals_acceptance_2026-09-10.md` records the verdict **accepted** for the combined
+point-in-time feature table, naming the accepted feature set
+`a718f46265678cf1e37c31fca439b9f2f03479901fe8f0ac126766431b99aefc`, the identity of every declared
+input, 2,002 complete delivery days and 122 excluded by name, 6,006 accepted variable-days with
+none witnessed and none quarantined, the custody outcome and seven recorded limitations. The
+verdict is data suitability only: no benchmark had been run when it was written and no forecast,
+margin or cash flow had been computed from this feature set.
+
+Both declarations required their primary text to be retained with the acceptance evidence, and the
+publishers are unreachable from this project's working environments, so retention became the
+`Retain primary sources` workflow, driven by `config/primary_sources.json`. Nine documents are
+retained on release `primary-sources-2026-09-10` and cited with digests and quoted passages in
+`docs/primary_sources/README.md`. An asset already on the release is never overwritten, and the
+guard fired: one retrieval of the HWEA statistics returned a 12 KB non-PDF response, nothing was
+overwritten, and the next retrieval matched the retained digest.
+
+**Retaining the text found a defect.** HEnEx Decision 10 of 20 October 2020, the day-ahead
+timeline in force at the 1 November 2020 launch, puts the gate closure at 12:00 CET on D-1, an
+hour later than the declared 12:00 Europe/Athens for delivery days before 2020-12-16. As the
+declaration itself required, it was corrected before any test run: one regime from 2020-11-01 at
+12:00 Europe/Brussels, id `greek-dam-gate-closure-2026-09-10`. Preflight run `34519415488`
+confirmed the correction changes no accepted observation — the feature-set digest and every count
+are identical to the earlier run — because no admitted feature predates 2021-02-27. The sixth
+defect of the same class as the first five: a correct number under a wrong label.
+
+**Steps 6 and 7 have not started.** The benchmark and its result are the remaining stage 7 work,
+and the result is to be committed whichever way it goes
+(`docs/history/implementation_report_stage7_acceptance_2026-09-10.md`).
+
 ## Stage 7, step 4 — custody recorded and verified; the acceptance preflight has run
 
 The 23 slices retrieval run `34476720910` uploaded were combined inside Actions by run
@@ -157,12 +188,10 @@ days of DJF 2025-26 common, so the pre-registered rule classifies the run as **n
 That is a coverage classification made before any result exists; it is not an acceptance and says
 nothing about skill.
 
-**Step 5 has not started.** The dated acceptance document must name primary-source support the
-tooling cannot verify — the HWEA/ELETAEN 2023 wind-capacity statistics, the HEnEx isolated-market
-rulebook text and the SDAC procedure and effective-date notices — and none was supplied. No
-acceptance document is committed and the benchmark workflow still refuses. Every other item the
-document must state is recorded in
-`docs/history/implementation_report_stage7_custody_preflight_2026-09-10.md`.
+At the time this step closed, no acceptance document was committed and step 5 was blocked on
+primary-source support the tooling cannot verify. That support was retained the same day and the
+acceptance followed; see the step 5 section above. The aggregates this step produced are recorded
+in `docs/history/implementation_report_stage7_custody_preflight_2026-09-10.md`.
 
 ## Stage 7, steps 1–3 — corrected official weather retrieval and timing audit
 
