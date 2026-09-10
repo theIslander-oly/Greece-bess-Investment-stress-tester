@@ -133,7 +133,7 @@ jobs:
           fi
           if [[ -n "$FEATURE_RUN_ID" ]]; then
             .github/scripts/custody_step.sh accepted-fundamentals-feature-table \
-              "$FEATURE_RUN_ID" "Benchmark point-in-time fundamentals" "" auto
+              "$FEATURE_RUN_ID" "Fetch point-in-time fundamentals" "" auto
           fi
           if [[ -f custody/verification_failed ]]; then
             echo "An artifact does not match its committed custody record; refusing to publish it."

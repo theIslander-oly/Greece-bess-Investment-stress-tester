@@ -84,7 +84,7 @@ jobs:
           .github/scripts/custody_step.sh greek-dam-official-history "$HISTORY_RUN_ID" \
             "Fetch official Greek market history" "" auto
           .github/scripts/custody_step.sh accepted-fundamentals-feature-table "$FEATURE_RUN_ID" \
-            "Benchmark point-in-time fundamentals" "" auto
+            "Fetch point-in-time fundamentals" "" auto
           test ! -f custody/verification_failed
 
       - name: Prepare inputs without printing private contents

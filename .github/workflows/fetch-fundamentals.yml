@@ -27,6 +27,16 @@ name: Fetch point-in-time fundamentals
 # absence. Everything else still fails the slice loudly, because an unanswered request is not
 # evidence that a provider published nothing.
 #
+# A SLICE SET CAN BE RECOMBINED WITHOUT BEING RE-RETRIEVED. The first corrected full-window run
+# (`34476720910`, 10 September 2026) retrieved all 23 slices, then stopped before combination on
+# a workflow defect of its own — the shard glob counted coverage sidecars as tables — so the slices
+# exist as private artifacts and the combined table does not. Retrieving them again would not
+# reproduce them: a re-retrieval carries new receipt times, and the archive may have moved.
+# `shards_from_run_id` therefore lets a dispatch skip retrieval and combine the slices an earlier
+# run of this workflow already uploaded, under the same tiling guard and the same official
+# reconciliation. The window and slice size must be the ones that run was dispatched with; a
+# different tiling is refused by the slice count and by the combiner.
+#
 # Nothing retrieved is committed. The raw GRIB2 messages are not retained at all — their digests
 # are recorded in the retrieval manifest — and the feature table, its manifest and the audit
 # leave as a private artifact.
@@ -73,9 +83,19 @@ on:
         required: false
         default: true
         type: boolean
+      shards_from_run_id:
+        description: >-
+          Combine the fundamentals-shard-* artifacts an earlier run of this workflow uploaded
+          instead of retrieving. Dispatch with the same window and days_per_shard as that run.
+          Empty retrieves.
+        required: false
+        default: ""
+        type: string
 
 permissions:
   contents: read
+  # Reading another run's slice artifacts under shards_from_run_id.
+  actions: read
 
 jobs:
   plan:
@@ -162,6 +182,9 @@ jobs:
             echo ""
             echo "- Window: \`${{ inputs.start_day }}\` to \`${{ inputs.end_day }}\`"
             echo "- Slices: ${{ steps.tile.outputs.shard_count }} of at most ${{ inputs.days_per_shard }} delivery days"
+            if [[ -n "${{ inputs.shards_from_run_id }}" ]]; then
+              echo "- Slices are not retrieved: they are read from run \`${{ inputs.shards_from_run_id }}\`"
+            fi
             echo ""
             echo "Each slice is retrieved independently and recombined by \`combine-feature-tables\`,"
             echo "which refuses any overlap, gap or mixed retrieval identity."
@@ -169,6 +192,7 @@ jobs:
 
   retrieve:
     needs: plan
+    if: ${{ inputs.shards_from_run_id == '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 300
     strategy:
@@ -224,6 +248,12 @@ jobs:
 
   combine:
     needs: [plan, retrieve]
+    # A skipped retrieval is acceptable only when the slices come from an earlier run; a failed
+    # or cancelled retrieval still stops the combination.
+    if: >-
+      ${{ !cancelled() && needs.plan.result == 'success'
+      && (needs.retrieve.result == 'success'
+          || (inputs.shards_from_run_id != '' && needs.retrieve.result == 'skipped')) }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
@@ -232,6 +262,7 @@ jobs:
       VARIABLES: ${{ inputs.variables }}
       DECISION_CUTOFF_CONFIG: ${{ inputs.decision_cutoff_config }}
       DECISION_LEAD_MINUTES: ${{ inputs.decision_lead_minutes }}
+      SHARDS_FROM_RUN_ID: ${{ inputs.shards_from_run_id }}
 
     steps:
       - name: Check out repository
@@ -248,11 +279,22 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install .
 
-      - name: Download every slice
+      - name: Download every slice this run retrieved
+        if: ${{ env.SHARDS_FROM_RUN_ID == '' }}
         uses: actions/download-artifact@v4
         with:
           pattern: fundamentals-shard-*
           merge-multiple: true
+          path: shards
+
+      - name: Download every slice the named earlier run retrieved
+        if: ${{ env.SHARDS_FROM_RUN_ID != '' }}
+        uses: actions/download-artifact@v4
+        with:
+          pattern: fundamentals-shard-*
+          merge-multiple: true
+          run-id: ${{ env.SHARDS_FROM_RUN_ID }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           path: shards
 
       - name: Refuse unless every planned slice is present
@@ -326,6 +368,14 @@ jobs:
               "",
               f"- Window: `{audit['audit_start_day']}` to `{audit['audit_end_day']}`",
               f"- Retrieved in {retrieval.get('shard_count', 1)} slices, recombined as a tiling",
+              *(
+                  [
+                      f"- Slices read from run `{os.environ['SHARDS_FROM_RUN_ID']}`; "
+                      "nothing was retrieved by this run"
+                  ]
+                  if os.environ.get("SHARDS_FROM_RUN_ID")
+                  else []
+              ),
               f"- Source: `{retrieval['source']}`, geography `{retrieval['geography_id']}`",
               f"- Decision cutoff: `{audit['decision_cutoff_schedule_id']}`, "
               f"lead {audit['decision_lead_minutes']} min",

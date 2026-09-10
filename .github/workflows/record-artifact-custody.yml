@@ -18,9 +18,13 @@ on:
         default: "33483975614"
         type: string
       reconciliation_run_id:
-        description: Run ID holding the henex-entsoe-reconciliation artifact; empty skips it
+        description: >-
+          Run ID holding the henex-entsoe-reconciliation artifact; empty skips it. The recorded
+          artifact of run 33073631530 expired on 3 September 2026 and cannot be regenerated while
+          ENTSOE_SECURITY_TOKEN is unset; its committed record is verifiable only against the
+          decrypted release copy, by the drill in docs/official_artifact_custody.md.
         required: false
-        default: "33073631530"
+        default: ""
         type: string
       history_digest:
         description: SHA-256 GitHub publishes for the history artifact archive; recorded as provenance
@@ -33,7 +37,7 @@ on:
         default: "bee557eaf4f2fa449fe9284bf2d80225e51350c622321cf921f3cbab033b816a"
         type: string
       feature_run_id:
-        description: Run ID holding the accepted-fundamentals-feature-table artifact; empty skips it
+        description: Run ID holding the point-in-time-fundamentals artifact; empty skips it
         required: false
         default: ""
         type: string
@@ -67,8 +71,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
+      # Push-triggered verification follows the committed records: the history and the feature
+      # table. The reconciliation artifact expired on 3 September 2026 (see the input above).
       HISTORY_RUN_ID: ${{ inputs.history_run_id || '33483975614' }}
-      RECONCILIATION_RUN_ID: ${{ inputs.reconciliation_run_id || '33073631530' }}
+      RECONCILIATION_RUN_ID: ${{ inputs.reconciliation_run_id || '' }}
       HISTORY_DIGEST: >-
         ${{ inputs.history_digest
         || 'de30f4cc5938751dc00b8f08c2dbdbf24e2b23910ce6e59a6ccb3ff1dce48009' }}
@@ -146,8 +152,23 @@ jobs:
         shell: bash
         run: |
           .github/scripts/custody_step.sh accepted-fundamentals-feature-table \
-            "$FEATURE_RUN_ID" "Benchmark point-in-time fundamentals" \
+            "$FEATURE_RUN_ID" "Fetch point-in-time fundamentals" \
             "$FEATURE_DIGEST" "$RECORD_MODE"
+
+      - name: Show every generated record for review
+        if: always()
+        shell: bash
+        run: |
+          # A record holds digests and counts and no official value, so it can be read from the
+          # log where the artifact cannot be fetched. Verification reports are not repeated here:
+          # the step summary already states each verdict.
+          shopt -s nullglob
+          for record in custody/*.json; do
+            case "$record" in *.verification.json) continue ;; esac
+            echo "::group::${record}"
+            cat "$record"
+            echo "::endgroup::"
+          done
 
       - name: Upload the custody records
         if: always()
