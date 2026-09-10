@@ -25,7 +25,7 @@ from greek_bess.data.point_in_time import (
     read_point_in_time_csv,
     write_point_in_time_csv,
 )
-from greek_bess.data.timezones import MARKET_TZ
+from greek_bess.data.timezones import market_day_starts
 
 VARIABLES = ("temperature_2m", "wind_speed_10m")
 
@@ -34,14 +34,16 @@ def _synthetic_day(day: date) -> pd.DataFrame:
     """One clearly synthetic delivery day, hourly, with floats that need every bit."""
 
     # The market day is the CET/CEST day, so its first interval opens at local midnight, and
-    # the vintage is the 00 UTC cycle of the day before, as the declared source is.
-    start = pd.Timestamp(day.isoformat(), tz=MARKET_TZ).tz_convert("UTC")
+    # the vintage is the 00 UTC cycle of the day before, as the declared source is. The interval
+    # count comes from the market day itself rather than a fixed 24, so a 23- or 25-hour day
+    # produces the rows it actually owes.
+    openings = market_day_starts(day, 60).tz_convert("UTC")
     issued = pd.Timestamp((day - timedelta(days=1)).isoformat(), tz="UTC")
     published = issued + pd.Timedelta(4, unit="h")
+    received = published + pd.Timedelta(1, unit="h")
 
     rows = []
-    for hour in range(24):
-        opening = start + pd.Timedelta(hour, unit="h")
+    for hour, opening in enumerate(openings):
         for index, variable in enumerate(VARIABLES):
             rows.append(
                 {
@@ -58,7 +60,7 @@ def _synthetic_day(day: date) -> pd.DataFrame:
                     # lossy CSV round trip shows up as a difference rather than hiding.
                     "value": 300.06246393537225 + hour + index / 7.0,
                     "published_at_utc": published,
-                    "retrieved_at_utc": pd.Timestamp("2026-06-01T00:00:00Z"),
+                    "retrieved_at_utc": received,
                     "source_document_id": f"synthetic/{day.isoformat()}/{variable}",
                     "source_revision": "",
                     "raw_sha256": hashlib.sha256(
@@ -117,7 +119,12 @@ def _write_shard(
             for cause in sorted({entry["cause"] for entry in (excluded or [])})
         },
         "excluded_days_by_cause": (excluded or [])[:listed_exclusion_cap],
-        "per_delivery_day": [{"market_day": day.isoformat()} for day in days],
+        # `delivery_day` is the key the retrieval writes; the exclusion entries use
+        # `market_day`. The two differ in the producer, so the fixture must not unify them.
+        "per_delivery_day": [
+            {"delivery_day": day.isoformat(), "feature_row_count": len(VARIABLES) * 24}
+            for day in days
+        ],
     }
     features.with_suffix(".summary.json").write_text(
         json.dumps(summary, indent=2) + "\n", encoding="utf-8"
@@ -355,6 +362,280 @@ class ExclusionAccountingTests(unittest.TestCase):
             self.assertEqual(len(summary["excluded_days_by_cause"]), 2)
             self.assertEqual(summary["excluded_day_count"], 5)
             self.assertEqual(summary["excluded_day_count_by_cause"], {"missing_object": 5})
+
+
+class ShardReconciliationTests(unittest.TestCase):
+    """A shard must hold the days it claims, and its counts must partition its window."""
+
+    def _drop_day(self, features: Path, day: date) -> None:
+        """Remove one delivery day's rows, leaving the summary untouched."""
+
+        frame = read_point_in_time_csv(features)
+        kept = frame[frame["market_day"] != day]
+        write_point_in_time_csv(kept.reset_index(drop=True), features)
+
+    def test_removing_a_day_without_changing_the_records_is_refused(self) -> None:
+        # The acceptance check this stage names: a two-day shard loses one day's rows and says
+        # nothing about it. The combiner must not go on claiming two built days and no
+        # exclusions.
+        with TemporaryDirectory() as raw:
+            directory = Path(raw)
+            shard = _write_shard(directory, "only", _days("2026-03-01", 2))
+            self._drop_day(shard, date.fromisoformat("2026-03-02"))
+
+            with self.assertRaises(FeatureShardError) as caught:
+                combine_feature_shards([shard], created_at_utc="2026-01-02T00:00:00+00:00")
+            message = str(caught.exception)
+            self.assertIn("2026-03-02", message)
+            self.assertIn("holds no row", message)
+
+    def test_a_stored_day_no_record_claims_is_refused(self) -> None:
+        with TemporaryDirectory() as raw:
+            directory = Path(raw)
+            shard = _write_shard(directory, "only", _days("2026-03-01", 2))
+            summary_path = shard.with_suffix(".summary.json")
+            summary = json.loads(summary_path.read_text(encoding="utf-8"))
+            summary["per_delivery_day"] = summary["per_delivery_day"][:1]
+            summary["excluded_day_count"] = 1
+            summary_path.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
+
+            with self.assertRaises(FeatureShardError) as caught:
+                combine_feature_shards([shard], created_at_utc="2026-01-02T00:00:00+00:00")
+            self.assertIn("does not record", str(caught.exception))
+
+    def test_rows_outside_the_declared_window_are_refused(self) -> None:
+        with TemporaryDirectory() as raw:
+            directory = Path(raw)
+            days = _days("2026-03-01", 3)
+            shard = _write_shard(directory, "only", days, window=(days[0], days[1]))
+            with self.assertRaises(FeatureShardError) as caught:
+                combine_feature_shards([shard], created_at_utc="2026-01-02T00:00:00+00:00")
+            message = str(caught.exception)
+            self.assertIn("2026-03-03", message)
+            self.assertIn("outside the window", message)
+
+    def test_a_day_recorded_as_both_built_and_excluded_is_refused(self) -> None:
+        with TemporaryDirectory() as raw:
+            directory = Path(raw)
+            days = _days("2026-03-01", 2)
+            shard = _write_shard(
+                directory,
+                "only",
+                days,
+                excluded=[{"market_day": "2026-03-02", "cause": "missing_object"}],
+            )
+            summary_path = shard.with_suffix(".summary.json")
+            summary = json.loads(summary_path.read_text(encoding="utf-8"))
+            summary["excluded_day_count"] = 0
+            summary_path.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
+
+            with self.assertRaises(FeatureShardError) as caught:
+                combine_feature_shards([shard], created_at_utc="2026-01-02T00:00:00+00:00")
+            self.assertIn("both built and excluded", str(caught.exception))
+
+    def test_an_excluded_day_count_that_does_not_close_the_window_is_refused(self) -> None:
+        # Three declared days, two built, and a shard that says it excluded none. The missing
+        # day is unaccounted for, and the count arithmetic is what proves it.
+        with TemporaryDirectory() as raw:
+            directory = Path(raw)
+            days = _days("2026-03-01", 2)
+            shard = _write_shard(
+                directory, "only", days, window=(days[0], date.fromisoformat("2026-03-03"))
+            )
+            with self.assertRaises(FeatureShardError) as caught:
+                combine_feature_shards([shard], created_at_utc="2026-01-02T00:00:00+00:00")
+            message = str(caught.exception)
+            self.assertIn("partition the declared window exactly", message)
+            self.assertIn("excluded_day_count 0", message)
+
+    def test_a_capped_exclusion_list_still_reconciles(self) -> None:
+        # The counterpart: a shard that lists fewer exclusions than it reports is correct, and
+        # must not be refused for it. The partition is established by the counts, not the list.
+        with TemporaryDirectory() as raw:
+            directory = Path(raw)
+            days = _days("2026-03-01", 2)
+            excluded = [
+                {"market_day": f"2026-03-{day:02d}", "cause": "missing_object"}
+                for day in range(3, 8)
+            ]
+            shard = _write_shard(
+                directory,
+                "only",
+                days,
+                window=(days[0], date.fromisoformat("2026-03-07")),
+                excluded=excluded,
+                listed_exclusion_cap=2,
+            )
+            _, summary, _ = combine_feature_shards(
+                [shard], created_at_utc="2026-01-02T00:00:00+00:00"
+            )
+            self.assertEqual(summary["built_day_count"], 2)
+            self.assertEqual(summary["excluded_day_count"], 5)
+            self.assertEqual(len(summary["excluded_days_by_cause"]), 2)
+
+    def test_a_short_delivery_day_is_refused(self) -> None:
+        # A day that lost one interval rather than all of them. It would otherwise reach the
+        # availability audit as thin coverage rather than as a day with a named cause.
+        with TemporaryDirectory() as raw:
+            directory = Path(raw)
+            shard = _write_shard(directory, "only", _days("2026-03-01", 2))
+            frame = read_point_in_time_csv(shard)
+            kept = frame.drop(frame.index[0]).reset_index(drop=True)
+            write_point_in_time_csv(kept, shard)
+
+            with self.assertRaises(FeatureShardError) as caught:
+                combine_feature_shards([shard], created_at_utc="2026-01-02T00:00:00+00:00")
+            message = str(caught.exception)
+            self.assertIn("owes", message)
+            self.assertIn("built completely or excluded by name", message)
+
+    def test_a_short_day_is_measured_against_the_market_day_not_a_fixed_24(self) -> None:
+        # 25 October 2026 is the 25-hour CET/CEST day. Its rows are complete at 25 intervals per
+        # variable, and a table holding 24 of them is short by one even though 24 is what an
+        # ordinary day owes.
+        with TemporaryDirectory() as raw:
+            directory = Path(raw)
+            long_day = date.fromisoformat("2026-10-25")
+            shard = _write_shard(directory, "only", [long_day])
+            frame = read_point_in_time_csv(shard)
+            self.assertEqual(len(frame), 25 * len(VARIABLES))
+
+            _, summary, _ = combine_feature_shards(
+                [shard], created_at_utc="2026-01-02T00:00:00+00:00"
+            )
+            self.assertEqual(summary["built_day_count"], 1)
+
+            first_interval = frame["delivery_start_utc"].min()
+            short = frame[frame["delivery_start_utc"] != first_interval]
+            write_point_in_time_csv(short.reset_index(drop=True), shard)
+            with self.assertRaises(FeatureShardError) as caught:
+                combine_feature_shards([shard], created_at_utc="2026-01-02T00:00:00+00:00")
+            self.assertIn("owes 50", str(caught.exception))
+
+    def test_a_shard_without_coverage_records_requires_rebuilding(self) -> None:
+        with TemporaryDirectory() as raw:
+            directory = Path(raw)
+            shard = _write_shard(directory, "only", _days("2026-03-01", 2))
+            summary_path = shard.with_suffix(".summary.json")
+            summary = json.loads(summary_path.read_text(encoding="utf-8"))
+            del summary["per_delivery_day"]
+            summary_path.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
+
+            with self.assertRaises(FeatureShardError) as caught:
+                combine_feature_shards([shard], created_at_utc="2026-01-02T00:00:00+00:00")
+            self.assertIn("per_delivery_day", str(caught.exception))
+
+    def test_a_reconciled_tiling_still_reproduces_the_unsplit_table(self) -> None:
+        # Reconciliation must not change what a valid combination produces.
+        with TemporaryDirectory() as raw:
+            directory = Path(raw)
+            whole = _write_shard(directory, "whole", _days("2026-03-01", 4))
+            first = _write_shard(directory, "first", _days("2026-03-01", 2))
+            second = _write_shard(directory, "second", _days("2026-03-03", 2))
+
+            expected, _, _ = combine_feature_shards(
+                [whole], created_at_utc="2026-01-02T00:00:00+00:00"
+            )
+            combined, summary, _ = combine_feature_shards(
+                [first, second], created_at_utc="2026-01-02T00:00:00+00:00"
+            )
+
+            pd.testing.assert_frame_equal(combined, expected)
+            self.assertEqual(summary["built_day_count"], 4)
+            self.assertEqual(summary["excluded_day_count"], 0)
+
+
+class OfficialProvenanceTests(unittest.TestCase):
+    """An official combination traces every row to the messages it was built from."""
+
+    def _write_manifest(
+        self, features: Path, entries: list[dict[str, object]]
+    ) -> None:
+        features.with_name(features.stem + ".retrieval_manifest.json").write_text(
+            json.dumps({"schema_version": 1, "files": entries}, indent=2) + "\n",
+            encoding="utf-8",
+        )
+
+    def _entry(self, name: str, digest: str) -> dict[str, object]:
+        return {"local_path": name, "sha256": digest, "size_bytes": 10}
+
+    def _shard_with_manifest(
+        self, directory: Path, name: str, days: list[date], entries: list[dict[str, object]]
+    ) -> Path:
+        shard = _write_shard(directory, name, days)
+        summary_path = shard.with_suffix(".summary.json")
+        summary = json.loads(summary_path.read_text(encoding="utf-8"))
+        summary["document_count"] = len(entries)
+        summary_path.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
+        self._write_manifest(shard, entries)
+        return shard
+
+    def test_a_shard_without_a_manifest_is_refused_in_official_mode_only(self) -> None:
+        with TemporaryDirectory() as raw:
+            directory = Path(raw)
+            shard = _write_shard(directory, "only", _days("2026-03-01", 2))
+
+            # Default mode: a synthetic shard has no provenance to record and is combinable.
+            _, summary, _ = combine_feature_shards(
+                [shard], created_at_utc="2026-01-02T00:00:00+00:00"
+            )
+            self.assertEqual(summary["built_day_count"], 2)
+
+            with self.assertRaises(FeatureShardError) as caught:
+                combine_feature_shards(
+                    [shard], created_at_utc="2026-01-02T00:00:00+00:00", official=True
+                )
+            self.assertIn("no retrieval manifest", str(caught.exception))
+
+    def test_contradictory_digests_for_one_document_are_refused(self) -> None:
+        with TemporaryDirectory() as raw:
+            directory = Path(raw)
+            first = self._shard_with_manifest(
+                directory, "first", _days("2026-03-01", 2), [self._entry("m0001.grib2", "aa")]
+            )
+            second = self._shard_with_manifest(
+                directory, "second", _days("2026-03-03", 2), [self._entry("m0001.grib2", "bb")]
+            )
+            with self.assertRaises(FeatureShardError) as caught:
+                combine_feature_shards(
+                    [first, second], created_at_utc="2026-01-02T00:00:00+00:00", official=True
+                )
+            message = str(caught.exception)
+            self.assertIn("different digests", message)
+            self.assertIn("m0001.grib2", message)
+
+    def test_a_manifest_shorter_than_the_retrieval_it_describes_is_refused(self) -> None:
+        with TemporaryDirectory() as raw:
+            directory = Path(raw)
+            shard = self._shard_with_manifest(
+                directory, "only", _days("2026-03-01", 2), [self._entry("m0001.grib2", "aa")]
+            )
+            summary_path = shard.with_suffix(".summary.json")
+            summary = json.loads(summary_path.read_text(encoding="utf-8"))
+            summary["document_count"] = 4
+            summary_path.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
+
+            with self.assertRaises(FeatureShardError) as caught:
+                combine_feature_shards(
+                    [shard], created_at_utc="2026-01-02T00:00:00+00:00", official=True
+                )
+            self.assertIn("manifest holds", str(caught.exception).replace("\n", " "))
+
+    def test_agreeing_provenance_combines(self) -> None:
+        with TemporaryDirectory() as raw:
+            directory = Path(raw)
+            first = self._shard_with_manifest(
+                directory, "first", _days("2026-03-01", 2), [self._entry("m0001.grib2", "aa")]
+            )
+            second = self._shard_with_manifest(
+                directory, "second", _days("2026-03-03", 2), [self._entry("m0002.grib2", "bb")]
+            )
+            _, summary, records = combine_feature_shards(
+                [first, second], created_at_utc="2026-01-02T00:00:00+00:00", official=True
+            )
+            self.assertEqual(len(records), 2)
+            self.assertEqual(summary["document_count"], 2)
+            self.assertEqual(summary["built_day_count"], 4)
 
 
 if __name__ == "__main__":  # pragma: no cover

@@ -6,6 +6,25 @@ All notable project changes are documented here.
 
 ### Fixed
 
+- **Shard combination checked declarations, not contents.** `combine_feature_shards` verified
+  that shards shared one retrieval identity and that their *declared* windows tiled without
+  overlap or gap, then concatenated. Nothing checked those declarations against what the shards
+  held, so a shard whose table lost a delivery day still declared its original window, still
+  listed the day among those it built, and still reported zero exclusions — and the combined
+  summary repeated all three claims, counting a day the table did not contain. Downstream that
+  is indistinguishable from a delivery day the provider never published, the one distinction
+  this project records by name and never infers. Every shard is now reconciled before
+  concatenation: days claimed but not held, days held but not claimed, rows outside the declared
+  window, a day recorded as both built and excluded, and a day short of one row per variable per
+  delivery interval are each refused, with the interval count taken from the market day itself
+  rather than assumed to be 24. The built-day count is now the reconciled one. The declared
+  window's partition is checked by count arithmetic rather than as a set, because the exclusion
+  list is capped and a shard that hit its cap lists fewer days than it excluded. A new
+  `--official` mode on `combine-feature-tables`, set in the retrieval workflow, additionally
+  requires every shard to carry a retrieval manifest, refuses two records naming one document
+  with different digests, and refuses a manifest shorter than the document count its shard
+  reports. No official-data workflow was launched by this change.
+
 - **Point-in-time feature observation times were run-start times.** A feature row's
   `retrieved_at_utc` recorded the instant its retrieval *run* began, stamped identically onto
   every row the run produced. The availability audit grades a row `witnessed` when that instant
