@@ -559,6 +559,30 @@ The v0.9.2 join validates complete canonical price days and the closed point-in-
 
 Price intervals receive a selected feature only by containment of their UTC start in the feature's half-open delivery interval. Revision selection precedes evidence-grade admission: an older admissible revision cannot replace a newer, inadmissible pre-cutoff revision. Equal resolutions are marked `equal`; an hourly feature used for four quarter-hours is marked `broadcast_coarser_feature`; a finer feature is refused without a separately declared aggregation rule. If any declared variable-area pair does not cover every price interval, every feature value for the day remains absent and the day is excluded by named cause. Nothing is forward-filled, interpolated or imputed. The audit row behind every emitted value carries the source document, revision, raw-byte SHA-256, publication/retrieval/issue instants, effective grade, cutoff margin, resolution relation and the number of later revisions for that native feature interval.
 
+## GFS feature-value construction
+
+The GFS request selects one sidecar record by the declared index variable, level and forecast
+step. Selection is not treated as proof of meaning. The decoded GRIB2 message must independently
+match the registered short and long parameter names, unit, level type and value, 00 UTC D-1
+cycle, valid time, hourly step unit, forecast window and instant/average meaning. A mismatch is a
+named integrity refusal, not a missing-source day and not a candidate for unit conversion.
+
+For declared points \(p\) with weights \(w_p\), 10 m wind speed is
+
+\[
+v = \sum_p w_p\sqrt{u_p^2+v_p^2}.
+\]
+
+The magnitude is calculated before geographic aggregation because signed components at different
+locations are not one vector. Surface downward short-wave radiation is converted from the
+source's reset-bucket mean to each local one-hour mean first, then the declared weights are
+applied. These operations retain the same declared points, weights and source cycle.
+
+The retrieval summary records the complete geography, the decoded-message contract and
+`feature_semantics_version = 2`. A feature table made by an earlier semantics version is not an
+equivalent input and must be rebuilt rather than reused under its old digest or acceptance
+identity.
+
 ## Fundamentals official-run order
 
 The v0.9.5 workflow enforces: declaration validation; official-history and feature-table custody verification; strict publication-time availability audit; revision-aware point-in-time join without filling; DJF 2025–26 completeness preflight; forecast ablation from the accepted digest; and forecast-planned dispatch settled on realized prices using the unchanged 50 MW / 100 MWh battery. Hourly training and validation precede an entirely quarter-hour test, where each hourly GFS value is explicitly broadcast over four intervals. Missing, late, conflicting, interpolated, or inadmissibly graded observations cannot enter an accepted run.

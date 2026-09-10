@@ -20,7 +20,8 @@ import json
 import tempfile
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
-from datetime import UTC, date, datetime
+from dataclasses import replace
+from datetime import UTC, date, datetime, timedelta
 from email.utils import format_datetime
 from pathlib import Path
 from typing import Any
@@ -32,6 +33,7 @@ from greek_bess.cli import main
 from greek_bess.data.gfs import (
     ATMOS_LAYOUT_FROM_CYCLE_DAY,
     FIRST_HOURLY_DELIVERY_DAY,
+    GFS_FEATURE_SEMANTICS_VERSION,
     GFS_VARIABLES,
     MAXIMUM_HOURLY_FORECAST_STEP,
     MISSING_OBJECT,
@@ -92,7 +94,7 @@ MESSAGE_ORDER = (
 MESSAGE_BYTES = 1000
 
 
-def _index_text(step: int, *, offset_shift: int = 0) -> str:
+def _index_text(step: int, *, cycle: str = "2026081900", offset_shift: int = 0) -> str:
     lines = []
     for number, (variable, level) in enumerate(MESSAGE_ORDER, start=1):
         description = (
@@ -102,7 +104,7 @@ def _index_text(step: int, *, offset_shift: int = 0) -> str:
         )
         offset = (number - 1) * MESSAGE_BYTES + offset_shift
         lines.append(
-            f"{number}:{offset}:d=2026081900:{variable}:{level}:{description}:"
+            f"{number}:{offset}:d={cycle}:{variable}:{level}:{description}:"
         )
     return "\n".join(lines) + "\n"
 
@@ -116,9 +118,19 @@ def _payload(key: str, start: int) -> bytes:
     """
 
     position = start // MESSAGE_BYTES
+    step = int(key.rsplit(".f", 1)[1][:3])
+    cycle_day = key.split("/", 1)[0].removeprefix("gfs.")
     filler = hashlib.sha256(f"{key}:{start}".encode()).digest()
-    body = (filler * ((MESSAGE_BYTES // len(filler)) + 1))[: MESSAGE_BYTES - 12]
-    return b"GRIB" + position.to_bytes(4, "big") + body + b"7777"
+    header = (
+        b"GRIB"
+        + position.to_bytes(4, "big")
+        + step.to_bytes(4, "big")
+        + cycle_day.encode("ascii")
+    )
+    body = (filler * ((MESSAGE_BYTES // len(filler)) + 1))[
+        : MESSAGE_BYTES - len(header) - 4
+    ]
+    return header + body + b"7777"
 
 
 class _Archive:
@@ -206,17 +218,21 @@ class _Archive:
             ):
                 # A sidecar left over from a different publication of the same key: its last
                 # message starts past the end of the object the HEAD just measured.
-                return _index_text(step, offset_shift=len(MESSAGE_ORDER) * MESSAGE_BYTES).encode(
+                return _index_text(
+                    step,
+                    cycle=f"{self._cycle(key)}00",
+                    offset_shift=len(MESSAGE_ORDER) * MESSAGE_BYTES,
+                ).encode(
                     "utf-8"
                 )
-            return _index_text(step).encode("utf-8")
+            return _index_text(step, cycle=f"{self._cycle(key)}00").encode("utf-8")
         key = url.split("amazonaws.com/", 1)[1]
         self.requested_keys.append(key)
         assert byte_range is not None
         return _payload(key, byte_range[0])
 
 
-def _decoder(values: dict[str, float] | None = None) -> Any:
+def _decoder(values: dict[str, float | tuple[float, ...]] | None = None) -> Any:
     """A decoder that reports a fixed value per variable, and the real grid geometry."""
 
     per_variable = values or {"TMP": 300.0, "UGRD": 3.0, "VGRD": 4.0, "DSWRF": 600.0}
@@ -225,17 +241,93 @@ def _decoder(values: dict[str, float] | None = None) -> Any:
         # The fake archive encodes the message's position in its bytes, so the decoder can tell
         # which message it was handed without the caller passing extra state.
         variable = MESSAGE_ORDER[int.from_bytes(payload[4:8], "big")][0]
+        step = int.from_bytes(payload[8:12], "big")
+        cycle_day = payload[12:20].decode("ascii")
+        cycle = datetime.strptime(cycle_day, "%Y%m%d").replace(tzinfo=UTC)
+        valid = cycle + timedelta(hours=step)
+        metadata = {
+            "TMP": ("2t", "2 metre temperature", "K", "heightAboveGround", 2.0),
+            "UGRD": (
+                "10u",
+                "10 metre U wind component",
+                "m s**-1",
+                "heightAboveGround",
+                10.0,
+            ),
+            "VGRD": (
+                "10v",
+                "10 metre V wind component",
+                "m s**-1",
+                "heightAboveGround",
+                10.0,
+            ),
+            "DSWRF": (
+                "sdswrf",
+                "Surface downward short-wave radiation flux",
+                "W m**-2",
+                "surface",
+                0.0,
+            ),
+        }
+        short_name, name, units, type_of_level, level = metadata[variable]
+        declared = per_variable[variable]
+        samples = (
+            tuple(float(value) for value in declared)
+            if isinstance(declared, tuple)
+            else tuple(float(declared) for _ in indices)
+        )
+        if isinstance(declared, tuple) and indices and len(samples) != len(indices):
+            raise AssertionError("A fake decoder sample tuple must match the requested points")
         return Grib2Message(
-            name=variable,
-            units="declared",
-            step_type="instant",
-            start_step=0,
-            end_step=0,
+            short_name=short_name,
+            name=name,
+            units=units,
+            type_of_level=type_of_level,
+            level=level,
+            step_type="avg" if variable == "DSWRF" else "instant",
+            start_step=bucket_start_step(step) if variable == "DSWRF" else step,
+            end_step=step,
+            step_units=1,
+            data_date=int(cycle.strftime("%Y%m%d")),
+            data_time=int(cycle.strftime("%H%M")),
+            validity_date=int(valid.strftime("%Y%m%d")),
+            validity_time=int(valid.strftime("%H%M")),
             grid=GRID,
-            samples=tuple(float(per_variable[variable]) for _ in indices),
+            samples=samples,
         )
 
     return decode
+
+
+def _generated_temperature_grib2() -> bytes:
+    """Build a tiny real GRIB2 message with ecCodes; no implementation decoder is injected."""
+
+    import eccodes
+
+    handle = eccodes.codes_grib_new_from_samples("regular_ll_sfc_grib2")
+    try:
+        for key, value in {
+            "shortName": "2t",
+            "dataDate": 20260819,
+            "dataTime": 0,
+            "stepType": "instant",
+            "step": 25,
+            "typeOfLevel": "heightAboveGround",
+            "level": 2,
+            "Ni": 2,
+            "Nj": 2,
+            "latitudeOfFirstGridPointInDegrees": 40.5,
+            "latitudeOfLastGridPointInDegrees": 40.25,
+            "longitudeOfFirstGridPointInDegrees": 23.0,
+            "longitudeOfLastGridPointInDegrees": 23.25,
+            "iDirectionIncrementInDegrees": 0.25,
+            "jDirectionIncrementInDegrees": 0.25,
+        }.items():
+            eccodes.codes_set(handle, key, value)
+        eccodes.codes_set_values(handle, [300.0, 301.0, 302.0, 303.0])
+        return bytes(eccodes.codes_get_message(handle))
+    finally:
+        eccodes.codes_release(handle)
 
 
 class KeyLayoutTests(unittest.TestCase):
@@ -458,6 +550,21 @@ class DecoderTests(unittest.TestCase):
         with self.assertRaisesRegex(NoaaGfsError, "not one complete GRIB2 message"):
             decode_grib2_message(b"", [0])
 
+    def test_a_generated_grib_message_is_decoded_with_its_full_semantics(self) -> None:
+        decoded = decode_grib2_message(_generated_temperature_grib2(), [0, 3])
+
+        self.assertEqual(decoded.short_name, "2t")
+        self.assertEqual(decoded.name, "2 metre temperature")
+        self.assertEqual(decoded.units, "K")
+        self.assertEqual((decoded.type_of_level, decoded.level), ("heightAboveGround", 2.0))
+        self.assertEqual(
+            (decoded.step_type, decoded.start_step, decoded.end_step, decoded.step_units),
+            ("instant", 25, 25, 1),
+        )
+        self.assertEqual((decoded.data_date, decoded.data_time), (20260819, 0))
+        self.assertEqual((decoded.validity_date, decoded.validity_time), (20260820, 100))
+        self.assertEqual(decoded.samples, (300.0, 303.0))
+
 
 class DeliveryDayTests(unittest.TestCase):
     def _client(self, archive: _Archive) -> NoaaGfsClient:
@@ -496,6 +603,19 @@ class DeliveryDayTests(unittest.TestCase):
         # The stub decoder reports 3 and 4 for the two components at every point.
         self.assertTrue((built.features["value"].round(9) == 5.0).all())
         self.assertEqual(built.features["unit"].unique().tolist(), ["m/s"])
+
+    def test_wind_speed_is_calculated_locally_before_geographic_weighting(self) -> None:
+        archive = _Archive()
+        decoder = _decoder({"TMP": 300.0, "UGRD": (12.0, -4.0), "VGRD": (0.0, 0.0), "DSWRF": 0.0})
+        client = NoaaGfsClient(
+            fetcher=archive.fetch, head_reader=archive.head, decoder=decoder
+        )
+
+        built = client.build_delivery_day_features(
+            date(2026, 8, 20), geography=GEOGRAPHY, variables=["wind_speed_10m"]
+        )
+
+        self.assertTrue((built.features["value"].round(9) == 6.0).all())
 
     def test_a_derived_value_names_every_document_behind_it(self) -> None:
         archive = _Archive()
@@ -542,6 +662,12 @@ class DeliveryDayTests(unittest.TestCase):
         self.assertIn("not unaltered NOAA data", built.summary["attribution"])
         self.assertEqual(built.summary["cycle_hour_utc"], 0)
         self.assertEqual(built.summary["cycle_day"], "2026-08-19")
+        self.assertEqual(
+            built.summary["feature_semantics_version"], GFS_FEATURE_SEMANTICS_VERSION
+        )
+        self.assertEqual(built.summary["geography"], GEOGRAPHY.to_dict())
+        contract = built.summary["decoded_message_contract"]["temperature_2m"]
+        self.assertEqual(contract["messages"][0]["short_name"], "2t")
 
     def test_a_variable_this_source_does_not_supply_is_refused_by_name(self) -> None:
         archive = _Archive()
@@ -553,6 +679,71 @@ class DeliveryDayTests(unittest.TestCase):
     def test_the_registered_variables_are_the_three_the_decision_names(self) -> None:
         self.assertEqual(
             sorted(GFS_VARIABLES), ["dswrf_surface", "temperature_2m", "wind_speed_10m"]
+        )
+
+
+class DecodedMetadataRefusalTests(unittest.TestCase):
+    def _assert_refused(self, pattern: str, **overrides: Any) -> None:
+        archive = _Archive()
+        baseline = _decoder()
+
+        def decode(payload: bytes, indices: Any) -> Grib2Message:
+            return replace(baseline(payload, indices), **overrides)
+
+        client = NoaaGfsClient(
+            fetcher=archive.fetch, head_reader=archive.head, decoder=decode
+        )
+        with self.assertRaisesRegex(NoaaGfsError, pattern):
+            client.build_delivery_day_features(
+                date(2026, 8, 20), geography=GEOGRAPHY, variables=["temperature_2m"]
+            )
+
+    def test_a_wrong_parameter_identity_is_refused_by_name(self) -> None:
+        self._assert_refused("parameter identity", short_name="10u")
+
+    def test_wrong_units_are_refused_without_conversion(self) -> None:
+        self._assert_refused("Decoded units", units="deg C")
+
+    def test_a_wrong_level_is_refused_by_name(self) -> None:
+        self._assert_refused("Decoded level", level=10.0)
+
+    def test_a_wrong_source_cycle_is_refused_by_name(self) -> None:
+        self._assert_refused("Decoded cycle", data_date=20260818)
+
+    def test_a_wrong_valid_time_is_refused_by_name(self) -> None:
+        self._assert_refused("Decoded valid time", validity_time=2300)
+
+    def test_wrong_forecast_and_averaging_semantics_are_refused(self) -> None:
+        self._assert_refused("Decoded forecast semantics", step_type="avg")
+
+    def test_a_wrong_forecast_step_is_refused(self) -> None:
+        self._assert_refused("Decoded forecast semantics", end_step=999)
+
+
+class SidecarSemanticsTests(unittest.TestCase):
+    def _assert_mutated_sidecar_is_refused(self, old: bytes, new: bytes, pattern: str) -> None:
+        class _MutatedSidecar(_Archive):
+            def fetch(self, url: str, byte_range: tuple[int, int] | None) -> bytes:
+                payload = super().fetch(url, byte_range)
+                return payload.replace(old, new) if url.endswith(".idx") else payload
+
+        archive = _MutatedSidecar()
+        client = NoaaGfsClient(
+            fetcher=archive.fetch, head_reader=archive.head, decoder=_decoder()
+        )
+        with self.assertRaisesRegex(NoaaGfsError, pattern):
+            client.build_delivery_day_features(
+                date(2026, 8, 20), geography=GEOGRAPHY, variables=["dswrf_surface"]
+            )
+
+    def test_a_sidecar_from_another_cycle_is_refused(self) -> None:
+        self._assert_mutated_sidecar_is_refused(
+            b"d=2026081900", b"d=2026081800", "declares cycle"
+        )
+
+    def test_accumulation_is_not_accepted_as_the_declared_radiation_average(self) -> None:
+        self._assert_mutated_sidecar_is_refused(
+            b"hour ave fcst", b"hour acc fcst", "forecast semantics"
         )
 
 
@@ -569,17 +760,13 @@ class GridConsistencyTests(unittest.TestCase):
             longitude_increment=0.5,
         )
         calls: list[int] = []
+        baseline = _decoder()
 
         def decode(payload: bytes, indices: Any) -> Grib2Message:
             calls.append(1)
-            return Grib2Message(
-                name="TMP",
-                units="K",
-                step_type="instant",
-                start_step=0,
-                end_step=0,
+            return replace(
+                baseline(payload, indices),
                 grid=GRID if len(calls) < 4 else other,
-                samples=tuple(300.0 for _ in indices),
             )
 
         archive = _Archive()
@@ -814,19 +1001,15 @@ class NamedExclusionTests(unittest.TestCase):
             geography.write_text(json.dumps(GEOGRAPHY.to_dict()), encoding="utf-8")
             archive = _Archive()
             calls: list[int] = []
+            baseline = _decoder()
 
             def decode(payload: bytes, indices: Any) -> Grib2Message:
                 calls.append(1)
-                return Grib2Message(
-                    name="TMP",
-                    units="K",
-                    step_type="instant",
-                    start_step=0,
-                    end_step=0,
+                return replace(
+                    baseline(payload, indices),
                     grid=GRID
                     if len(calls) < 4
                     else Grib2Grid(720, 361, 90.0, 0.0, 0.5, 0.5),
-                    samples=tuple(300.0 for _ in indices),
                 )
 
             def factory() -> NoaaGfsClient:

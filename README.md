@@ -478,6 +478,14 @@ Failures now carry a kind and a status so that only a `404` reads as absence, tr
 and 5xx answers are retried under a bounded policy, and a missing object or a mismatched `.idx`
 sidecar excludes its delivery day by name while every other refusal still stops the retrieval.
 
+The Stage 2 correction makes the value path strict as well: selected GRIB2 bytes must decode to
+the requested parameter, unit, vertical level, 00 UTC D-1 cycle, valid time, hourly forecast
+window and instant/average semantics. Wind speed is now the declared weighted mean of the local
+point speeds, not the magnitude of separately weighted signed components; radiation is
+de-averaged per point before weighting. Summaries retain the full declared geography and identify
+this as feature-semantics version 2. Feature tables produced before this correction are not
+equivalent inputs and must be rebuilt before any acceptance or benchmark run.
+
 **The declarations exist; the run does not.** The decision cutoff, the decision lead and the
 sampling geography are operator declarations with no defaults, and the committed examples are
 refused by name; all three were declared on 3 September 2026

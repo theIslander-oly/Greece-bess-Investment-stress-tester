@@ -76,6 +76,17 @@ baseline: all analytical values were already identical, but platform newline tra
 the recorded manifest identities. The correction changes no result or assumption; evidence is in
 `docs/history/implementation_report_windows_determinism_2026-09-09.md`.
 
+## Stage 2 — GFS feature semantics corrected
+
+The GFS client now verifies that every decoded message agrees with its request and sidecar on
+parameter, units, level, cycle, valid time, forecast step and average/accumulation meaning. It
+calculates wind speed locally before applying the unchanged declared geography weights and
+de-averages radiation locally before weighting. Retrieval summaries retain the full geography,
+the decoded-message contract and feature-semantics version 2. All feature tables produced before
+this correction, and any acceptance identity derived from them, require rebuilding. This code
+change ran no official-data workflow and accepts no feature table or benchmark result; see
+`docs/history/implementation_report_gfs_feature_semantics_2026-09-09.md`.
+
 ## v0.9.7 — the first real retrieval of the declared window, and the three defects it found
 
 On 4 September 2026 the sharded retrieval was dispatched over the full pre-registered window,

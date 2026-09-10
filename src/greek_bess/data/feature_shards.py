@@ -42,7 +42,15 @@ class FeatureShardError(ValueError):
 #: Summary fields that identify what a shard retrieved rather than how much of it. Two shards
 #: that disagree on any of these did not retrieve slices of one window, and combining them
 #: would produce a table whose rows mean different things without saying so.
-IDENTITY_FIELDS = ("method", "source", "variables", "geography_id", "geography")
+IDENTITY_FIELDS = (
+    "method",
+    "source",
+    "variables",
+    "geography_id",
+    "geography",
+    "feature_semantics_version",
+    "decoded_message_contract",
+)
 
 
 @dataclass(frozen=True)
@@ -80,6 +88,13 @@ def read_feature_shard(features: Path) -> FeatureShard:
     summary = json.loads(summary_path.read_text(encoding="utf-8"))
     if not isinstance(summary, dict):
         raise FeatureShardError(f"{summary_path} does not hold a retrieval summary object")
+    missing_identity = [field for field in IDENTITY_FIELDS if field not in summary]
+    if missing_identity:
+        raise FeatureShardError(
+            f"{summary_path} is missing retrieval identity fields: "
+            f"{', '.join(missing_identity)}. A shard without an explicit feature semantics "
+            "identity predates the current value contract and must be rebuilt."
+        )
 
     manifest: dict[str, Any] | None = None
     for candidate in (
@@ -208,6 +223,8 @@ def combine_feature_shards(
         "variables": first.get("variables"),
         "geography_id": first.get("geography_id"),
         "geography": first.get("geography"),
+        "feature_semantics_version": first.get("feature_semantics_version"),
+        "decoded_message_contract": first.get("decoded_message_contract"),
         "start_day": start_day.isoformat(),
         "end_day": end_day.isoformat(),
         "retrieved_at_utc": created_at_utc,
