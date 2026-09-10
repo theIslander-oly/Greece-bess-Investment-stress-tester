@@ -120,6 +120,14 @@ RADIATION_BUCKET_HOURS = 6
 #: tables built under an earlier value are not equivalent inputs and must be rebuilt.
 GFS_FEATURE_SEMANTICS_VERSION = 2
 
+#: Incremented when the meaning of a row's ``retrieved_at_utc`` changes. Version 1 stamped every
+#: row of a run with the instant the *run* started, so a request issued before a decision cutoff
+#: and answered after it was still recorded as observed before the cutoff. Version 2 records the
+#: instant each message was successfully received, and a derived feature inherits the latest
+#: receipt among its contributing messages. A table built under version 1 cannot be read as
+#: evidence of when this project observed anything, so the two are not equivalent inputs.
+GFS_OBSERVATION_SEMANTICS_VERSION = 2
+
 _INDEX_LINE = re.compile(
     r"^(?P<message>\d+):(?P<offset>\d+):d=(?P<cycle>\d{10}):"
     r"(?P<variable>[^:]+):(?P<level>[^:]+):(?P<step>[^:]*):"
@@ -639,6 +647,11 @@ class NoaaGfsClient:
     says nothing about the object. It is a property of the client rather than a command-line
     knob: a retrieval accepted as evidence should talk to the provider the same way every time
     it runs.
+
+    ``clock`` reads the instant a message finished arriving. It is a fourth seam because that
+    instant is evidence: it decides whether this project observed a value before a delivery
+    day's decision cutoff, and a test that cannot move it cannot exercise a request answered on
+    the wrong side of one. It is read only after a transfer has succeeded, never before.
     """
 
     def __init__(
@@ -647,6 +660,7 @@ class NoaaGfsClient:
         fetcher: Callable[[str, tuple[int, int] | None], bytes] | None = None,
         head_reader: Callable[[str], Mapping[str, str]] | None = None,
         decoder: Decoder | None = None,
+        clock: Callable[[], pd.Timestamp] | None = None,
         timeout_seconds: int = 60,
         retry_policy: RetryPolicy = DEFAULT_RETRY_POLICY,
     ) -> None:
@@ -655,6 +669,18 @@ class NoaaGfsClient:
         self._fetcher = fetcher
         self._head_reader = head_reader
         self._decoder = decoder or decode_grib2_message
+        self._clock = clock or _utc_now
+
+    def _received_now(self) -> pd.Timestamp:
+        """Return the current instant as a UTC timestamp, refusing a clock that is not one."""
+
+        instant = pd.Timestamp(self._clock())
+        if instant.tzinfo is None:
+            raise NoaaGfsError(
+                "The receipt clock returned a naive timestamp; an observation instant compared "
+                "against a decision cutoff must carry its timezone"
+            )
+        return instant.tz_convert(UTC)
 
     def head_step_object(self, cycle_day: date, step: int) -> GfsObjectHead:
         """Return the ``HEAD`` of one forecast-step object, trying both key layouts.
@@ -735,13 +761,18 @@ class NoaaGfsClient:
         geography: SamplingGeography,
         variables: Sequence[str],
         raw_dir: Path | None = None,
-        retrieved_at_utc: str | None = None,
+        run_started_at_utc: str | None = None,
     ) -> GfsDeliveryDayFeatures:
         """Build every hourly feature row for one CET/CEST market day, with its provenance.
 
         A day is built completely or not at all. A missing object, an unreadable sidecar or a
         step whose message cannot be decoded raises, because a partly built day would reach the
         availability audit as a day with thin coverage rather than as a day with a named cause.
+
+        ``run_started_at_utc`` records when the enclosing retrieval began. It is provenance about
+        the run and nothing else: it never becomes a row's ``retrieved_at_utc``, because a run
+        that starts before a decision cutoff can go on asking for messages long after it, and
+        stamping its start onto every row would report those later answers as observed in time.
         """
 
         if delivery_day < FIRST_HOURLY_DELIVERY_DAY:
@@ -752,7 +783,7 @@ class NoaaGfsClient:
                 "broadcast into an hourly column: the day carries no feature and is excluded"
             )
         requested = _validate_variables(variables)
-        retrieved = retrieved_at_utc or utc_now_iso()
+        run_started = run_started_at_utc or utc_now_iso()
         cycle_day = delivery_day - timedelta(days=1)
         cycle = cycle_instant_utc(cycle_day)
         steps = required_forecast_steps(delivery_day)
@@ -786,6 +817,11 @@ class NoaaGfsClient:
                         aggregation=variable_spec.aggregation,
                     )
                     payload = self.fetch_message(head, entry)
+                    # The receipt instant is read here, after the transfer succeeded and its
+                    # length was checked, and never before the request. `fetch_message` retries
+                    # internally, so this is the instant of the attempt that actually delivered
+                    # the bytes: an earlier attempt that failed observed nothing.
+                    received_at = self._received_now()
                     if grid is None:
                         # The declared points are resolved to flat indices once, from the first
                         # message's own grid header. Every later message is then checked against
@@ -831,6 +867,7 @@ class NoaaGfsClient:
                         entry=entry,
                         digest=digest,
                         samples=message.samples,
+                        received_at_utc=received_at,
                     )
                     if raw_dir is not None:
                         atomic_write_bytes(
@@ -843,7 +880,7 @@ class NoaaGfsClient:
                             dataset=NOAA_GFS_DATASET,
                             source_url=f"{head.url}#bytes={entry.start_byte}-{entry.end_byte}",
                             local_path=f"{head.key}.m{entry.message_number:04d}.grib2",
-                            retrieved_at_utc=retrieved,
+                            retrieved_at_utc=received_at.isoformat(),
                             sha256=digest,
                             size_bytes=len(payload),
                             coverage_start=delivery_day.isoformat(),
@@ -862,7 +899,6 @@ class NoaaGfsClient:
             geography=geography,
             variables=requested,
             messages=messages,
-            retrieved_at_utc=retrieved,
         )
         features = ensure_point_in_time(pd.DataFrame(rows))
         summary = {
@@ -874,7 +910,18 @@ class NoaaGfsClient:
             "geography_id": geography.geography_id,
             "geography": geography.to_dict(),
             "feature_semantics_version": GFS_FEATURE_SEMANTICS_VERSION,
+            "observation_semantics_version": GFS_OBSERVATION_SEMANTICS_VERSION,
             "decoded_message_contract": _decoded_message_contract(requested),
+            # Run start and message receipt are reported separately and never collapsed. The
+            # last receipt is the one an availability audit must compare against the cutoff:
+            # the day is fully observed only once its slowest contributing message has landed.
+            "run_started_at_utc": run_started,
+            "first_message_received_at_utc": min(
+                payload.received_at_utc for payload in messages.values()
+            ).isoformat(),
+            "last_message_received_at_utc": max(
+                payload.received_at_utc for payload in messages.values()
+            ).isoformat(),
             "message_count": len(messages),
             "retrieved_byte_count": int(
                 sum(payload.entry.byte_count for payload in messages.values())
@@ -922,6 +969,7 @@ class _MessagePayload:
     entry: GfsIndexEntry
     digest: str
     samples: tuple[float, ...]
+    received_at_utc: pd.Timestamp
 
 
 def _validate_index_semantics(
@@ -1096,6 +1144,12 @@ def _weighted_sample(samples: Sequence[float], points: Sequence[Any]) -> float:
     )
 
 
+def _utc_now() -> pd.Timestamp:
+    """The default receipt clock: the wall-clock instant, in UTC."""
+
+    return pd.Timestamp.now(tz=UTC)
+
+
 def _validate_samples(samples: Sequence[float], points: Sequence[Any]) -> None:
     if len(samples) != len(points):
         raise NoaaGfsError(
@@ -1116,7 +1170,6 @@ def _feature_rows(
     geography: SamplingGeography,
     variables: Sequence[str],
     messages: Mapping[tuple[int, str, str], _MessagePayload],
-    retrieved_at_utc: str,
 ) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     for start in delivery_interval_starts_utc(delivery_day):
@@ -1157,7 +1210,6 @@ def _feature_rows(
                     value=value,
                     contributing=contributing,
                     cycle=cycle,
-                    retrieved_at_utc=retrieved_at_utc,
                     geography=geography,
                 )
             )
@@ -1194,13 +1246,17 @@ def _feature_row(
     value: float,
     contributing: Sequence[_MessagePayload],
     cycle: pd.Timestamp,
-    retrieved_at_utc: str,
     geography: SamplingGeography,
 ) -> dict[str, Any]:
     # A derived value is available only when its *last* input was, and it is traceable only
     # through all of them. So the publication instant is the latest contributing object's, the
     # document id names every contributing object, and the digest is taken over the contributing
     # message digests in a stated order rather than over one of them.
+    #
+    # The same argument settles the receipt instant, which is why it is the latest contributing
+    # message's rather than the run's: this project had not observed a wind speed until both the
+    # eastward and the northward component had arrived, and it had not observed an hourly
+    # radiation mean until both bucket ends had.
     ordered = sorted(
         contributing, key=lambda payload: (payload.head.key, payload.entry.message_number)
     )
@@ -1213,6 +1269,7 @@ def _feature_row(
         else sha256_bytes("".join(payload.digest for payload in ordered).encode("ascii"))
     )
     published = max(payload.head.last_modified_utc for payload in ordered)
+    received = max(payload.received_at_utc for payload in ordered)
     return {
         "delivery_start_utc": start,
         "delivery_end_utc": start + pd.Timedelta(1, unit="h"),
@@ -1225,7 +1282,7 @@ def _feature_row(
         "resolution_minutes": 60,
         "value": value,
         "published_at_utc": published,
-        "retrieved_at_utc": pd.Timestamp(retrieved_at_utc),
+        "retrieved_at_utc": received,
         "source_document_id": document_id,
         "source_revision": None,
         "raw_sha256": digest,

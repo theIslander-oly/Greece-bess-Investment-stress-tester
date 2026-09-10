@@ -1,7 +1,7 @@
 # Project status
 
 **Version:** 0.9.7
-**Updated:** 9 September 2026
+**Updated:** 10 September 2026
 **Status:** Official multi-year operational acceptance and HEnEx-to-ENTSO-E cross-source
 reconciliation passed; encrypted custody copies published and the private key exercised;
 per-delivery-year replay decomposition accepted against the official history;
@@ -86,6 +86,35 @@ the decoded-message contract and feature-semantics version 2. All feature tables
 this correction, and any acceptance identity derived from them, require rebuilding. This code
 change ran no official-data workflow and accepts no feature table or benchmark result; see
 `docs/history/implementation_report_gfs_feature_semantics_2026-09-09.md`.
+
+## Stage 3, unit 1 — feature observation times are receipts, not run starts
+
+A feature row's `retrieved_at_utc` recorded the instant its retrieval run began, stamped
+identically onto every row the run produced. Because the availability audit grades a row
+`witnessed` when that instant is strictly before the delivery day's declared decision cutoff, a
+run that started before a cutoff and kept receiving messages after it recorded every late value
+as observed in time — and `witnessed` is the one grade that cannot be reconstructed afterwards,
+so nothing downstream could have caught it.
+
+The receipt instant is now read once per message, immediately after that message's transfer
+succeeds and never before its request, so a retried transfer records the attempt that actually
+delivered the bytes. A derived value inherits the latest receipt among its contributing messages.
+Provider publication time is unchanged and remains a separate field. Run start is still recorded,
+as a property of the run: summaries carry `run_started_at_utc`,
+`first_message_received_at_utc` and `last_message_received_at_utc` as three distinct instants.
+`observation_semantics_version = 2` joins the shard identity fields, so run-start tables are
+refused rather than combined with corrected ones. Shard recombination requires and reports those
+receipt instants instead of the removed `retrieved_at_utc`, and names its own reassembly instant
+`combined_at_utc`.
+
+The seven existing successful witness runs were reviewed against the declared cutoff. All
+completed by 06:24 UTC against a 10:00 UTC cutoff — a margin of at least three hours and
+thirty-six minutes — so none required reclassification, and no historic receipt instant was
+invented. This code change ran no official-data workflow and accepts no feature table or
+benchmark result; see
+`docs/history/implementation_report_feature_observation_times_2026-09-10.md`.
+
+Next: Stage 3, unit 2 — shard coverage and provenance reconciliation.
 
 ## v0.9.7 — the first real retrieval of the declared window, and the three defects it found
 

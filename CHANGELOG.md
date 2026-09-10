@@ -6,6 +6,26 @@ All notable project changes are documented here.
 
 ### Fixed
 
+- **Point-in-time feature observation times were run-start times.** A feature row's
+  `retrieved_at_utc` recorded the instant its retrieval *run* began, stamped identically onto
+  every row the run produced. The availability audit grades a row `witnessed` when that instant
+  falls strictly before the delivery day's declared decision cutoff, so a run that started
+  before a cutoff and kept receiving messages after it recorded every late value as observed in
+  time. `witnessed` is the one grade that cannot be reconstructed afterwards, so nothing
+  downstream could have detected this. The receipt instant is now read per message, immediately
+  after that message's transfer succeeds and never before its request, and a derived feature row
+  inherits the latest receipt among its contributing messages — a wind speed is not observed
+  until both components have arrived. Provider publication time remains a separate field and is
+  unchanged. Run start is still recorded, as a property of the run: summaries now carry
+  `run_started_at_utc`, `first_message_received_at_utc` and `last_message_received_at_utc` as
+  three distinct instants. `GFS_OBSERVATION_SEMANTICS_VERSION` is 2 and joins the shard identity
+  fields, so tables carrying run-start stamps are refused rather than combined with corrected
+  ones. Shard recombination now requires and carries those receipt fields instead of the removed
+  `retrieved_at_utc`, and its own combination instant is named `combined_at_utc`. The seven
+  existing successful witness runs were reviewed against the declared cutoff and needed no
+  reclassification: each completed by 06:24 UTC against a 10:00 UTC cutoff. No official-data
+  workflow was launched by this change.
+
 - **GFS decoded-message and feature-value semantics.** Every selected GRIB2 message must now
   agree with its sidecar and request on parameter identity, units, level, source cycle, valid
   time, forecast window, step units and instant/average semantics. Wind speed is calculated at

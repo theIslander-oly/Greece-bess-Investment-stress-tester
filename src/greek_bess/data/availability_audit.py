@@ -22,6 +22,15 @@ computed here from the row's own two instants against that day's cutoff — and 
 ``assumed`` stays ``assumed`` whatever its timestamps say, because the inference is the weakness,
 not the arithmetic.
 
+The two instants mean different things and neither substitutes for the other.
+``published_at_utc`` is the provider's: when the source object was made available, read from the
+object itself. ``retrieved_at_utc`` is this project's: when the datum was *successfully
+received* here, and for a derived value the latest receipt among its inputs. It is deliberately
+not the instant a retrieval run began. A run that starts an hour before a cutoff and is still
+receiving messages an hour after it observed some of its values late; a run-start stamp would
+report every one of them as witnessed. That is the one grade in this scheme that cannot be
+reconstructed afterwards, so nobody reading the table later could have checked it.
+
 **A day is complete or it is excluded by name.** Partial coverage is a status with a cause, never
 a day with fewer intervals. Nothing is forward-filled and no interval is inferred from a
 neighbouring one.
