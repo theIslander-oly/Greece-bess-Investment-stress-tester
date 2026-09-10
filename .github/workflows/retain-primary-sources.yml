@@ -1,0 +1,237 @@
+name: Retain primary sources
+
+# Two operator declarations rest on primary publications this repository's tooling cannot
+# verify: the day-ahead gate-closure rule behind `config/decision_cutoff.json` and the wind
+# capacity statistics behind `config/fundamentals_geography.json`. Both declarations require the
+# primary text to be retained with the acceptance evidence (`docs/fundamentals_declarations_
+# 2026-09-03.md`). The publishers' sites have not been reachable from the working environments
+# this project has used, and the runner is where every live retrieval already happens.
+#
+# `list-links` prints every link on the given pages so the exact document URLs can be chosen.
+# `retain` downloads each URL, records byte size and SHA-256, prints the document's metadata and
+# the passages matching `search_terms` for review in the log, uploads the files as a private
+# artifact and, when `release_tag` is set, attaches them to a release of this private repository.
+# The committed citation record under `docs/primary_sources/` carries the digests; the bytes stay
+# outside Git.
+#
+# This workflow retrieves published documents and nothing else. It accepts nothing, and it does
+# not read, verify or alter any declaration: a person reads the passages it prints and decides.
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: list-links prints the links on each page; retain downloads each URL
+        required: true
+        default: list-links
+        type: choice
+        options:
+          - list-links
+          - retain
+      urls:
+        description: Whitespace-separated URLs (pages for list-links, documents for retain)
+        required: true
+        type: string
+      search_terms:
+        description: Extended regular expression; matching passages are printed for review
+        required: false
+        default: "gate closure|closure|12:00|12.00|Central Greece|Peloponn|Thrace|Macedonia"
+        type: string
+      release_tag:
+        description: retain mode only; when set, the files are attached to this release
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  # Creating or updating the release the retained documents are attached to.
+  contents: write
+
+jobs:
+  retain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      MODE: ${{ inputs.mode }}
+      URLS: ${{ inputs.urls }}
+      SEARCH_TERMS: ${{ inputs.search_terms }}
+      RELEASE_TAG: ${{ inputs.release_tag }}
+      # Some publishers refuse the default curl agent; identify as an ordinary browser.
+      USER_AGENT: >-
+        Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko)
+        Chrome/128.0 Safari/537.36
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install the PDF text tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq poppler-utils >/dev/null
+
+      - name: List the links on each page
+        if: ${{ env.MODE == 'list-links' }}
+        shell: bash
+        run: |
+          set -uo pipefail
+          for url in $URLS; do
+            echo "::group::${url}"
+            if ! page=$(curl -fsSL --retry 3 --retry-delay 5 -A "$USER_AGENT" "$url"); then
+              echo "FAILED to fetch ${url} (curl exit $?)"
+              echo "::endgroup::"
+              continue
+            fi
+            printf '%s' "$page" | python3 - "$url" <<'PY'
+          import html
+          import re
+          import sys
+          from urllib.parse import urljoin
+
+          base = sys.argv[1]
+          page = sys.stdin.read()
+          seen = set()
+          for match in re.finditer(r'<a\b[^>]*?href="([^"]+)"[^>]*>(.*?)</a>', page, re.I | re.S):
+              href = html.unescape(match.group(1)).strip()
+              text = re.sub(r"<[^>]+>", "", match.group(2))
+              text = " ".join(html.unescape(text).split())
+              url = urljoin(base, href)
+              if url in seen or url.startswith(("mailto:", "javascript:")):
+                  continue
+              seen.add(url)
+              print(f"{url}\t{text[:120]}")
+          PY
+            echo "::endgroup::"
+          done
+
+      - name: Download each document and record its identity
+        if: ${{ env.MODE == 'retain' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p retained
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import os
+          import subprocess
+          from datetime import datetime, timezone
+          from pathlib import Path
+          from urllib.parse import unquote, urlparse
+
+          records = []
+          for url in os.environ["URLS"].split():
+              parsed = urlparse(url)
+              name = unquote(Path(parsed.path).name) or "index.html"
+              if "." not in name:
+                  name = f"{name}.html"
+              name = f"{parsed.netloc}__{name}".replace("/", "_")
+              target = Path("retained") / name
+              retrieved_at = datetime.now(timezone.utc).isoformat()
+              subprocess.run(
+                  [
+                      "curl", "-fsSL", "--retry", "3", "--retry-delay", "5",
+                      "-A", os.environ["USER_AGENT"], "-o", str(target), url,
+                  ],
+                  check=True,
+              )
+              data = target.read_bytes()
+              records.append(
+                  {
+                      "url": url,
+                      "file": name,
+                      "retrieved_at_utc": retrieved_at,
+                      "size_bytes": len(data),
+                      "sha256": hashlib.sha256(data).hexdigest(),
+                      "is_pdf": data[:5] == b"%PDF-",
+                  }
+              )
+          Path("retained/RETRIEVAL.json").write_text(
+              json.dumps(
+                  {
+                      "workflow_run_id": os.environ.get("GITHUB_RUN_ID"),
+                      "documents": records,
+                  },
+                  indent=2,
+              )
+              + "\n",
+              encoding="utf-8",
+          )
+          print(json.dumps(records, indent=2))
+          PY
+
+      - name: Print metadata and the passages that match the search terms
+        if: ${{ env.MODE == 'retain' }}
+        shell: bash
+        run: |
+          set -uo pipefail
+          shopt -s nullglob
+          for file in retained/*; do
+            [[ "$(basename "$file")" == "RETRIEVAL.json" ]] && continue
+            echo "::group::$(basename "$file")"
+            if head -c 5 "$file" | grep -q '%PDF-'; then
+              pdfinfo "$file" 2>/dev/null | grep -E '^(Title|Author|Creator|CreationDate|ModDate|Pages):' || true
+              echo "--- first 40 lines of text ---"
+              pdftotext -layout -l 2 "$file" - 2>/dev/null | sed '/^[[:space:]]*$/d' | head -40
+              echo "--- passages matching: ${SEARCH_TERMS} ---"
+              pdftotext -layout "$file" - 2>/dev/null | grep -n -i -E -C2 "$SEARCH_TERMS" | head -300 \
+                || echo "(no match)"
+            else
+              echo "--- passages matching: ${SEARCH_TERMS} ---"
+              python3 - "$file" <<'PY' | grep -n -i -E -C2 "$SEARCH_TERMS" | head -300 || echo "(no match)"
+          import html, re, sys
+          text = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+          text = re.sub(r"<(script|style)\b.*?</\1>", " ", text, flags=re.I | re.S)
+          text = re.sub(r"<br\s*/?>|</p>|</div>|</li>|</h[1-6]>|</tr>", "\n", text, flags=re.I)
+          text = html.unescape(re.sub(r"<[^>]+>", " ", text))
+          for line in text.splitlines():
+              line = " ".join(line.split())
+              if line:
+                  print(line)
+          PY
+            fi
+            echo "::endgroup::"
+          done
+
+      - name: Upload the retained documents
+        if: ${{ env.MODE == 'retain' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: primary-sources
+          path: retained/
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Attach the documents to a private release
+        if: ${{ env.MODE == 'retain' && env.RELEASE_TAG != '' }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --clobber retained/*
+          else
+            gh release create "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
+              --title "Retained primary sources behind the fundamentals declarations" \
+              --notes "Publisher documents retained as acceptance evidence. Their citation record, with digests, is committed under docs/primary_sources/." \
+              retained/*
+          fi
+
+      - name: Record what was retained
+        if: ${{ env.MODE == 'retain' }}
+        shell: bash
+        run: |
+          {
+            echo "## Primary sources retained"
+            echo
+            echo "- Release tag: \`${RELEASE_TAG:-none}\`"
+            echo
+            echo "| File | Bytes | SHA-256 | URL |"
+            echo "| --- | ---: | --- | --- |"
+            python3 - <<'PY'
+          import json
+          for d in json.load(open("retained/RETRIEVAL.json"))["documents"]:
+              print(f"| `{d['file']}` | {d['size_bytes']} | `{d['sha256']}` | {d['url']} |")
+          PY
+          } >> "$GITHUB_STEP_SUMMARY"
