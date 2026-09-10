@@ -60,11 +60,12 @@ jobs:
           from pathlib import Path
           declared = json.loads(Path("config/primary_sources.json").read_text(encoding="utf-8"))
           pages = " ".join(declared.get("list_pages", []))
-          documents = " ".join(d["url"] for d in declared.get("documents", []))
-          for url in (pages + " " + documents).split():
+          documents = declared.get("documents", [])
+          for url in pages.split() + [d["url"] for d in documents]:
               assert url.startswith("https://"), url
           print(f"LIST_PAGES={pages}")
-          print(f"DOCUMENT_URLS={documents}")
+          print(f"DOCUMENT_URLS={' '.join(d['url'] for d in documents)}")
+          print(f"DOCUMENTS_JSON={json.dumps(documents)}")
           print(f"SEARCH_TERMS={declared['search_terms']}")
           print(f"RELEASE_TAG={declared.get('release_tag', '')}")
           PY
@@ -123,15 +124,22 @@ jobs:
           from urllib.parse import unquote, urlparse
 
           records = []
-          for url in os.environ["DOCUMENT_URLS"].split():
+          names = set()
+          for document in json.loads(os.environ["DOCUMENTS_JSON"]):
+              url = document["url"]
               parsed = urlparse(url)
-              name = unquote(Path(parsed.path).name) or "index.html"
+              # A declared name is used when the URL's last segment does not name the file
+              # (a document-library endpoint, say); otherwise the file keeps its published name.
+              name = document.get("name") or unquote(Path(parsed.path).name) or "index.html"
               if "." not in name:
                   name = f"{name}.html"
               # GitHub renames release assets whose names carry characters outside
               # [A-Za-z0-9._-], replacing each with a dot; apply the same rule here so the
               # retained file, the artifact and the release asset share one name.
               name = re.sub(r"[^A-Za-z0-9._-]", ".", f"{parsed.netloc}__{name}")
+              if name in names:
+                  raise SystemExit(f"two declared documents would be retained as {name}")
+              names.add(name)
               target = Path("retained") / name
               retrieved_at = datetime.now(timezone.utc).isoformat()
               subprocess.run(
@@ -144,6 +152,7 @@ jobs:
               data = target.read_bytes()
               records.append(
                   {
+                      "role": document.get("role"),
                       "url": url,
                       "file": name,
                       "retrieved_at_utc": retrieved_at,

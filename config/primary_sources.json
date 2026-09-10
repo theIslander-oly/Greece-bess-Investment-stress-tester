@@ -1,17 +1,8 @@
 {
   "purpose": "Primary publications behind config/decision_cutoff.json and config/fundamentals_geography.json, which the repository tooling cannot verify and which must be retained with the acceptance evidence (docs/fundamentals_declarations_2026-09-03.md). Retrieved by the 'Retain primary sources' workflow; digests are cited under docs/primary_sources/.",
   "release_tag": "primary-sources-2026-09-10",
-  "search_terms": "gate closure|closure|order book|12:00|12.00|13:00|CET|EET|local time|Central Greece|Sterea|Peloponn|Thrace|Macedonia|2,293|2.293|639|534|16 December|15 December|1 October",
-  "list_pages": [
-    "https://www.enexgroup.gr/web/guest/library-dam-idm-trading-rulebooks-decisions?p_p_id=com_liferay_asset_publisher_web_portlet_AssetPublisherPortlet_INSTANCE_lwFYE2ou0pZB&p_p_lifecycle=0&p_p_state=normal&p_p_mode=view&_com_liferay_asset_publisher_web_portlet_AssetPublisherPortlet_INSTANCE_lwFYE2ou0pZB_redirect=%2Fweb%2Fguest%2Flibrary-dam-idm-trading-rulebooks-decisions&_com_liferay_asset_publisher_web_portlet_AssetPublisherPortlet_INSTANCE_lwFYE2ou0pZB_delta=3&p_r_p_resetCur=false&_com_liferay_asset_publisher_web_portlet_AssetPublisherPortlet_INSTANCE_lwFYE2ou0pZB_cur=2",
-    "https://www.enexgroup.gr/web/guest/library-dam-idm-trading-rulebooks-decisions?p_p_id=com_liferay_asset_publisher_web_portlet_AssetPublisherPortlet_INSTANCE_lwFYE2ou0pZB&p_p_lifecycle=0&p_p_state=normal&p_p_mode=view&_com_liferay_asset_publisher_web_portlet_AssetPublisherPortlet_INSTANCE_lwFYE2ou0pZB_redirect=%2Fweb%2Fguest%2Flibrary-dam-idm-trading-rulebooks-decisions&_com_liferay_asset_publisher_web_portlet_AssetPublisherPortlet_INSTANCE_lwFYE2ou0pZB_delta=3&p_r_p_resetCur=false&_com_liferay_asset_publisher_web_portlet_AssetPublisherPortlet_INSTANCE_lwFYE2ou0pZB_cur=3",
-    "https://www.enexgroup.gr/web/guest/library-dam-idm-trading-rulebooks-decisions?p_p_id=com_liferay_asset_publisher_web_portlet_AssetPublisherPortlet_INSTANCE_lwFYE2ou0pZB&p_p_lifecycle=0&p_p_state=normal&p_p_mode=view&_com_liferay_asset_publisher_web_portlet_AssetPublisherPortlet_INSTANCE_lwFYE2ou0pZB_redirect=%2Fweb%2Fguest%2Flibrary-dam-idm-trading-rulebooks-decisions&_com_liferay_asset_publisher_web_portlet_AssetPublisherPortlet_INSTANCE_lwFYE2ou0pZB_delta=3&p_r_p_resetCur=false&_com_liferay_asset_publisher_web_portlet_AssetPublisherPortlet_INSTANCE_lwFYE2ou0pZB_cur=4",
-    "https://www.enexgroup.gr/web/guest/library-dam-idm-trading-rulebooks-decisions?p_p_id=com_liferay_asset_publisher_web_portlet_AssetPublisherPortlet_INSTANCE_lwFYE2ou0pZB&p_p_lifecycle=0&p_p_state=normal&p_p_mode=view&_com_liferay_asset_publisher_web_portlet_AssetPublisherPortlet_INSTANCE_lwFYE2ou0pZB_redirect=%2Fweb%2Fguest%2Flibrary-dam-idm-trading-rulebooks-decisions&_com_liferay_asset_publisher_web_portlet_AssetPublisherPortlet_INSTANCE_lwFYE2ou0pZB_delta=3&p_r_p_resetCur=false&_com_liferay_asset_publisher_web_portlet_AssetPublisherPortlet_INSTANCE_lwFYE2ou0pZB_cur=5",
-    "https://www.enexgroup.gr/web/guest/library-dam-idm-trading-rulebooks-decisions?p_p_id=com_liferay_asset_publisher_web_portlet_AssetPublisherPortlet_INSTANCE_4Ig5SMfj8oSA&p_p_lifecycle=0&p_p_state=normal&p_p_mode=view&_com_liferay_asset_publisher_web_portlet_AssetPublisherPortlet_INSTANCE_4Ig5SMfj8oSA_redirect=%2Fweb%2Fguest%2Flibrary-dam-idm-trading-rulebooks-decisions&_com_liferay_asset_publisher_web_portlet_AssetPublisherPortlet_INSTANCE_4Ig5SMfj8oSA_delta=9&p_r_p_resetCur=false&_com_liferay_asset_publisher_web_portlet_AssetPublisherPortlet_INSTANCE_4Ig5SMfj8oSA_cur=2",
-    "https://www.enexgroup.gr/web/guest/library-dam-idm-trading-rulebooks-decisions?p_p_id=com_liferay_asset_publisher_web_portlet_AssetPublisherPortlet_INSTANCE_4Ig5SMfj8oSA&p_p_lifecycle=0&p_p_state=normal&p_p_mode=view&_com_liferay_asset_publisher_web_portlet_AssetPublisherPortlet_INSTANCE_4Ig5SMfj8oSA_redirect=%2Fweb%2Fguest%2Flibrary-dam-idm-trading-rulebooks-decisions&_com_liferay_asset_publisher_web_portlet_AssetPublisherPortlet_INSTANCE_4Ig5SMfj8oSA_delta=9&p_r_p_resetCur=false&_com_liferay_asset_publisher_web_portlet_AssetPublisherPortlet_INSTANCE_4Ig5SMfj8oSA_cur=3",
-    "https://www.enexgroup.gr/web/guest/library-dam-idm-trading-rulebooks-decisions?p_p_id=com_liferay_asset_publisher_web_portlet_AssetPublisherPortlet_INSTANCE_4Ig5SMfj8oSA&p_p_lifecycle=0&p_p_state=normal&p_p_mode=view&_com_liferay_asset_publisher_web_portlet_AssetPublisherPortlet_INSTANCE_4Ig5SMfj8oSA_redirect=%2Fweb%2Fguest%2Flibrary-dam-idm-trading-rulebooks-decisions&_com_liferay_asset_publisher_web_portlet_AssetPublisherPortlet_INSTANCE_4Ig5SMfj8oSA_delta=9&p_r_p_resetCur=false&_com_liferay_asset_publisher_web_portlet_AssetPublisherPortlet_INSTANCE_4Ig5SMfj8oSA_cur=4",
-    "https://www.enexgroup.gr/web/guest/library-dam-idm-trading-rulebooks-decisions?p_p_id=com_liferay_asset_publisher_web_portlet_AssetPublisherPortlet_INSTANCE_4Ig5SMfj8oSA&p_p_lifecycle=0&p_p_state=normal&p_p_mode=view&_com_liferay_asset_publisher_web_portlet_AssetPublisherPortlet_INSTANCE_4Ig5SMfj8oSA_redirect=%2Fweb%2Fguest%2Flibrary-dam-idm-trading-rulebooks-decisions&_com_liferay_asset_publisher_web_portlet_AssetPublisherPortlet_INSTANCE_4Ig5SMfj8oSA_delta=9&p_r_p_resetCur=false&_com_liferay_asset_publisher_web_portlet_AssetPublisherPortlet_INSTANCE_4Ig5SMfj8oSA_cur=5"
-  ],
+  "search_terms": "Gate Closure|closure|order book|12:00|12.00|13:00|11:00|CET|EET|local time|Central Greece|Sterea|Peloponn|Thrace|Macedonia|2,293|2.293|639|534|16 December|15 December|1 October|effect|force",
+  "list_pages": [],
   "documents": [
     {
       "role": "geography: HWEA/ELETAEN wind energy statistics at 31 December 2023",
@@ -40,6 +31,16 @@
     {
       "role": "cutoff regime 2: 15-minute MTU implemented in SDAC, 7 October 2025",
       "url": "https://www.nemo-committee.eu/assets/files/successful-implementation-of-15-minute-market-time-unit-(mtu)-in-sdac.pdf"
+    },
+    {
+      "role": "cutoff regime 1: HEnEx DAM/IDM Decision 10, timeline procedures for the day-ahead market, version of 6 October 2020 (in force at the 1 November 2020 launch)",
+      "url": "https://www.enexgroup.gr/c/document_library/get_file?uuid=e6302200-e51e-5545-21da-4fe48fa1c5cd&groupId=20126",
+      "name": "20201006_Decision_10_en.pdf"
+    },
+    {
+      "role": "cutoff regime 2: HEnEx DAM/IDM Decision 10, timeline procedures, version of 20 September 2021 (first post-coupling version in the library)",
+      "url": "https://www.enexgroup.gr/c/document_library/get_file?uuid=cdb8194c-3e2f-fdb0-0aec-bf9964d9bb5f&groupId=20126",
+      "name": "20210920_Decision_10_en.pdf"
     }
   ]
 }
