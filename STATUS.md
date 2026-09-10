@@ -135,7 +135,29 @@ tiling still reproduces the equivalent unsplit table exactly. This code change r
 official-data workflow and accepts no feature table or benchmark result; see
 `docs/history/implementation_report_feature_shard_reconciliation_2026-09-10.md`.
 
-Next: Stage 4 — align finance metrics on one dated cash-flow series (`fix-dated-cash-flow-irr`).
+## Stage 4 — NPV and IRR now read one dated series
+
+NPV discounted the daily cash-flow table; IRR solved on the annual table, which dates a project
+year's total at that year's final day. The two metrics therefore described different cash-flow
+timings. For EUR 1,000 paid initially and EUR 1,200 received evenly across 365 daily periods, the
+dated series gives 45.586% and the annual relocation 20.015%. The recorded timing policy already
+declared the daily convention, so IRR was the metric not honouring it.
+
+Both metrics now read the same dated series. Uniqueness is established before a rate is reported
+— by the single-sign-change rule, by Norstrom's cumulative-balance criterion, or by a scan of the
+search range finding exactly one root — because counting sign changes on daily flows alone would
+refuse any project paying for a mid-life augmentation. The repository's existing ambiguity
+fixture was confirmed to have two roots and is still refused; the synthetic demonstration, which
+never recovers its capex, has exactly one and is still reported.
+
+**Every previously reported IRR is superseded.** The committed synthetic demonstration moves from
+-0.9798843527086536 to -0.9800653165183428 and its report is regenerated. No accepted official
+result carries an IRR, so the acceptance record is unchanged; NPV, payback, break-even outputs,
+totals, fees and augmentation costs are unchanged. See
+`docs/history/implementation_report_dated_cash_flow_irr_2026-09-10.md`.
+
+Next: Stage 5 — identify the evolving-state degradation aggregate as a day-by-day
+perfect-foresight simulation rather than a lifetime optimum (`fix-degradation-result-basis`).
 
 ## v0.9.7 — the first real retrieval of the declared window, and the three defects it found
 

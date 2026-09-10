@@ -1,5 +1,28 @@
 # Decision log
 
+## 2026-09-10 — Compute every monetary metric from one dated cash-flow series
+
+- **Decision:** NPV and IRR are computed from the same dated series — initial capex at the
+  project start, each day's operating cash flow at that day's own instant under the declared
+  end-of-day convention. The annual table remains a summary and no monetary metric is derived
+  from it. A rate is reported only when its uniqueness is established: by the single-sign-change
+  rule, by Norstrom's cumulative-balance criterion, or by a scan of the search range finding
+  exactly one root.
+- **Reason:** NPV discounted the daily series while IRR solved on the annual one, which dates a
+  year's total at that year's final day, so the two metrics described different cash-flow
+  timings. For EUR 1,000 paid initially and EUR 1,200 received evenly across 365 daily periods
+  the two answers are 45.586% and 20.015%. The recorded timing policy already stated the daily
+  convention, so IRR was the metric not honouring it. Counting sign changes on daily flows alone
+  would have refused any project paying for a mid-life augmentation, which is why uniqueness is
+  established rather than assumed from the sign count.
+- **Consequence:** Every previously reported IRR is superseded; the corrected figure is the one
+  consistent with the declared convention and with the NPV beside it. The committed synthetic
+  demonstration moves from -0.9798843527086536 to -0.9800653165183428 and its report is
+  regenerated. No accepted official result carries an IRR, so the acceptance record is unchanged.
+  `not_evaluable_multiple_sign_changes` becomes `not_evaluable_multiple_rates`. NPV, payback,
+  break-even outputs, totals, fees and augmentation costs are unchanged, and this decision
+  authorizes no official-data run.
+
 ## 2026-09-10 — Reconcile a shard against what it holds, not what it declares
 
 - **Decision:** Before any shard is concatenated, its stored delivery days, the days its own

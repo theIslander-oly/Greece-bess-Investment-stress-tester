@@ -6,6 +6,31 @@ All notable project changes are documented here.
 
 ### Fixed
 
+- **NPV and IRR described different cash-flow timings.** NPV discounted the daily table, in which
+  each delivery day's cash flow carries its own date; IRR solved on the annual table, which sums
+  a project year's flows and dates the total at that year's final day. The two metrics therefore
+  answered about different projects. For EUR 1,000 paid initially and EUR 1,200 received evenly
+  across 365 daily periods, the dated series gives 45.586% and the annual relocation 20.015%: the
+  annual figure understates the return by treating money received in January as if it arrived in
+  December. The summary already declared the intended convention, so IRR was the metric not
+  honouring it. Both metrics now read one dated series built from the same
+  `years_from_project_start` NPV discounts by. The annual table is unchanged and remains a
+  summary; no monetary metric is derived from it.
+
+  Moving the ambiguity checks onto that series needed more than moving the existing test, since
+  counting sign changes over daily flows refuses a project that merely pays for a mid-life
+  augmentation. Uniqueness is now settled by the sign rule, then Norstrom's cumulative-balance
+  criterion, then a scan of the search range that answers from the root structure actually
+  present. The repository's existing ambiguity fixture was confirmed to have two roots and is
+  still refused; the synthetic demonstration, which never recovers its capex, has exactly one and
+  is still reported. `not_evaluable_multiple_sign_changes` is renamed
+  `not_evaluable_multiple_rates` to describe what is actually checked.
+
+  **Every previously reported IRR is superseded.** The committed synthetic demonstration moves
+  from `-0.9798843527086536` to `-0.9800653165183428` and `docs/sample_report.html` is
+  regenerated. No accepted official result carries an IRR, so the acceptance record is unchanged.
+  NPV, payback, break-even outputs, cash-flow totals, fees and augmentation costs are unchanged.
+
 - **Shard combination checked declarations, not contents.** `combine_feature_shards` verified
   that shards shared one retrieval identity and that their *declared* windows tiled without
   overlap or gap, then concatenated. Nothing checked those declarations against what the shards

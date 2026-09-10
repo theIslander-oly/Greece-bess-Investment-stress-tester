@@ -1054,6 +1054,12 @@ This writes:
 - `outputs/project_cash_flows.summary.json`, with NPV, IRR status, simple and discounted
   payback, break-even margin realization and maximum initial CAPEX.
 
+NPV and IRR are both computed from one dated series: the initial CAPEX at time zero and each
+delivery day's cash flow at that day's end. The annual table is a summary and no monetary metric
+is derived from it, because dating a year's total at the year's final day treats money received
+in January as if it arrived in December. An IRR is reported only where it is unique; where a
+series has several rates, `irr_status` is `not_evaluable_multiple_rates` and no figure is quoted.
+
 The operating path must contain every calendar day from `project_start_day` through
 `project_end_day`. Missing days, duplicates and unsorted dates are rejected. The finance
 engine never repeats a historical year, fills missing revenue with zero or invents a

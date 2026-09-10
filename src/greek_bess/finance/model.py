@@ -198,11 +198,15 @@ def evaluate_project_finance(
     )
 
     annual = _annual_cash_flows(daily, config)
+    # NPV and IRR read one dated series, so they cannot describe different cash-flow timings.
+    # The initial capex sits at the project start, t = 0, and every operating cash flow sits on
+    # the day it occurs under the end-of-day convention documented on `_dated_cash_flows`.
+    times, amounts = _dated_cash_flows(daily, config)
     npv = float(
         -config.total_initial_capex_eur
         + daily["discounted_operating_net_cash_flow_eur"].sum()
     )
-    irr, irr_status = _project_irr(annual)
+    irr, irr_status = _project_irr(times, amounts)
     payback_day, payback_years = _payback(
         daily,
         config.total_initial_capex_eur,
@@ -308,7 +312,9 @@ def evaluate_project_finance(
         "cash_flow_timing_policy": (
             "Initial CAPEX at project start (time zero); operating cash flows at each "
             "market-day end; augmentation on its recorded market day; residual value "
-            "and decommissioning cost at project end"
+            "and decommissioning cost at project end. NPV and IRR are both computed from "
+            "this one dated series; the annual table is a summary and no monetary metric "
+            "is derived from it"
         ),
         "missing_day_policy": (
             "The operating path must contain every calendar day from project start "
@@ -447,25 +453,137 @@ def _annual_cash_flows(
     return annual
 
 
-def _project_irr(annual: pd.DataFrame) -> tuple[float | None, str]:
-    cash_flows = annual["net_cash_flow_eur"].to_numpy(dtype=float)
-    times = annual["years_from_project_start"].to_numpy(dtype=float)
-    signs = np.sign(cash_flows[np.abs(cash_flows) > TOLERANCE])
-    sign_changes = int(np.sum(signs[1:] != signs[:-1])) if len(signs) > 1 else 0
+def _dated_cash_flows(
+    daily: pd.DataFrame, config: FinanceConfig
+) -> tuple[np.ndarray, np.ndarray]:
+    """Return the project's cash flows as (times in years, amounts in EUR), one entry per date.
+
+    **End-of-day convention.** A day's operating cash flow is dated at the end of that day, so
+    the first delivery day sits at 1 / 365.25 years from the project start rather than at zero.
+    ``daily["years_from_project_start"]`` already carries exactly that, and it is reused here
+    rather than recomputed: NPV discounts by it, so an IRR that solved against a second,
+    separately derived set of instants could disagree with the NPV it is supposed to zero.
+
+    The initial capex is dated at the project start itself, t = 0, where its discount factor is
+    one. That is the only cash flow not attached to a delivery day.
+    """
+
+    times = np.concatenate(
+        ([0.0], daily["years_from_project_start"].to_numpy(dtype=float))
+    )
+    amounts = np.concatenate(
+        (
+            [-float(config.total_initial_capex_eur)],
+            daily["operating_net_cash_flow_eur"].to_numpy(dtype=float),
+        )
+    )
+    return times, amounts
+
+
+#: The rate search runs over (-1, IRR_SEARCH_HIGH]. Below -1 a discount factor is not defined;
+#: above this a "rate" is arithmetic rather than a return anyone would quote.
+IRR_SEARCH_LOW = -0.9999
+IRR_SEARCH_HIGH = 1_000_000.0
+
+#: How many rates the ambiguity scan evaluates when neither sufficient condition settles
+#: uniqueness. The objective is smooth in the rate, so a log-spaced grid this dense separates
+#: the root structures these cash flows produce; two roots closer together than adjacent grid
+#: points would be missed, which is why the scan is the fallback and not the first test.
+IRR_SCAN_POINTS = 4096
+
+
+def _irr_objective(rate: float, times: np.ndarray, amounts: np.ndarray) -> float:
+    return float(np.sum(amounts / (1.0 + rate) ** times))
+
+
+def _irr_scan_grid() -> np.ndarray:
+    """Rates to evaluate, dense near -1 where the discount factor moves fastest."""
+
+    half = IRR_SCAN_POINTS // 2
+    near_minus_one = -1.0 + np.logspace(-4.0, 0.0, half, endpoint=False)
+    upward = np.logspace(-4.0, np.log10(IRR_SEARCH_HIGH), half)
+    return np.unique(np.concatenate((near_minus_one, upward)))
+
+
+def _bracketed_roots(times: np.ndarray, amounts: np.ndarray) -> list[tuple[float, float]]:
+    """Return every bracket on the scan grid across which the objective changes sign."""
+
+    grid = _irr_scan_grid()
+    with np.errstate(over="ignore", divide="ignore", invalid="ignore"):
+        values = np.array([_irr_objective(rate, times, amounts) for rate in grid])
+    usable = np.isfinite(values)
+    grid, values = grid[usable], values[usable]
+    signs = np.sign(values)
+    changed = np.flatnonzero(signs[1:] * signs[:-1] < 0)
+    return [(float(grid[index]), float(grid[index + 1])) for index in changed]
+
+
+def _irr_uniqueness(
+    times: np.ndarray, amounts: np.ndarray
+) -> tuple[str, tuple[float, float] | None]:
+    """Decide whether this series has one rate, none, or several, and where the one is.
+
+    Two sufficient conditions settle the common cases without searching.
+
+    The sign rule: a series whose amounts change sign exactly once has exactly one rate above
+    -100%. With no sign change at all there is no rate to find.
+
+    Norstrom's criterion (1972): a series may change sign many times and still have a unique
+    rate — a project paying for a mid-life augmentation is the ordinary case here — provided its
+    *cumulative* balance starts negative, turns positive once and never turns back.
+
+    Neither condition is necessary, so failing both does not mean the rate is ambiguous. A
+    project that never recovers its outlay fails Norstrom and still has exactly one rate, deeply
+    negative. Refusing there would withhold a real figure, so the fallback is to scan the search
+    range and answer from the root structure actually present: one crossing is reported, several
+    are not. Quoting whichever of several rates a solver reached first would state a precision
+    the cash flows do not carry.
+    """
+
+    material = amounts[np.abs(amounts) > TOLERANCE]
+    if material.size < 2:
+        return "not_evaluable_no_sign_change", None
+    signs = np.sign(material)
+    sign_changes = int(np.sum(signs[1:] != signs[:-1]))
     if sign_changes == 0:
-        return None, "not_evaluable_no_sign_change"
-    if sign_changes > 1:
-        return None, "not_evaluable_multiple_sign_changes"
+        return "not_evaluable_no_sign_change", None
+
+    if sign_changes == 1:
+        return "unique", None
+
+    cumulative = np.cumsum(amounts)
+    if cumulative[0] < -TOLERANCE and cumulative[-1] > TOLERANCE:
+        balance = np.sign(cumulative[np.abs(cumulative) > TOLERANCE])
+        if balance.size > 1 and int(np.sum(balance[1:] != balance[:-1])) == 1:
+            return "unique", None
+
+    brackets = _bracketed_roots(times, amounts)
+    if not brackets:
+        return "not_evaluable_no_root_in_search_range", None
+    if len(brackets) > 1:
+        return "not_evaluable_multiple_rates", None
+    return "unique", brackets[0]
+
+
+def _project_irr(times: np.ndarray, amounts: np.ndarray) -> tuple[float | None, str]:
+    uniqueness, bracket = _irr_uniqueness(times, amounts)
+    if uniqueness != "unique":
+        return None, uniqueness
 
     def objective(rate: float) -> float:
-        return float(np.sum(cash_flows / (1.0 + rate) ** times))
+        return _irr_objective(rate, times, amounts)
 
-    low = -0.9999
-    low_value = objective(low)
-    for high in (1.0, 10.0, 100.0, 1_000.0, 1_000_000.0):
+    if bracket is not None:
+        return float(brentq(objective, bracket[0], bracket[1], xtol=1e-12)), "calculated"
+
+    low_value = objective(IRR_SEARCH_LOW)
+    for high in (1.0, 10.0, 100.0, 1_000.0, IRR_SEARCH_HIGH):
         high_value = objective(high)
         if np.sign(low_value) != np.sign(high_value):
-            return float(brentq(objective, low, high, xtol=1e-12)), "calculated"
+            return (
+                float(brentq(objective, IRR_SEARCH_LOW, high, xtol=1e-12)),
+                "calculated",
+            )
     return None, "not_evaluable_no_root_in_search_range"
 
 
