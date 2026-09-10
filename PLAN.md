@@ -15,8 +15,9 @@ The staged plan in `Greek_BESS_Execution_Plan.md` is active. Only one stage move
 | Entry | Complete | Cross-platform baseline validated and merged in PR #56 (`84ec878`) |
 | 1 | Complete | Retrieval repair merged as `f149f61`; tree matches reviewed PR #55 head |
 | 2 | Complete | GFS value semantics and identity guards merged as `316e9f5` (PR #57) |
-| 3 | In progress | Unit 1 merged as `8dc72e3`; unit 2 (shard reconciliation) ready for review |
-| 4–10 | Pending | Follow the fixed plan in order |
+| 3 | Complete | Unit 1 merged as `8dc72e3`, unit 2 as `61afae0` |
+| 4 | In progress | Dated cash-flow NPV and IRR ready for review |
+| 5–10 | Pending | Follow the fixed plan in order |
 
 Suggested future branch sequence:
 

@@ -220,6 +220,28 @@ maximum initial CAPEX and market-margin break-even values.
 No revenue is extrapolated across missing operating days. Tax, debt, subsidy and working
 capital layers are not included.
 
+### 6.1 Dated cash-flow timing
+
+Every monetary metric reads one series. The initial capex sits at the project start, time zero.
+Each delivery day's operating cash flow sits at the end of that day, so the first day is one day
+from the start rather than zero. Augmentation sits on its recorded market day; residual value and
+decommissioning sit at project end.
+
+NPV and IRR are both computed from that series. The annual table sums each project year and dates
+the total at the year's final day, which is a legitimate summary but not a basis for a rate: it
+treats money received in January as if it arrived in December. For EUR 1,000 paid initially and
+EUR 1,200 received evenly across 365 daily periods, the dated series gives 45.586% and the annual
+relocation 20.015%.
+
+A rate is reported only where it is unique, established in order by: a single sign change in the
+amounts; Norstrom's criterion, where the cumulative balance starts negative, turns positive once
+and never turns back; or a scan of the search range that finds exactly one root. The first two
+are sufficient conditions and neither is necessary, so the scan exists to avoid withholding a
+real figure from a series that fails both — a project that never recovers its outlay has exactly
+one rate, deeply negative. Where several rates exist none is quoted, because there is no single
+one to state. Two roots closer together than adjacent scan points would be missed; the scan is
+therefore the fallback, not the first test.
+
 ## 7. Seasonal block-bootstrap foundation
 
 The v0.7 foundation samples contiguous historical market-day blocks with replacement. An
