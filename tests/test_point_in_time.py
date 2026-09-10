@@ -125,6 +125,18 @@ class SchemaShapeTests(unittest.TestCase):
         with self.assertRaisesRegex(PointInTimeSchemaError, "resolution_minutes disagrees"):
             ensure_point_in_time(_frame(row))
 
+    def test_equal_intervals_with_different_timedelta_storage_units_are_accepted(self) -> None:
+        frame = _frame()
+        for column in ("delivery_start_utc", "delivery_end_utc"):
+            frame[column] = pd.Series(
+                frame[column].array.as_unit("us"),
+                dtype=pd.DatetimeTZDtype(unit="us", tz="UTC"),
+            )
+
+        validated = ensure_point_in_time(frame)
+
+        self.assertEqual(validated.at[0, "resolution_minutes"], 60)
+
 
 class MissingPublicationTimeTests(unittest.TestCase):
     """Design section 11, case 5."""

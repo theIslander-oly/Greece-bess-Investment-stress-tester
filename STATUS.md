@@ -135,6 +135,28 @@ tiling still reproduces the equivalent unsplit table exactly. This code change r
 official-data workflow and accepts no feature table or benchmark result; see
 `docs/history/implementation_report_feature_shard_reconciliation_2026-09-10.md`.
 
+## Stage 7, steps 1–3 — corrected official weather retrieval and timing audit
+
+Smoke run `34476165832` rebuilt 18–19 April 2026 with feature semantics version 2 and per-message
+receipt timing: 144 feature rows from 200 traced source documents. Full run `34476720910` then
+retrieved the unchanged declared window, 27 February 2021 through 25 August 2026. All 23 standard
+Ubuntu shard jobs succeeded and their private artifacts were retained; no raw GRIB2 message was
+retained.
+
+The run exposed two representation defects before combination. The workflow's broad CSV glob
+counted coverage sidecars as feature shards, and pandas loaded equal one-hour intervals and their
+declared durations with different internal timedelta units, which dtype-sensitive equality
+rejected. Numbered-table discovery and value-based duration comparison correct those defects
+without changing a feature value, source declaration, cutoff, geography or window.
+
+The corrected official combination reconciles 23 shards as an exact tiling: 2,005 built days,
+144,357 feature rows and 200,496 traced source documents. The cutoff audit covers all 2,006
+declared days. For each of the three variables, 2,002 days are provider-declared before cutoff;
+2021-03-23, 2021-06-15 and 2022-01-18 are incomplete before cutoff, and 2022-12-01 has no
+publication. No day is filled or imputed. This completes retrieval steps 1–3 only: the evidence
+accepts no feature value, evaluates no model skill and is not investment evidence. Custody,
+acceptance preflight and the dated acceptance decision remain outstanding.
+
 ## Stage 4 — NPV and IRR now read one dated series
 
 NPV discounted the daily cash-flow table; IRR solved on the annual table, which dates a project

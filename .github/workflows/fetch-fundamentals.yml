@@ -261,7 +261,8 @@ jobs:
           EXPECTED: ${{ needs.plan.outputs.shard_count }}
         run: |
           set -euo pipefail
-          actual=$(find shards -name 'features_*.csv' -type f | wc -l)
+          actual=$(find shards -type f -regextype posix-extended \
+            -regex '.*/features_[0-9]+\.csv' | wc -l)
           echo "slices expected: $EXPECTED; slices present: $actual"
           test "$actual" = "$EXPECTED"
 
@@ -272,7 +273,8 @@ jobs:
           mkdir -p acceptance/fundamentals
           # Sorted numerically so the combination is deterministic; the command refuses any
           # overlap, gap or mixed retrieval identity regardless of the order it is given.
-          mapfile -t slices < <(find shards -name 'features_*.csv' -type f | sort -V)
+          mapfile -t slices < <(find shards -type f -regextype posix-extended \
+            -regex '.*/features_[0-9]+\.csv' | sort -V)
           # --official: this combination feeds the availability audit and, through it, an
           # acceptance document. Every slice must therefore carry the retrieval manifest tracing
           # its rows to the source messages they were built from.
