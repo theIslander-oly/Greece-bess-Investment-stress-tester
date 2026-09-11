@@ -36,6 +36,20 @@ different days. The source report provides the like-for-like common-day comparis
 interval counts across the 1 October 2025 change from hourly to quarter-hour delivery are not
 directly comparable; they show the recorded market shift, not a normalized frequency.
 
+**Point-in-time weather (fundamentals) ablation, held-out 320 common days (2025-10-08 to
+2026-08-25), not exploratory.** Each challenger is compared against its own matched control —
+identical rows, only the weather columns added — per
+[the accepted benchmark](docs/fundamentals_benchmark_2026-09-11.md). The result is mixed and
+recorded as mixed:
+
+| Model family | Incremental settled margin vs. matched control (EUR) | Relative |
+| --- | ---: | ---: |
+| `ridge` | +4,899.71 | +0.14% |
+| `hist_gradient_boosting` | −6,843.46 | −0.19% |
+
+Both differences are small next to the day-to-day settlement swings recorded alongside them.
+This is a historical research result, not a forecast, expected revenue or investment evidence.
+
 ## What this tool cannot tell you
 
 Read this before interpreting any output:

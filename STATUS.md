@@ -1,7 +1,7 @@
 # Project status
 
 **Version:** 0.9.7
-**Updated:** 10 September 2026
+**Updated:** 11 September 2026
 **Status:** Official multi-year operational acceptance and HEnEx-to-ENTSO-E cross-source
 reconciliation passed; encrypted custody copies published and the private key exercised;
 per-delivery-year replay decomposition accepted against the official history;
@@ -63,7 +63,10 @@ acceptance document names, generic renderer coverage of all three v0.9 kinds and
 templates — after which the three declarations were made, lifting the refusal for the first time
 and leaving the v0.9 chain complete in code and still empty of evidence, because no retrieval,
 audit, custody record, acceptance document or benchmark run has been executed against official
-data (`docs/history/implementation_report_v0.9.5.md`)
+data (`docs/history/implementation_report_v0.9.5.md`); and the v0.9 chain has since produced its
+first official evidence — the feature table accepted (Stage 7 step 5) and the forecast/dispatch
+benchmark run against that accepted digest with the matched controls, closing Stage 7 with a
+mixed, honestly-labelled result (`docs/fundamentals_benchmark_2026-09-11.md`)
 
 On 3 September 2026 the operator approved the pre-run declarations: a two-regime cutoff, zero-minute lead, one pre-test-vintage wind-capacity geography, structural price bands and the fixed quarter-hour test boundary. The declaration record quantifies the hourly-to-quarter-hour transfer and adds a separate illustrative 25 MW / 100 MWh battery without changing the v0.9 comparison battery. This records no feature acceptance or result. Primary sources must still accompany acceptance evidence, and availability audit, custody and data acceptance must precede any official benchmark (`docs/fundamentals_declarations_2026-09-03.md`).
 
@@ -162,11 +165,30 @@ confirmed the correction changes no accepted observation — the feature-set dig
 are identical to the earlier run — because no admitted feature predates 2021-02-27. The sixth
 defect of the same class as the first five: a correct number under a wrong label.
 
-**Steps 6 and 7 have not started.** The benchmark and its result are the remaining stage 7 work,
-and the result is to be committed whichever way it goes
-(`docs/history/implementation_report_stage7_acceptance_2026-09-10.md`).
+## Stage 7, steps 6–7 — the benchmark ran against the accepted digest, and the result is mixed
 
-## Stage 7, step 4 — custody recorded and verified; the acceptance preflight has run
+`Benchmark point-in-time fundamentals` was dispatched against the accepted feature set
+`a718f46265678cf1e37c31fca439b9f2f03479901fe8f0ac126766431b99aefc` and the committed acceptance
+document. The first attempt, run `34522951370`, failed: the workflow's `--methods` list named the
+challenger arms without their matched controls, and `benchmark-fundamentals-dispatch` correctly
+refused rather than settle a challenger without the control it exists to be compared against. The
+fix added `ridge_matched` and `hist_gradient_boosting_matched` to that list; no data, digest or
+acceptance was touched. Run `34524611285` then completed all 16 steps successfully.
+
+Over the 320 common held-out days (2025-10-08 to 2026-08-25), not exploratory per the preflight's
+DJF 2025-26 classification: adding the accepted weather columns to a ridge model, holding training
+rows fixed against its own matched control, settled **EUR 4,899.71 more** over the period (+0.14%
+relative); adding the same columns to a histogram gradient-boosting model settled **EUR 6,843.46
+less** (−0.19% relative). **The result is mixed, and it is recorded as mixed** — this is the
+committed outcome regardless of which way it fell, per
+`docs/fundamentals_benchmark_2026-09-11.md`, which also names the run identity, digests and
+private-evidence-artifact reference. Both benchmark manifests were recorded, verified and
+rendered through the existing generic `render-report` renderer into the private evidence bundle,
+same as every other v0.9 result kind.
+
+This closes Stage 7. Stages 1–7 of `Greek_BESS_Execution_Plan.md` are now complete.
+
+## Stage 7, step 5 — the feature table is accepted, and retaining the primary text corrected a declaration
 
 The 23 slices retrieval run `34476720910` uploaded were combined inside Actions by run
 `34503398871`, which read them through the fetch workflow's new `shards_from_run_id` mode instead

@@ -19,9 +19,36 @@ The staged plan in `Greek_BESS_Execution_Plan.md` is active. Only one stage move
 | 4 | Complete | Dated cash-flow NPV and IRR merged as `d5f0ca1` |
 | 5 | Complete | Degradation result basis merged as `df7ffec` |
 | 6 | Complete | Matched-training control merged as `196a5c1` (amendment `cba04f0`) |
-| 7 | In progress | Steps 1–5 done: retrieval, combination, custody, preflight and the dated acceptance (`docs/fundamentals_acceptance_2026-09-10.md`); steps 6–7, the benchmarks and their result, are next |
+| 7 | Complete | Acceptance (`docs/fundamentals_acceptance_2026-09-10.md`) and benchmark result (`docs/fundamentals_benchmark_2026-09-11.md`, run `34524611285`) both committed; result is mixed by model family and recorded as such |
 | 8 | In progress | Design unit proposed in `docs/integrated_study_design.md`; implementation follows adoption |
 | 9–10 | Pending | Follow the fixed plan in order |
+
+### Session handoff — 11 September 2026, stage 7 complete
+
+**Active stage:** 7 is complete. Stage 8 (design unit adopted, implementation not started) is
+next.
+
+**Branch and commit:** `claude/nice-mendel-mmrv8f`, open as a pull request against `main`.
+
+**Exact changes.** `.github/workflows/benchmark-fundamentals.yml`: added the two missing
+matched-control method names (`ridge_matched`, `hist_gradient_boosting_matched`) to the dispatch
+step's `--methods` list, fixing the run that failed before any figure was produced.
+`docs/fundamentals_benchmark_2026-09-11.md`: the committed result document, naming the run
+identity, digests, arms, per-method forecast/dispatch figures and the matched-control comparison.
+`STATUS.md`, this file and `README.md` updated to reflect the result.
+
+**Evidence.** Run `34522951370` (commit `c17242e`) failed at the dispatch step for the reason
+above. Run `34524611285` (commit `a76f809`) completed all 16 steps. Over 320 common held-out
+days (2025-10-08 to 2026-08-25), not exploratory: `ridge_fundamentals` settled EUR 4,899.71 more
+than its matched control (+0.14%); `hist_gradient_boosting_fundamentals` settled EUR 6,843.46
+less than its matched control (−0.19%). Both manifests recorded, verified and rendered through
+the existing generic report renderer into the private evidence artifact
+`fundamentals-acceptance-and-benchmark-private` (id `10171792538`).
+
+**Blocker.** None.
+
+**Next single action.** Open Stage 8's implementation unit against the adopted design in
+`docs/integrated_study_design.md`, per the fixed execution-plan order.
 
 ### Session handoff — 10 September 2026, stage 7 step 5
 

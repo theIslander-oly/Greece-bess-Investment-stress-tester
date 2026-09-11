@@ -161,7 +161,8 @@ jobs:
             --config examples/battery_50mw_100mwh.json \
             --forecasts private/results/forecasts.csv \
             --forecast-summary private/results/forecast.summary.json \
-            --methods ridge ridge_fundamentals hist_gradient_boosting hist_gradient_boosting_fundamentals \
+            --methods ridge ridge_matched ridge_fundamentals \
+              hist_gradient_boosting hist_gradient_boosting_matched hist_gradient_boosting_fundamentals \
             --output private/results/dispatch.csv --daily-output private/results/dispatch.daily.csv \
             --paired-differences private/results/dispatch.paired.csv \
             --summary private/results/dispatch.summary.json
