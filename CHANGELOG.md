@@ -6,6 +6,48 @@ All notable project changes are documented here.
 
 ### Added
 
+- **The integrated study runner: one command that connects forecasting, ageing, settlement and
+  cash flows.** Execution-plan stage 8's implementation unit, built against the adopted design in
+  `docs/integrated_study_design.md`. `run-integrated-study` reads one declared configuration and
+  runs one declared window end to end for every compared strategy: plan the day on the
+  information that strategy was allowed to read, settle the plan at realized prices, age that
+  strategy from its own realized cell throughput, and finance the resulting operating path over
+  exactly the declared window. It writes five artifacts named after the study — daily rows,
+  per-strategy summaries, dated cash flows, the recorded summary and a run manifest the existing
+  renderer consumes unchanged — under the new `integrated_study` result kind on the
+  `historical_replay_simulation` basis.
+
+  The runner adds no arithmetic. Every step is an existing module called in the one order that
+  makes the join safe, and the new package owns only the contracts that join needs:
+
+  - **Each strategy owns its ageing state.** Sharing one degradation state across the strategy
+    loop is the obvious way to write the loop and produces entirely plausible numbers in which a
+    cautious strategy pays for an aggressive one's throughput. States are per-strategy, advanced
+    only by that strategy's own settled discharge, so declaration order reaches no result — and a
+    result in which strategies with different throughput reached identical end-of-window capacity
+    is refused on that symptom, wherever cycle fade could have moved it.
+  - **A gap is refused, never bridged.** A missing delivery day fails the run naming the day; an
+    incomplete forecast for any compared strategy fails it naming the method and the first day.
+    No price is filled, no forecast is imputed and no day becomes a no-trade day. Exclusion is a
+    diagnostic, not an outcome.
+  - **Finance uses exactly the declared horizon.** The finance window must equal the study window;
+    nothing is annualised, extrapolated to a project life or repeated.
+  - **No shared ceiling.** A perfect-foresight ceiling is conditional on a physical state, and
+    after the first day the strategies hold different states. Each strategy's own per-day ceiling
+    and regret are recorded under its own state; no ceiling is reported across strategies, and the
+    summary records that and says why.
+  - **Costs are not double-counted.** The monetary degradation adder is a dispatch signal already
+    inside the settled margin; augmentation capital cost is a cash flow finance applies once. Fees,
+    the adder, augmentation and the day's initial and terminal stored energy are reconciled against
+    their configured inputs on every run, not only in tests.
+
+  Validated on deterministic synthetic prices against all eight of the design's acceptance checks,
+  including the zero-fade reproduction that shows the composition did not change the existing
+  fixed-battery arithmetic, and a causality check that mutates prices after a delivery day and
+  requires every earlier decision to be unchanged. No official-history study has been run, and no
+  module under `dispatch/`, `degradation/`, `finance/` or `reporting/` changed
+  (`docs/history/implementation_report_stage8_integrated_study_2026-09-11.md`).
+
 - **The fundamentals forecast-dispatch benchmark ran against the accepted digest, and the
   result is mixed.** `docs/fundamentals_benchmark_2026-09-11.md` records Stage 7 steps 6–7:
   run `34524611285` settled all three matched arms per model family over the 320 common

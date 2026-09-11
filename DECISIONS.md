@@ -1,5 +1,51 @@
 # Decision log
 
+## 2026-09-11 — Build the integrated study runner; derive the finance operating-margin case per strategy
+
+- **Decision:** Execution-plan stage 8's implementation unit lands as a new `greek_bess.study`
+  package and one command, `run-integrated-study`, built against the adopted design in
+  `docs/integrated_study_design.md` and following it without amendment on every contract it
+  fixes. One implementation finding is recorded rather than resolved by changing an existing
+  module: `FinanceConfig.operating_margin_case` describes the operating path, not the cost and
+  discounting basis, so the single finance configuration a study declares cannot describe two
+  strategies' paths at once. The study therefore derives the case from each strategy's planner —
+  `daily_policy_degraded_simulation` for `perfect_foresight`, `historical_forecast_backtest` for a
+  forecast planner — refuses a declared case that is neither, and records the declared case beside
+  the derived ones in the summary.
+- **Reason:** The alternative readings are worse. Requiring one declared case to hold for every
+  strategy would forbid the comparison the study exists to run, since a study that compares a
+  forecast planner against perfect foresight necessarily spans two cases. Accepting the declared
+  case for every strategy would label at least one strategy's path with a case that is not its
+  own, which is exactly the kind of silent mislabelling the report contract exists to prevent.
+  Deriving it keeps every path truthfully described; recording the declared value beside it keeps
+  the operator's declaration visible rather than overwritten. `finance/model.py` is unchanged:
+  the study replaces a field on a frozen configuration it owns for the call, and the design's rule
+  that a needed change to an existing module is a finding to record rather than a change to make
+  quietly is honored by recording it here.
+- **Consequence:** The study's per-strategy summary and its cash-flow provenance carry the derived
+  case; `declared_finance_operating_margin_case` in the study summary carries what was declared.
+  Nothing under `dispatch/`, `degradation/`, `finance/` or `reporting/` changes except the
+  addition of the closed-registry result kind `integrated_study` on the
+  `historical_replay_simulation` basis. The implementation is validated on deterministic synthetic
+  prices against all eight of the design's acceptance checks; no official-history study has been
+  run and no analytical result changes
+  (`docs/history/implementation_report_stage8_integrated_study_2026-09-11.md`).
+
+## 2026-09-11 — No perfect-foresight ceiling is reported across strategies in an integrated study
+
+- **Decision:** An integrated study records a per-strategy, per-day perfect-foresight ceiling and
+  regret under that strategy's own beginning-of-day state, and reports no ceiling across
+  strategies and no aggregate of the per-day ceilings. The recorded summary states
+  `shared_ceiling_reported: false` and carries the sentence explaining why.
+- **Reason:** This is the stage 5 finding (`METHODOLOGY.md` §5.1) applied across strategies rather
+  than across days. A ceiling is conditional on a physical state; from the second day onward the
+  strategies hold different states, so no single number is conditional on all of them. Summing a
+  strategy's own per-day ceilings would reproduce the error stage 5 corrected: a day-by-day total
+  under an evolving state is a simulation, not a bound.
+- **Consequence:** A reader comparing strategies gets each strategy's settled total and its own
+  daily regret, and no figure that could be read as one ceiling for the study. A future
+  lifetime-optimal comparator would be a scope change requiring its own decision.
+
 ## 2026-09-10 — Correct the pre-coupling gate closure to 12:00 CET on the retained primary text
 
 - **Decision:** `config/decision_cutoff.json` declares one gate-closure regime from delivery day

@@ -154,6 +154,31 @@ def _kinds() -> dict[str, ResultKind]:
             "Day-by-day perfect-foresight simulation under an evolving illustrative "
             "degradation state; not a lifetime optimum and not a bound.",
         ),
+        # The guaranteed keys are the ones a reader needs before a strategy table means
+        # anything: which window, from which price source, which strategies with which
+        # information sets, how the window was covered, and the two statements that keep the
+        # total honest — that no ceiling is reported across strategies, and that finance
+        # covers exactly the declared window.
+        ResultKind(
+            "integrated_study",
+            "historical_replay_simulation",
+            "One declared window run end to end: each strategy plans on the information it "
+            "may read, settles at realized prices, ages under its own throughput and is "
+            "financed over exactly that window. A policy outcome, not a bound.",
+            (
+                "result_label",
+                "result_basis_note",
+                "study_id",
+                "price_source",
+                "window_start_day",
+                "window_end_day",
+                "window_day_count",
+                "strategies",
+                "coverage",
+                "shared_ceiling_reported",
+                "finance_horizon_policy",
+            ),
+        ),
         ResultKind(
             "annual_replay_decomposition",
             "historical_replay_upper_bound",
