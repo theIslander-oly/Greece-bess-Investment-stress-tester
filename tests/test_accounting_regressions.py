@@ -1,7 +1,7 @@
 """Small independent counterexamples for cash and stored-energy accounting."""
 
 from dataclasses import replace
-from datetime import date
+from datetime import date, timedelta
 
 import numpy as np
 import pandas as pd
@@ -13,6 +13,12 @@ from greek_bess.degradation import AugmentationEvent, DegradationConfig, Degrada
 from greek_bess.dispatch import BatteryDispatchConfig, optimize_daily_perfect_foresight
 from greek_bess.finance import FinanceConfig, FinanceInputError, evaluate_project_finance
 from greek_bess.finance.model import _project_irr
+from greek_bess.study import (
+    IntegratedStudyConfig,
+    StrategySpec,
+    assemble_integrated_study,
+    run_integrated_study,
+)
 
 
 def finance_case(start="2025-01-01", end="2026-06-30", **changes):
@@ -234,3 +240,82 @@ def test_cash_only_finance_input_and_invalid_commissioning_cost():
 def test_augmentation_cannot_overwrite_initial_energy_ledger():
     with pytest.raises(DegradationInputError, match="reserved"):
         AugmentationEvent("initial", date(2025, 1, 2), 100.0, 0.0, 0.0)
+
+
+def study_case(*, adder=0., fade=0., events=(), window=(date(2026, 2, 1), date(2026, 2, 7))):
+    """One short integrated study on synthetic prices, declared strategy by strategy."""
+
+    start, end = window
+    battery = BatteryDispatchConfig(charge_power_mw=50, discharge_power_mw=50,
+                                    energy_capacity_mwh=100, initial_soc_fraction=.5,
+                                    terminal_soc_fraction=.5,
+                                    degradation_cost_eur_per_mwh_discharged=adder)
+    config = IntegratedStudyConfig(
+        study_id="accounting-regression", window_start_day=start, window_end_day=end,
+        price_source="synthetic",
+        strategies=(StrategySpec("pf", "perfect_foresight", "realized_delivery_day_prices"),),
+        battery=battery,
+        degradation=DegradationConfig(project_start_day=date(2026, 1, 1),
+                                      calendar_fade_fraction_per_year=fade,
+                                      cycle_fade_fraction_per_equivalent_cycle=0,
+                                      power_fade_exponent=0, augmentation_events=events),
+        finance=FinanceConfig(project_start_day=start, project_end_day=end,
+                              operating_margin_case="daily_policy_degraded_simulation",
+                              discount_rate_fraction=0., battery_system_capex_eur=1_000.),
+        result_label="Deterministic synthetic prices; a test fixture and not market evidence.")
+    prices = generate_synthetic_prices(date(2026, 1, 1), end + timedelta(days=1),
+                                       resolution_minutes=60, seed=7)
+    return assemble_integrated_study(run_integrated_study(prices, config))
+
+
+def test_integrated_study_does_not_pay_the_dispatch_wear_penalty_in_cash():
+    """A shadow wear penalty steers the plan; it is not an expense anyone settles."""
+
+    summary = study_case(adder=5.).strategy_summaries.iloc[0]
+    wear = summary["monetary_degradation_adder_eur"]
+    assert wear > 0
+    assert summary["market_cash_margin_eur"] == pytest.approx(
+        summary["net_market_margin_eur"] + wear
+    )
+    # Finance reads the cash line, so NPV is better than the wear-as-cash figure by the
+    # whole penalty. At a zero discount rate the difference is exactly the penalty.
+    assert summary["realized_market_margin_eur"] == pytest.approx(
+        summary["market_cash_margin_eur"]
+    )
+    assert summary["npv_eur"] == pytest.approx(
+        summary["market_cash_margin_eur"] - 1_000.
+    )
+
+
+def test_integrated_study_augmentation_does_not_create_stored_energy():
+    """Added capacity is empty. Restoring the configured SOC would invent energy."""
+
+    event = AugmentationEvent("add", date(2026, 2, 4), 100, 0, 0, cost_eur=10.)
+    daily = study_case(events=(event,)).daily_results
+    carried = daily["initial_energy_mwh"].to_numpy()[1:]
+    closed = daily["terminal_energy_mwh"].to_numpy()[:-1]
+    assert carried == pytest.approx(closed)
+    augmented = daily.loc[daily["market_day"] == date(2026, 2, 4)].iloc[0]
+    assert augmented["usable_energy_mwh_start"] == pytest.approx(200.)
+    assert augmented["initial_energy_mwh"] == pytest.approx(50.)
+    assert augmented["commissioning_energy_mwh"] == pytest.approx(0.)
+    assert daily["energy_balance_residual_mwh"].abs().max() < 1e-7
+
+
+def test_integrated_study_charges_declared_commissioning_energy_once():
+    """Energy that arrives with the new capacity is declared, and paid for once."""
+
+    event = AugmentationEvent("add", date(2026, 2, 4), 100, 0, 0, cost_eur=10.,
+                              commissioning_energy_mwh=40.,
+                              commissioning_energy_cost_eur=400.)
+    result = study_case(events=(event,))
+    augmented = result.daily_results.loc[
+        result.daily_results["market_day"] == date(2026, 2, 4)
+    ].iloc[0]
+    assert augmented["initial_energy_mwh"] == pytest.approx(90.)
+    assert augmented["commissioning_energy_cost_eur"] == pytest.approx(400.)
+    summary = result.strategy_summaries.iloc[0]
+    assert summary["commissioning_energy_cost_eur"] == pytest.approx(400.)
+    assert summary["npv_eur"] == pytest.approx(
+        summary["market_cash_margin_eur"] - 1_000. - 10. - 400.
+    )

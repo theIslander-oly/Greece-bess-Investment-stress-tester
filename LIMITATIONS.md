@@ -139,6 +139,9 @@
 - IRR is withheld when uniqueness cannot be established; sampling alone cannot exclude close
   or tangent roots. The numerical solution range is finite even for certified unique roots.
 - Legacy net-only inputs cannot reveal an unknown wear-cost basis and are treated as cash margin.
+- The integrated study inherits the proportional fade approximation: energy a strategy carries
+  across a day boundary shrinks with that strategy's own usable capacity, and the difference is
+  recorded as an unavailability loss rather than modelled electrochemically.
   Rerun affected results under the corrected cash, energy and break-even conventions; existing
   recorded results are not retroactively recomputed.
 - Scenario probability estimates are excluded unless an independently validated calibration

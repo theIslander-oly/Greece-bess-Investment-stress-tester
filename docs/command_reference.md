@@ -1176,10 +1176,18 @@ What the command refuses, and why:
 - **A terminal SOC that does not restore the initial SOC**, which would let a strategy borrow
   energy across days and book it as margin.
 
-Each strategy holds its own degradation state, advanced only by its own settled throughput, so
-two strategies that discharge differently reach different end-of-window capacities and
-declaration order reaches no result. Prices for delivery days after the window are discarded
-before any forecast is generated, and the discarded count is recorded.
+Each strategy holds its own degradation state and its own stored energy, both advanced only by
+its own settled throughput, so two strategies that discharge differently reach different
+end-of-window capacities and declaration order reaches no result. Prices for delivery days after
+the window are discarded before any forecast is generated, and the discarded count is recorded.
+
+The daily table separates what steered the plan from what anyone paid. `net_market_margin_eur`
+is net of the monetary degradation adder, which is a shadow wear penalty; finance reads
+`market_cash_margin_eur`, which is not. Capacity an augmentation adds starts empty, so a day it
+lands on opens below the configured state of charge unless the event declares
+`commissioning_energy_mwh`; the daily table carries that day's full energy balance and finance
+pays the declared `commissioning_energy_cost_eur` once. The terminal-SOC rule above is a rule
+about the target each day closes on, not about what the next day opens holding.
 
 **No ceiling is reported across strategies.** A perfect-foresight ceiling is conditional on a
 physical state, and after the first day the strategies hold different states. The daily table

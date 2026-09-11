@@ -12,6 +12,12 @@ All notable project changes are documented here.
 - Separate cash margin from shadow wear penalties and deduct commissioning costs once.
 - Carry cohort energy through additions, retirement and fade with a reconciled energy ledger;
   allow energy-only additions and constant power under energy fade. Add counterexample regressions.
+- Apply both conventions inside the integrated study runner, which was written against the
+  pre-repair contracts. Finance now reads the study's `market_cash_margin_eur` rather than a
+  margin net of the shadow wear penalty, and each strategy carries its own stored energy across
+  days instead of restoring the configured state of charge on whatever capacity it holds. The
+  stored-energy ledger moved into `degradation/stored_energy.py` so the degradation backtest and
+  the study share one implementation rather than two that must stay in step.
 
 ### Added
 

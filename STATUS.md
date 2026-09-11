@@ -3,9 +3,11 @@
 **Version:** 0.9.7
 **Updated:** 11 September 2026
 
-**Repair branch:** `repair-numerical-accounting` corrects IRR certification, partial-horizon
-break-even, cash-cost treatment and cohort stored-energy accounting. Affected outputs require
-reruns. See [implementation record](docs/history/implementation_report_numerical_accounting_2026-09-11.md). Stage 8 implementation remains pending.
+**Repair in review:** the numerical and accounting repair corrects IRR certification,
+partial-horizon break-even, cash-cost treatment and cohort stored-energy accounting, and extends
+those conventions to the Stage 8 integrated study runner that merged while it was open. Affected
+outputs require reruns. See
+[implementation record](docs/history/implementation_report_numerical_accounting_2026-09-11.md).
 
 **Status:** Official multi-year operational acceptance and HEnEx-to-ENTSO-E cross-source
 reconciliation passed; encrypted custody copies published and the private key exercised;

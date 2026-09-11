@@ -7,8 +7,15 @@ haircuts on positive daily cash margin only. Treat wear adders as dispatch shado
 actual augmentation and additional commissioning costs enter finance once. Carry cohort energy
 through additions, retirement and proportional fade, with empty additions as the default.
 Preserve legacy net outputs and reconcile them to explicit cash margin. These are correctness
-repairs with counterexample regressions, not new forecast models or a Stage 8 runner.
+repairs with counterexample regressions, not new forecast models.
 Affected historical outputs must be rerun before relying on the corrected metrics.
+
+The Stage 8 integrated study runner merged while this repair was open and was written against
+the pre-repair contracts, so the repair extends to it: finance reads the study's cash margin,
+and each strategy carries its own stored energy rather than restoring the configured state of
+charge on whatever capacity it holds. One stored-energy ledger now serves both the degradation
+backtest and the study. Two implementations of this accounting would drift silently, because a
+battery that begins a day holding energy nobody charged still dispatches and still settles.
 
 ## 2026-09-11 — Build the integrated study runner; derive the finance operating-margin case per strategy
 

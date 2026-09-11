@@ -788,10 +788,14 @@ project life, or repeated. The operating-margin case describes the operating pat
 the cost basis, so it is derived from each strategy's planner and the declared case is recorded
 beside the derived ones.
 
-Physical fade and the monetary degradation adder stay distinct. The adder is a dispatch signal
-already inside the settled margin; augmentation capital cost is a cash flow the finance model
-applies once. Fees, the adder, augmentation and each day's initial and terminal stored energy
-are reconciled against their configured inputs on every run, because the join is what this layer
+Physical fade and the monetary degradation adder stay distinct. The adder is a shadow penalty
+that steers the plan and is deducted in `net_market_margin_eur`; finance reads
+`market_cash_margin_eur`, which excludes it, so no strategy settles a wear cost nobody pays.
+Augmentation capital cost and declared commissioning-energy cost are cash flows the finance
+model applies once. Each strategy carries its own stored energy between days through the shared
+cohort ledger of section 5, so capacity an augmentation adds starts empty and has to be charged
+or declared. Fees, the adder, the cash margin reaching finance, augmentation, commissioning cost
+and each day's energy balance are reconciled on every run, because the join is what this layer
 adds and nothing downstream could detect a broken one from the numbers alone.
 
 The result is recorded on the `historical_replay_simulation` basis under the `integrated_study`

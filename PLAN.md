@@ -1,7 +1,9 @@
 # Implementation plan
 
-Current correctness repair: `repair-numerical-accounting` fixes numerical and accounting
-counterexamples before Stage 8 implementation. Validation and review precede merge.
+Current correctness repair: the numerical and accounting repair fixes the counterexamples
+recorded in `docs/history/implementation_report_numerical_accounting_2026-09-11.md` and applies
+the corrected conventions to the Stage 8 runner that merged while it was open. No stage is
+renumbered: Stage 8 stays complete and Stage 9 is next. Validation and review precede merge.
 
 ## GitHub milestone workflow
 
@@ -23,7 +25,7 @@ The staged plan in `Greek_BESS_Execution_Plan.md` is active. Only one stage move
 | 5 | Complete | Degradation result basis merged as `df7ffec` |
 | 6 | Complete | Matched-training control merged as `196a5c1` (amendment `cba04f0`) |
 | 7 | Complete | Acceptance (`docs/fundamentals_acceptance_2026-09-10.md`) and benchmark result (`docs/fundamentals_benchmark_2026-09-11.md`, run `34524611285`) both committed; result is mixed by model family and recorded as such |
-| 8 | Complete | Design adopted in `docs/integrated_study_design.md`; implementation unit landed as the `greek_bess.study` package and `run-integrated-study`, validated against all eight acceptance checks on synthetic prices (`docs/history/implementation_report_stage8_integrated_study_2026-09-11.md`) |
+| 8 | Complete | Design adopted in `docs/integrated_study_design.md`; implementation unit landed as the `greek_bess.study` package and `run-integrated-study`, validated against all eight acceptance checks on synthetic prices (`docs/history/implementation_report_stage8_integrated_study_2026-09-11.md`). Its cash and stored-energy accounting is corrected in the open numerical/accounting repair, which the design's sections 4.5, 5.3 and 5.4 already specify |
 | 9–10 | Pending | Follow the fixed plan in order |
 
 ### Session handoff — 11 September 2026, stage 8 complete

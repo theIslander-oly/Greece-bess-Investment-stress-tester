@@ -14,8 +14,8 @@ not investment evidence, expected revenue, financial advice or a bankable study.
 
 **Numerical/accounting repair:** cash margin now excludes the dispatch wear penalty; losses
 retain their full value under revenue haircuts, break-even uses the actual daily horizon,
-and degradation dispatch carries an explicit energy ledger. IRR requires a uniqueness
-certificate. Rerun affected outputs; see the [repair record](docs/history/implementation_report_numerical_accounting_2026-09-11.md).
+and degradation dispatch and the integrated study share one explicit stored-energy ledger.
+IRR requires a uniqueness certificate. Rerun affected outputs; see the [repair record](docs/history/implementation_report_numerical_accounting_2026-09-11.md).
 
 ## Accepted official-history findings
 

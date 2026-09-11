@@ -31,12 +31,19 @@ import pandas as pd
 from ..data.quality import assess_quality
 from ..data.schema import ensure_canonical
 from ..degradation import (
+    DegradationInputError,
     DegradationSnapshot,
     DegradationState,
     complete_degradation_day,
     initialize_degradation_state,
     prepare_degradation_day,
     warranty_discharge_headroom_mwh,
+)
+from ..degradation.stored_energy import (
+    DayClosing,
+    DayOpening,
+    StoredEnergyLedger,
+    refuse_augmentation_before,
 )
 from ..dispatch import BatteryDispatchConfig, optimize_perfect_foresight
 from ..finance import ProjectFinanceResult, evaluate_project_finance
@@ -91,6 +98,19 @@ def run_integrated_study(
     rows: dict[str, list[dict[str, Any]]] = {
         strategy.strategy_id: [] for strategy in config.strategies
     }
+    # One ledger per strategy, for the same reason there is one degradation state per
+    # strategy: stored energy is part of the physical state a strategy carries, and sharing
+    # it would let one strategy's dispatch decide what another one starts the day holding.
+    try:
+        refuse_augmentation_before(
+            config.window_start_day, config.degradation.augmentation_events
+        )
+    except DegradationInputError as exc:
+        raise IntegratedStudyInputError(str(exc)) from exc
+    ledgers = {
+        strategy.strategy_id: StoredEnergyLedger(config.battery)
+        for strategy in config.strategies
+    }
 
     for market_day in config.window_days:
         actual_day = day_frames[market_day]
@@ -101,8 +121,16 @@ def run_integrated_study(
                 state, market_day, config.degradation
             )
             _refuse_exhausted_state(strategy, market_day, start)
+            try:
+                opening = ledgers[strategy.strategy_id].open_day(
+                    start, events, config.battery
+                )
+            except DegradationInputError as exc:
+                raise IntegratedStudyInputError(
+                    f"Strategy {strategy.strategy_id}: {exc}"
+                ) from exc
             day_battery, allowed_cycles = _beginning_of_day_battery(
-                config.battery, config.degradation, start
+                config.battery, config.degradation, start, opening
             )
 
             if strategy.reads_realized_delivery_day_prices:
@@ -126,6 +154,20 @@ def run_integrated_study(
             states[strategy.strategy_id], end, _ = complete_degradation_day(
                 prepared, market_day, cell_discharge_mwh, config.degradation
             )
+            try:
+                closing = ledgers[strategy.strategy_id].close_day(
+                    opening=opening,
+                    start=start,
+                    end=end,
+                    schedule=planned.schedule,
+                    summary=planned.summary,
+                    cell_discharge_mwh=cell_discharge_mwh,
+                    battery=config.battery,
+                )
+            except DegradationInputError as exc:
+                raise IntegratedStudyInputError(
+                    f"Strategy {strategy.strategy_id}: {exc}"
+                ) from exc
             rows[strategy.strategy_id].append(
                 _daily_row(
                     strategy=strategy,
@@ -142,6 +184,9 @@ def run_integrated_study(
                     events=events,
                     allowed_cycles=allowed_cycles,
                     battery=day_battery,
+                    configured_battery=config.battery,
+                    opening=opening,
+                    closing=closing,
                 )
             )
 
@@ -153,9 +198,12 @@ def run_integrated_study(
                 :,
                 [
                     "market_day",
+                    "market_cash_margin_eur",
                     "net_market_margin_eur",
+                    "monetary_degradation_adder_eur",
                     "grid_discharge_mwh",
                     "augmentation_cost_eur",
+                    "commissioning_energy_cost_eur",
                 ],
             ],
             replace(config.finance, operating_margin_case=strategy.operating_margin_case),
@@ -319,12 +367,17 @@ def _beginning_of_day_battery(
     battery: BatteryDispatchConfig,
     degradation: Any,
     start: DegradationSnapshot,
+    opening: DayOpening,
 ) -> tuple[BatteryDispatchConfig, float | None]:
     """Build the day's dispatch limits from the state the strategy begins the day with.
 
     This is the same derivation `simulate_degradation_dispatch` applies, kept identical on
     purpose: the study must reproduce the existing backtests when fade is zero, and a second
     way of turning a snapshot into a battery would be a second thing to keep in step.
+
+    The opening state of charge comes from the stored-energy ledger rather than from the
+    configuration. Capacity added by an augmentation is empty until something charges it, so
+    reapplying the configured fraction to a larger capacity would create stored energy.
     """
 
     warranty_headroom_cell = warranty_discharge_headroom_mwh(start, degradation)
@@ -352,6 +405,8 @@ def _beginning_of_day_battery(
         discharge_power_mw=start.usable_discharge_power_mw,
         energy_capacity_mwh=start.usable_energy_mwh,
         max_daily_equivalent_cycles=allowed_cycles,
+        initial_soc_fraction=opening.initial_soc_fraction,
+        terminal_soc_fraction=battery.effective_terminal_soc_fraction,
     )
     return day_battery, allowed_cycles
 
@@ -365,6 +420,7 @@ class _Settlement:
     buy_fees_eur: float
     sell_fees_eur: float
     monetary_degradation_adder_eur: float
+    market_cash_margin_eur: float
     net_market_margin_eur: float
 
 
@@ -399,6 +455,9 @@ def _settle(
         buy_fees_eur=buy_fees,
         sell_fees_eur=sell_fees,
         monetary_degradation_adder_eur=adder,
+        # The wear adder is a dispatch shadow penalty, not a payment. It steers the plan and
+        # then leaves the cash line; only actual expenses reach finance.
+        market_cash_margin_eur=discharge_revenue - charge_cost - buy_fees - sell_fees,
         net_market_margin_eur=(
             discharge_revenue - charge_cost - buy_fees - sell_fees - adder
         ),
@@ -421,6 +480,9 @@ def _daily_row(
     events: tuple[Any, ...],
     allowed_cycles: float | None,
     battery: BatteryDispatchConfig,
+    configured_battery: BatteryDispatchConfig,
+    opening: DayOpening,
+    closing: DayClosing,
 ) -> dict[str, Any]:
     error = planned_prices - realized_prices
     is_perfect_foresight = strategy.reads_realized_delivery_day_prices
@@ -433,6 +495,7 @@ def _daily_row(
         "interval_count": interval_count,
         "planned_margin_eur": float(planned.summary["net_market_margin_eur"]),
         "net_market_margin_eur": settled.net_market_margin_eur,
+        "market_cash_margin_eur": settled.market_cash_margin_eur,
         "day_ceiling_under_own_state_eur": day_ceiling,
         "day_regret_under_own_state_eur": day_ceiling - settled.net_market_margin_eur,
         # A planner that reads realized prices makes no price error, which is not the same
@@ -454,7 +517,17 @@ def _daily_row(
         "sell_fees_eur": settled.sell_fees_eur,
         "monetary_degradation_adder_eur": settled.monetary_degradation_adder_eur,
         "augmentation_cost_eur": float(sum(event.cost_eur for event in events)),
+        "commissioning_energy_cost_eur": opening.commissioning_energy_cost_eur,
         "augmentation_event_ids": "|".join(event.event_id for event in events),
+        "opening_stored_energy_mwh": opening.opening_energy_mwh,
+        "retired_stored_energy_mwh": opening.retired_energy_mwh,
+        "commissioning_energy_mwh": opening.commissioning_energy_mwh,
+        "calendar_fade_energy_loss_mwh": opening.calendar_fade_energy_loss_mwh,
+        "cycle_fade_energy_loss_mwh": closing.cycle_fade_energy_loss_mwh,
+        "closing_stored_energy_mwh": closing.closing_energy_mwh,
+        "conversion_loss_mwh": closing.conversion_loss_mwh,
+        "self_discharge_loss_mwh": closing.self_discharge_loss_mwh,
+        "energy_balance_residual_mwh": closing.balance_residual_mwh,
         "usable_energy_mwh_start": start.usable_energy_mwh,
         "usable_charge_power_mw_start": start.usable_charge_power_mw,
         "usable_discharge_power_mw_start": start.usable_discharge_power_mw,
@@ -462,11 +535,15 @@ def _daily_row(
         "effective_max_daily_equivalent_cycles": allowed_cycles,
         "initial_energy_mwh": float(planned.summary["initial_energy_mwh"]),
         "terminal_energy_mwh": float(planned.summary["terminal_energy_mwh"]),
+        # The configured fractions applied to the day's own usable capacity. The day battery
+        # carries the ledger's opening state of charge, so reading the fraction back off it
+        # would compare the ledger with itself.
         "configured_initial_energy_mwh": (
-            battery.initial_soc_fraction * battery.energy_capacity_mwh
+            configured_battery.initial_soc_fraction * battery.energy_capacity_mwh
         ),
         "configured_terminal_energy_mwh": (
-            battery.effective_terminal_soc_fraction * battery.energy_capacity_mwh
+            configured_battery.effective_terminal_soc_fraction
+            * battery.energy_capacity_mwh
         ),
         "usable_energy_mwh_end": end.usable_energy_mwh,
         "retained_capacity_fraction_end": end.retained_capacity_fraction,
