@@ -16,10 +16,10 @@ class ReceiptPrecisionTests(unittest.TestCase):
             with self.subTest(first=order[0]), tempfile.TemporaryDirectory() as directory:
                 rows = []
                 for hour, receipt in enumerate(order):
-                    start = pd.Timestamp("2026-08-20T00:00:00Z") + pd.Timedelta(hours=hour)
+                    start = pd.Timestamp("2026-08-20T00:00:00Z") + pd.Timedelta(hour, unit="h")
                     rows.append({
                         "delivery_start_utc": start,
-                        "delivery_end_utc": start + pd.Timedelta(hours=1),
+                        "delivery_end_utc": start + pd.Timedelta(1, unit="h"),
                         "market_day": "2026-08-20", "source": "noaa_gfs",
                         "dataset": "gfs.0p25", "variable": "temperature_2m", "area": "GR",
                         "unit": "K", "resolution_minutes": 60, "value": 300.0,
