@@ -1,9 +1,9 @@
 # Implementation plan
 
-Current correctness repair: the numerical and accounting repair fixes the counterexamples
-recorded in `docs/history/implementation_report_numerical_accounting_2026-09-11.md` and applies
-the corrected conventions to the Stage 8 runner that merged while it was open. No stage is
-renumbered: Stage 8 stays complete and Stage 9 is next. Validation and review precede merge.
+The numerical and accounting repair merged as #71 (`ed884e6`), together with its application
+to the Stage 8 runner. Its effect on recorded results is settled in
+`docs/repair_impact_register_2026-09-11.md`: no accepted official result changed and no rerun is
+required. No stage is renumbered — Stage 8 stays complete and **Stage 9 is next**.
 
 ## GitHub milestone workflow
 

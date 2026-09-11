@@ -3,11 +3,21 @@
 **Version:** 0.9.7
 **Updated:** 11 September 2026
 
-**Repair in review:** the numerical and accounting repair corrects IRR certification,
-partial-horizon break-even, cash-cost treatment and cohort stored-energy accounting, and extends
-those conventions to the Stage 8 integrated study runner that merged while it was open. Affected
-outputs require reruns. See
-[implementation record](docs/history/implementation_report_numerical_accounting_2026-09-11.md).
+**Repair merged (#71, `ed884e6`):** the numerical and accounting repair corrects IRR
+certification, partial-horizon break-even, cash-cost treatment and cohort stored-energy
+accounting, and extends those conventions to the Stage 8 integrated study runner that merged
+while it was open
+([implementation record](docs/history/implementation_report_numerical_accounting_2026-09-11.md)).
+
+**No accepted official result changed, and nothing is stale.** The
+[impact register](docs/repair_impact_register_2026-09-11.md) compares every result-producing
+code path across the pre-repair and post-repair revisions, frame by frame and column by column:
+the perfect-foresight ceiling, all four forecast backtests, the annual decomposition and
+fade-only degradation dispatch are bit-exact, so the annual ceilings, the accepted-history total
+and the capture ratios stand as recorded. One figure moved anywhere in the repository — the
+synthetic demonstration's break-even average annual margin, from EUR 53,908,552.74 to
+EUR 51,903,102.77 — and `docs/sample_report.html` was regenerated inside the repair commit, so
+the committed file already carries it. No rerun of any official study is required.
 
 **Status:** Official multi-year operational acceptance and HEnEx-to-ENTSO-E cross-source
 reconciliation passed; encrypted custody copies published and the private key exercised;
