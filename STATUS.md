@@ -2,7 +2,7 @@
 
 **Version:** 0.9.7
 **Updated:** 11 September 2026
-**Head:** `e1bf3e7` on `main`, CI green on Python 3.12 and 3.13, full suite 756 tests.
+**Head:** `1a0c54d` on `main`, CI green on Python 3.12 and 3.13, full suite 759 tests.
 
 This page states where the work stands today. The dated record of how it got here is in
 [`docs/history/status_log_through_2026-09-11.md`](docs/history/status_log_through_2026-09-11.md);

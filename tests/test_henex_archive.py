@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import io
 import json
 import tempfile
@@ -9,6 +10,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from greek_bess.cli import main
 from greek_bess.data.henex_archive import (
     HenexArchiveError,
     download_henex_annual_archives,
@@ -161,6 +163,82 @@ class HenexArchiveTests(unittest.TestCase):
                     raw_dir=Path(directory),
                     fetcher=lambda _url: buffer.getvalue(),
                 )
+
+
+def _full_day_workbook_bytes(*, day: str, revision: int) -> bytes:
+    """A complete 24-interval hourly delivery day, so the default quality gate passes."""
+
+    rows = pd.DataFrame(
+        [
+            {
+                "DDAY": day,
+                "SORT": hour,
+                "DELIVERY_DURATION": 60,
+                "MCP": float(hour),
+                "VER": revision,
+            }
+            for hour in range(1, 25)
+        ]
+    )
+    buffer = io.BytesIO()
+    with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
+        rows.to_excel(writer, index=False, sheet_name="Results")
+    return buffer.getvalue()
+
+
+class NormalizeHenexDirectoryCommandTests(unittest.TestCase):
+    """The command was registered and runnable while named nowhere else in the
+    repository, so nothing exercised it. These cover the two behaviours it owns
+    beyond the helpers it composes: finding the workbooks, and refusing when
+    there are none."""
+
+    def test_command_normalizes_every_workbook_below_the_directory(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            nested = root / "2025" / "january"
+            nested.mkdir(parents=True)
+            (root / "20250101_EL-DAM_Results_EN_v01.xlsx").write_bytes(
+                _full_day_workbook_bytes(day="2025-01-01", revision=1)
+            )
+            # A later revision of the same day, and a second day one level down:
+            # discovery has to recurse, and latest-revision selection has to win.
+            (nested / "20250101_EL-DAM_Results_EN_v02.xlsx").write_bytes(
+                _full_day_workbook_bytes(day="2025-01-01", revision=2)
+            )
+            (nested / "20250102_EL-DAM_Results_EN_v01.xlsx").write_bytes(
+                _full_day_workbook_bytes(day="2025-01-02", revision=1)
+            )
+            (root / "notes.txt").write_text("not a workbook", encoding="utf-8")
+            output = root / "out" / "prices.csv"
+
+            exit_code = main(
+                ["normalize-henex-directory", str(root), "--output", str(output)]
+            )
+            written = pd.read_csv(output)
+
+        self.assertEqual(exit_code, 0)
+        # Two days of 24 hourly intervals, with the superseded v01 of 1 January
+        # dropped rather than appended alongside its replacement.
+        self.assertEqual(len(written), 48)
+        self.assertEqual(sorted(set(written["source_version"])), ["v01", "v02"])
+
+    def test_command_refuses_a_directory_holding_no_result_workbooks(self) -> None:
+        # A directory with nothing to normalize is an unacceptable input, which
+        # the CLI reports as a failed run rather than a traceback.
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "readme.txt").write_text("nothing here", encoding="utf-8")
+            output = root / "prices.csv"
+
+            stderr = io.StringIO()
+            with contextlib.redirect_stderr(stderr):
+                exit_code = main(
+                    ["normalize-henex-directory", str(root), "--output", str(output)]
+                )
+
+        self.assertEqual(exit_code, 1)
+        self.assertIn("No YYYYMMDD_EL-DAM_Results_EN_v##.xlsx files", stderr.getvalue())
+        self.assertFalse(output.exists(), "a refused run must write no history")
 
 
 if __name__ == "__main__":
