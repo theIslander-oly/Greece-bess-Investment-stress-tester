@@ -30,6 +30,7 @@ from ..stress import (
     PriceLevelShockInputError,
     ScenarioEnsembleInputError,
 )
+from ..study import IntegratedStudyInputError
 from . import (
     admie,
     analysis,
@@ -42,6 +43,7 @@ from . import (
     ingest,
     manifests,
     stress,
+    study,
 )
 from ._registry import Command
 
@@ -59,6 +61,7 @@ COMMAND_MODULES = (
     finance,
     stress,
     analysis,
+    study,
     custody,
 )
 
@@ -93,6 +96,7 @@ HANDLED_ERRORS = (
     PriceLevelShockInputError,
     ScenarioEnsembleInputError,
     AnnualDecompositionError,
+    IntegratedStudyInputError,
     CustodyError,
     ReportContractError,
     OSError,
