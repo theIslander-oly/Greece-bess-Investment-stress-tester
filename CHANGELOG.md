@@ -4,7 +4,28 @@ All notable project changes are documented here.
 
 ## [Unreleased]
 
+### Changed
+
+- Consolidate the active documentation. `STATUS.md` (1,492 lines) now states the present in 80
+  lines and `PLAN.md` (827 lines) states the tracker and the next gate in 73. The dated logs both
+  had accumulated move verbatim to `docs/history/status_log_through_2026-09-11.md` and
+  `docs/history/plan_log_through_2026-09-11.md`, indexed in `docs/history/README.md`, which already
+  declared that history belongs there. Active root documentation falls 8,063 to 5,948 lines;
+  total markdown rises by 255, because nothing was deleted. No stage is renumbered,
+  no figure, run id, digest or date is altered, and no source module changes.
+- Point the availability-basis documentation contract at `METHODOLOGY.md`, which owns the rule, in
+  place of the copy of it that `PLAN.md` carried.
+
 ### Fixed
+
+- Correct two mislabelled records found while consolidating. `STATUS.md` carried two sections
+  titled *Stage 7, step 5*; the second recorded step 4's custody and acceptance preflight and is
+  titled step 4 in the archive. `PLAN.md` simultaneously recorded Stage 7 complete with benchmark
+  run `34524611285` and stated that the run "has never been dispatched" — the contradiction Stage
+  10's acceptance check exists to catch.
+- Document `normalize-henex-directory`, which was registered, parsed and runnable while being named
+  nowhere in the repository except its own declaration. A registry test now fails if any registered
+  command is missing from `docs/command_reference.md`.
 
 - Certify IRR uniqueness across positive and negative rates; withhold unresolved rates.
 - Weight annual break-even margin by actual discounted operating days; preserve losses under

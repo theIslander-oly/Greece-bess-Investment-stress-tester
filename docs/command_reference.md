@@ -331,6 +331,22 @@ The parser:
 
 Use `--allow-partial-days` only when a deliberately incomplete workbook is being inspected. Incomplete days are rejected by default.
 
+### Normalize a directory of privately obtained workbooks
+
+When the workbooks were obtained outside this tool and are already on disk, normalize the whole
+directory in one pass rather than a workbook at a time:
+
+```bash
+greek-bess normalize-henex-directory \
+  path/to/workbooks \
+  --output data/curated/henex_prices.csv
+```
+
+The command finds every `YYYYMMDD_EL-DAM_Results_EN_v##.xlsx` file below the directory, refuses if
+it finds none, and then applies exactly the same latest-revision normalization and quality
+assessment as `parse-henex`. It downloads nothing and accepts nothing: the output is normalized
+data and a quality report, and `--allow-partial-days` carries the same meaning as above.
+
 ### Retrieve the complete archived HEnEx history
 
 The verified annual-results register currently covers the beginning of the current Greek DAM
