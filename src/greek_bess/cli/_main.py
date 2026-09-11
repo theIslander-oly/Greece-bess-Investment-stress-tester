@@ -23,6 +23,8 @@ from ..dispatch import DispatchInputError, DispatchSolveError
 from ..forecast.fundamentals import FundamentalsBenchmarkError
 from ..forecast.point_in_time_join import PointInTimeJoinError
 from ..reporting import ReportContractError
+from ..selection import ValueSelectionInputError
+from ..selection.candidates import SelectionCandidateError
 from ..stress import (
     AvailabilityInputError,
     BootstrapDispatchInputError,
@@ -42,6 +44,7 @@ from . import (
     fundamentals,
     ingest,
     manifests,
+    selection,
     stress,
     study,
 )
@@ -58,6 +61,7 @@ COMMAND_MODULES = (
     dispatch,
     forecast,
     fundamentals,
+    selection,
     finance,
     stress,
     analysis,
@@ -88,6 +92,8 @@ HANDLED_ERRORS = (
     PointInTimeJoinError,
     FundamentalsBenchmarkError,
     FundamentalsDispatchInputError,
+    SelectionCandidateError,
+    ValueSelectionInputError,
     NoaaGfsError,
     OfficialDataDownloadError,
     BootstrapInputError,

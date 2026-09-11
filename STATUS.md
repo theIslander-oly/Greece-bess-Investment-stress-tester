@@ -2,7 +2,7 @@
 
 **Version:** 0.9.7
 **Updated:** 11 September 2026
-**Head:** `1a0c54d` on `main`, CI green on Python 3.12 and 3.13, full suite 759 tests.
+**Head:** `54f3fb1` on `main`, CI green on Python 3.12 and 3.13, full suite 780 tests.
 
 This page states where the work stands today. The dated record of how it got here is in
 [`docs/history/status_log_through_2026-09-11.md`](docs/history/status_log_through_2026-09-11.md);
@@ -10,8 +10,9 @@ the stage tracker and what happens next are in [`PLAN.md`](PLAN.md).
 
 ## Where the work stands
 
-Stages 1 through 8 of `Greek_BESS_Execution_Plan.md` are complete and Stage 9 is next. Nothing
-is renumbered.
+Stages 1 through 8 of `Greek_BESS_Execution_Plan.md` are complete. Stage 9 is in progress: it
+has a predeclared protocol, a working implementation and its synthetic proof, and no
+official-history measurement yet. Nothing is renumbered.
 
 The tool retrieves an official Greek DAM price history, records and renders it under custody and
 manifest gates, optimizes perfect-foresight dispatch against it, backtests naive and ML forecasts
@@ -19,10 +20,23 @@ settled at realized prices, ages a battery under a cohort degradation model, eva
 project finance, applies deterministic stress scenarios, and runs all of that end to end for
 several competing strategies through one integrated study command.
 
-The most recent substantive work was a numerical and accounting repair (#71) and its impact
-assessment (#72). The repair corrected IRR certification, partial-horizon break-even weighting,
-cash-versus-shadow-cost treatment and cohort stored-energy accounting, and extended those
-conventions to the Stage 8 integrated study runner that merged while the repair was open.
+The most recent substantive work is Stage 9's method. `greek_bess.selection` and
+`compare-selection-objectives` compare selecting a forecast by validation RMSE against selecting
+it by validation settled margin: one declared candidate grid, both objectives scored on the same
+validation days under one battery configuration, each pick frozen and hashed before any
+evaluation day is settled, ties broken by declared order and recorded. The protocol is
+predeclared in [the Stage 9 design](docs/value_based_selection_design.md).
+
+What exists is a method and a synthetic proof that the two objectives can select differently — a
+forecast wrong by a constant preserves every intraday ordering and dispatches at the ceiling,
+while one that is right almost everywhere but moves the cheapest hour has the better RMSE and
+settles less. What does not exist is a measurement on official data. That run cannot be performed
+from a working checkout and is gated separately, so Stage 9 makes no empirical claim today.
+
+Before that, a numerical and accounting repair (#71) and its impact assessment (#72) corrected
+IRR certification, partial-horizon break-even weighting, cash-versus-shadow-cost treatment and
+cohort stored-energy accounting, and extended those conventions to the Stage 8 integrated study
+runner that merged while the repair was open.
 
 ## What the repair did and did not move
 

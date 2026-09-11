@@ -4,10 +4,33 @@ All notable project changes are documented here.
 
 ## [Unreleased]
 
+### Added
+
+- Stage 9, design and implementation: `greek_bess.selection` and `compare-selection-objectives`
+  compare selecting a forecast by validation RMSE against selecting it by validation settled
+  margin. Both objectives read one candidate grid, declared in fixed order in
+  `selection/candidates.py`, scored on the same validation days under one battery configuration
+  and settled through the accepted `_backtest_precomputed_forecast` path. Each pick is frozen and
+  hashed as `frozen_selection_sha256` before any evaluation day is settled, ties break to the
+  candidate declared first and are recorded as ties, and the signed headline difference is
+  computed where the settlement basis lives rather than derived downstream. `candidate_forecast_sha256`
+  names the forecast table every figure came from. The protocol,
+  predeclared, is in `docs/value_based_selection_design.md`.
+- A synthetic case proving the two objectives can select different candidates: a forecast wrong by
+  a constant keeps every intraday ordering and dispatches at the perfect-foresight ceiling, while
+  one that is right almost everywhere but moves the cheapest hour has the better RMSE and settles
+  less margin. Without it Stage 9 would be measuring nothing.
+
+No existing benchmark changes, no stage is renumbered, and no recorded figure moves: the Stage 7
+fundamentals result stands exactly as committed. No official-history result is produced here —
+that run is gated separately.
+
 ### Changed
 
-- Consolidate the active documentation. `STATUS.md` (1,492 lines) now states the present in 81
-  lines and `PLAN.md` (827 lines) states the tracker and the next gate in 73. The dated logs both
+- Consolidate the active documentation. The change cut `STATUS.md` from 1,492 lines to 81, leaving
+  it stating the present, and `PLAN.md` from 827 to 73, leaving it stating the tracker and the next
+  gate. (Both grow again as work lands; these are the figures for this change, not a standing
+  claim about either file's length.) The dated logs both
   had accumulated move verbatim to `docs/history/status_log_through_2026-09-11.md` and
   `docs/history/plan_log_through_2026-09-11.md`, indexed in `docs/history/README.md`, which already
   declared that history belongs there. Active root documentation falls 8,063 to 5,948 lines;
