@@ -66,7 +66,13 @@ audit, custody record, acceptance document or benchmark run has been executed ag
 data (`docs/history/implementation_report_v0.9.5.md`); and the v0.9 chain has since produced its
 first official evidence — the feature table accepted (Stage 7 step 5) and the forecast/dispatch
 benchmark run against that accepted digest with the matched controls, closing Stage 7 with a
-mixed, honestly-labelled result (`docs/fundamentals_benchmark_2026-09-11.md`)
+mixed, honestly-labelled result (`docs/fundamentals_benchmark_2026-09-11.md`); and Stage 8's
+implementation unit has landed the integrated study runner — one command that reads one declared
+configuration and runs one declared window end to end, planning each day on what a strategy was
+allowed to read, settling at realized prices, ageing each strategy under its own throughput and
+financing exactly that window, with per-strategy state isolation, refused gaps and no ceiling
+reported across strategies, validated on deterministic synthetic prices alone
+(`docs/history/implementation_report_stage8_integrated_study_2026-09-11.md`)
 
 On 3 September 2026 the operator approved the pre-run declarations: a two-regime cutoff, zero-minute lead, one pre-test-vintage wind-capacity geography, structural price bands and the fixed quarter-hour test boundary. The declaration record quantifies the hourly-to-quarter-hour transfer and adds a separate illustrative 25 MW / 100 MWh battery without changing the v0.9 comparison battery. This records no feature acceptance or result. Primary sources must still accompany acceptance evidence, and availability audit, custody and data acceptance must precede any official benchmark (`docs/fundamentals_declarations_2026-09-03.md`).
 
@@ -277,6 +283,45 @@ actionable re-run message rather than relabelled; no accepted record carries the
 in the acceptance record changes. See
 `docs/history/implementation_report_degradation_result_basis_2026-09-10.md`.
 
+## Stage 8 — the integrated study runner is built
+
+`run-integrated-study` closes the gap the design unit specified. One declared configuration names
+a continuous window, a price source, the compared strategies and the battery, degradation and
+finance assumptions; one command runs it. For each delivery day and each strategy in order: read
+only what that strategy was allowed to read, plan against that strategy's own beginning-of-day
+limits, settle the plan at realized prices, age that strategy's state from the cell discharge its
+own settled schedule produced. When the window completes, each strategy's dated operating path
+goes to the finance model unchanged. Five artifacts are written and the run manifest renders
+through the existing renderer without a renderer change.
+
+The runner adds no arithmetic; it owns the join. What the join needed, and now enforces: every
+strategy holds a private degradation state, so declaration order reaches no result and two
+strategies that discharge differently reach different end-of-window capacities — and a result in
+which they did not is refused on that symptom, wherever cycle fade could have separated them. A
+missing delivery day fails the run naming the day, and an incomplete forecast for any compared
+strategy fails it naming the method; nothing is filled, imputed or treated as a no-trade day.
+Finance must cover exactly the declared window. Fees, the monetary adder, augmentation and each
+day's initial and terminal stored energy are reconciled against their configured inputs on every
+run rather than only in tests. And no perfect-foresight ceiling is reported across strategies:
+each strategy's own per-day ceiling and regret are recorded under its own state, and the summary
+records that none is shared and says why — `METHODOLOGY.md` §5.1 applied across strategies rather
+than across days.
+
+One implementation finding is recorded rather than resolved by changing an existing module. The
+finance operating-margin case describes the operating path, not the cost basis, so one finance
+configuration cannot describe two strategies' paths; the study derives the case from each
+strategy's planner, refuses a declared case it cannot produce, and records the declared case
+beside the derived ones. `finance/model.py` is unchanged (decision entry, 11 September 2026).
+
+All eight of the design's acceptance checks have a named test, including the zero-fade
+reproduction — every day's settled margin equals the existing fixed-battery backtest's to six
+decimal places — and a causality check that multiplies every price after a delivery day and
+requires every earlier decision to be byte-identical. **This unit ran no official-data workflow,
+accepted no dataset and produced no official figure**; every number it has produced is on
+deterministic synthetic prices, in tests. The ML and fundamentals planners are not wired in, and
+that would be a separate unit
+(`docs/history/implementation_report_stage8_integrated_study_2026-09-11.md`).
+
 ## Stage 8 design unit — the integrated study runner is specified
 
 Each step of the analytical chain exists; nothing connects them. Forecast-planned dispatch settles
@@ -303,8 +348,7 @@ the repository moves out from under it rather than when someone re-reads it.
 retrieval and the acceptance document that follows. The stage 8 design unit was taken first
 because it requires no official data.
 
-Next: adopt this design, then the stage 8 implementation unit (`build-integrated-study`), or
-stage 7 if its authorization arrives first.
+The design was adopted and its implementation unit has since landed; see the section above.
 
 ## Stage 6 — the weather comparison now has a matched control
 
