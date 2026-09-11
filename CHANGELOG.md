@@ -21,6 +21,12 @@ All notable project changes are documented here.
 
 ### Added
 
+- An impact register (`docs/repair_impact_register_2026-09-11.md`) establishing, path by path
+  and column by column against the pre-repair revision, which recorded results the numerical and
+  accounting repair moves. One figure moved — the synthetic demonstration's break-even average
+  annual margin — and it was already regenerated inside the repair. No accepted official-history
+  result changed and no rerun is required.
+
 - **The integrated study runner: one command that connects forecasting, ageing, settlement and
   cash flows.** Execution-plan stage 8's implementation unit, built against the adopted design in
   `docs/integrated_study_design.md`. `run-integrated-study` reads one declared configuration and
