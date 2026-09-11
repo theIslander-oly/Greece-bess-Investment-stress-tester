@@ -1,5 +1,15 @@
 # Decision log
 
+## 2026-09-11 — Repair numerical and cash/energy accounting conventions
+
+Use certified IRR uniqueness, discounted daily exposure for annual break-even, and realization
+haircuts on positive daily cash margin only. Treat wear adders as dispatch shadow penalties;
+actual augmentation and additional commissioning costs enter finance once. Carry cohort energy
+through additions, retirement and proportional fade, with empty additions as the default.
+Preserve legacy net outputs and reconcile them to explicit cash margin. These are correctness
+repairs with counterexample regressions, not new forecast models or a Stage 8 runner.
+Affected historical outputs must be rerun before relying on the corrected metrics.
+
 ## 2026-09-10 — Correct the pre-coupling gate closure to 12:00 CET on the retained primary text
 
 - **Decision:** `config/decision_cutoff.json` declares one gate-closure regime from delivery day

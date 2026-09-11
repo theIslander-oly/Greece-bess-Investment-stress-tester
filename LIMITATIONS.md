@@ -125,6 +125,10 @@
 - Availability and efficiency are assumptions rather than a full auxiliary-load and outage
   model.
 
+- Stored-energy allocation and energy made unavailable by fade are proportional approximations.
+  Empty additions may require grid charging; replacement below minimum SOC requires explicit
+  commissioning energy or an admissible SOC range.
+
 ## Finance
 
 - Inputs remain illustrative until supported by project-specific EPC, grid, O&M, insurance,
@@ -132,6 +136,11 @@
 - Results are unlevered and pre-tax; debt, tax, subsidy, inflation-basis consistency and working
   capital require separate treatment.
 - Finance does not repair or extrapolate incomplete operating paths.
+- IRR is withheld when uniqueness cannot be established; sampling alone cannot exclude close
+  or tangent roots. The numerical solution range is finite even for certified unique roots.
+- Legacy net-only inputs cannot reveal an unknown wear-cost basis and are treated as cash margin.
+  Rerun affected results under the corrected cash, energy and break-even conventions; existing
+  recorded results are not retroactively recomputed.
 - Scenario probability estimates are excluded unless an independently validated calibration
   methodology is approved; v0.7 reports only non-probabilistic ranges across named scenarios.
 

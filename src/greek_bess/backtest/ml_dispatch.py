@@ -248,6 +248,8 @@ def _backtest_precomputed_forecast(
                     settled["forecast_net_market_margin_eur"].sum()
                 ),
                 "realized_margin_eur": realized_margin,
+                "market_cash_margin_eur": float(settled["market_cash_margin_eur"].sum()),
+                "monetary_degradation_adder_eur": float(settled["degradation_cost_eur"].sum()),
                 "perfect_foresight_margin_eur": perfect_margin,
                 "regret_eur": perfect_margin - realized_margin,
                 "perfect_foresight_capture_ratio": (
@@ -283,6 +285,7 @@ def _backtest_precomputed_forecast(
             daily_results["forecast_margin_eur"].sum()
         ),
         "realized_margin_eur": realized_total,
+        "market_cash_margin_eur": float(interval_schedule["market_cash_margin_eur"].sum()),
         "perfect_foresight_margin_eur": perfect_total,
         "perfect_foresight_regret_eur": perfect_total - realized_total,
         "perfect_foresight_capture_ratio": (

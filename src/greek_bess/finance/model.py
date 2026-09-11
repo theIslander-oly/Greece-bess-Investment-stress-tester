@@ -151,10 +151,11 @@ def evaluate_project_finance(
     daily["project_year"] = daily["market_day"].map(
         lambda value: _project_year(value, config.project_start_day)
     )
-    daily["market_margin_input_eur"] = daily["net_market_margin_eur"]
+    daily["market_margin_input_eur"] = daily["market_cash_margin_eur"]
+    positive_margin = daily["market_margin_input_eur"].clip(lower=0)
+    negative_margin = daily["market_margin_input_eur"].clip(upper=0)
     daily["realized_market_margin_eur"] = (
-        daily["market_margin_input_eur"]
-        * config.market_margin_realization_fraction
+        positive_margin * config.market_margin_realization_fraction + negative_margin
     )
 
     escalation = daily["project_year"].map(
@@ -188,6 +189,7 @@ def evaluate_project_finance(
         - daily["fixed_opex_eur"]
         - daily["variable_opex_eur"]
         - daily["augmentation_cost_eur"]
+        - daily["commissioning_energy_cost_eur"]
         - daily["decommissioning_cost_eur"]
         + daily["residual_value_eur"]
     )
@@ -222,9 +224,8 @@ def evaluate_project_finance(
         "discounted_operating_net_cash_flow_eur",
     )
 
-    pv_input_market_margin = float(
-        (daily["market_margin_input_eur"] / daily["discount_factor"]).sum()
-    )
+    pv_positive_margin = float((positive_margin / daily["discount_factor"]).sum())
+    pv_negative_margin = float((negative_margin / daily["discount_factor"]).sum())
     pv_non_margin = float(
         -config.total_initial_capex_eur
         + (
@@ -232,6 +233,7 @@ def evaluate_project_finance(
                 -daily["fixed_opex_eur"]
                 - daily["variable_opex_eur"]
                 - daily["augmentation_cost_eur"]
+                - daily["commissioning_energy_cost_eur"]
                 - daily["decommissioning_cost_eur"]
                 + daily["residual_value_eur"]
             )
@@ -239,21 +241,16 @@ def evaluate_project_finance(
         ).sum()
     )
     break_even_realization = (
-        -pv_non_margin / pv_input_market_margin
-        if pv_input_market_margin > TOLERANCE
+        -(pv_non_margin + pv_negative_margin) / pv_positive_margin
+        if pv_positive_margin > TOLERANCE
         else None
     )
     maximum_initial_capex = float(
         daily["discounted_operating_net_cash_flow_eur"].sum()
     )
-    annual_margin_discount_factor = float(
-        sum(
-            1.0 / (1.0 + config.discount_rate_fraction) ** years
-            for years in annual.loc[
-                annual["project_year"] > 0, "years_from_project_start"
-            ]
-        )
-    )
+    # One EUR/year of cash margin, earned uniformly at each modeled day end. This
+    # uses the same 365.25-day basis and exact dates as NPV, including partial years.
+    annual_margin_discount_factor = float((1.0 / daily["discount_factor"]).sum() / YEAR_DAYS)
     break_even_average_annual_margin = (
         -pv_non_margin / annual_margin_discount_factor
         if annual_margin_discount_factor > TOLERANCE
@@ -287,6 +284,17 @@ def evaluate_project_finance(
         "fixed_opex_eur": float(daily["fixed_opex_eur"].sum()),
         "variable_opex_eur": float(daily["variable_opex_eur"].sum()),
         "augmentation_cost_eur": float(daily["augmentation_cost_eur"].sum()),
+        "commissioning_energy_cost_eur": float(daily["commissioning_energy_cost_eur"].sum()),
+        "dispatch_wear_penalty_eur": float(daily["monetary_degradation_adder_eur"].sum()),
+        "accounting_convention": "cash_margin_v2",
+        "market_margin_realization_policy": (
+            "The realization fraction applies only to positive daily cash margins; "
+            "negative cash margins remain payable in full"
+        ),
+        "wear_penalty_policy": (
+            "Dispatch wear penalties are non-cash opportunity costs and are added back "
+            "before finance. Actual throughput expenses belong in fees or variable OPEX"
+        ),
         "decommissioning_cost_eur": config.decommissioning_cost_eur,
         "residual_value_eur": config.residual_value_eur,
         "undiscounted_project_cash_flow_eur": float(
@@ -311,6 +319,11 @@ def evaluate_project_finance(
         ),
         "break_even_average_annual_market_margin_eur": (
             break_even_average_annual_margin
+        ),
+        "break_even_annual_margin_policy": (
+            "Required realized cash margin, earned uniformly at annual_margin / 365.25 "
+            "per modeled day, before fixed costs and without a further realization haircut; "
+            "uses the same dates as NPV"
         ),
         "positive_npv_at_configured_discount_rate": bool(npv > 0.0),
         "cash_flow_timing_policy": (
@@ -349,19 +362,27 @@ def _validate_daily_operating_results(
     frame: pd.DataFrame,
     config: FinanceConfig,
 ) -> pd.DataFrame:
-    required = {"market_day", "net_market_margin_eur", "grid_discharge_mwh"}
+    required = {"market_day", "grid_discharge_mwh"}
     missing = sorted(required - set(frame.columns))
     if missing:
         raise FinanceInputError(
             "Daily operating results are missing required columns: "
             + ", ".join(missing)
         )
-    columns = ["market_day", "net_market_margin_eur", "grid_discharge_mwh"]
-    if "augmentation_cost_eur" in frame.columns:
-        columns.append("augmentation_cost_eur")
+    if not {"net_market_margin_eur", "market_cash_margin_eur"} & set(frame.columns):
+        raise FinanceInputError(
+            "Daily results require market_cash_margin_eur or net_market_margin_eur"
+        )
+    optional = (
+        "net_market_margin_eur", "market_cash_margin_eur", "monetary_degradation_adder_eur",
+        "augmentation_cost_eur", "commissioning_energy_cost_eur",
+    )
+    columns = ["market_day", "grid_discharge_mwh", *[c for c in optional if c in frame]]
     daily = frame.loc[:, columns].copy()
-    if "augmentation_cost_eur" not in daily:
-        daily["augmentation_cost_eur"] = 0.0
+    for column in ("augmentation_cost_eur", "commissioning_energy_cost_eur",
+                   "monetary_degradation_adder_eur"):
+        if column not in daily:
+            daily[column] = 0.0
     daily["market_day"] = daily["market_day"].map(
         lambda value: _as_date(value, "market_day")
     )
@@ -369,18 +390,28 @@ def _validate_daily_operating_results(
         raise FinanceInputError("Daily operating results contain duplicate market days")
     if not daily["market_day"].is_monotonic_increasing:
         raise FinanceInputError("Daily operating results must be sorted by market_day")
-    for column in (
-        "net_market_margin_eur",
-        "grid_discharge_mwh",
-        "augmentation_cost_eur",
-    ):
+    for column in daily.columns.drop("market_day"):
         daily[column] = pd.to_numeric(daily[column], errors="coerce")
         if daily[column].isna().any() or not np.isfinite(daily[column]).all():
             raise FinanceInputError(f"{column} must contain only finite numbers")
     if (daily["grid_discharge_mwh"] < -TOLERANCE).any():
         raise FinanceInputError("grid_discharge_mwh cannot be negative")
-    if (daily["augmentation_cost_eur"] < -TOLERANCE).any():
-        raise FinanceInputError("augmentation_cost_eur cannot be negative")
+    for column in ("augmentation_cost_eur", "commissioning_energy_cost_eur",
+                   "monetary_degradation_adder_eur"):
+        if (daily[column] < -TOLERANCE).any():
+            raise FinanceInputError(f"{column} cannot be negative")
+    if "market_cash_margin_eur" not in daily:
+        # Legacy net-only inputs declare cash margin. Legacy degradation CSVs also
+        # carry the wear adder, which must be reversed before deducting actual CAPEX.
+        daily["market_cash_margin_eur"] = (
+            daily["net_market_margin_eur"] + daily["monetary_degradation_adder_eur"]
+        )
+    elif "net_market_margin_eur" in daily and not np.allclose(
+        daily["market_cash_margin_eur"],
+        daily["net_market_margin_eur"] + daily["monetary_degradation_adder_eur"],
+        rtol=1e-10, atol=1e-7,
+    ):
+        raise FinanceInputError("Cash margin and net margin plus wear penalty do not reconcile")
 
     expected = [
         timestamp.date()
@@ -409,6 +440,7 @@ def _annual_cash_flows(
         "fixed_opex_eur",
         "variable_opex_eur",
         "augmentation_cost_eur",
+        "commissioning_energy_cost_eur",
         "decommissioning_cost_eur",
         "residual_value_eur",
         "operating_net_cash_flow_eur",
@@ -484,15 +516,10 @@ def _dated_cash_flows(
     return times, amounts
 
 
-#: The rate search runs over (-1, IRR_SEARCH_HIGH]. Below -1 a discount factor is not defined;
-#: above this a "rate" is arithmetic rather than a return anyone would quote.
+# Rates are searched in this finite numerical range; uniqueness is assessed on
+# the whole mathematical domain r > -1, not just at sampled grid points.
 IRR_SEARCH_LOW = -0.9999
 IRR_SEARCH_HIGH = 1_000_000.0
-
-#: How many rates the ambiguity scan evaluates when neither sufficient condition settles
-#: uniqueness. The objective is smooth in the rate, so a log-spaced grid this dense separates
-#: the root structures these cash flows produce; two roots closer together than adjacent grid
-#: points would be missed, which is why the scan is the fallback and not the first test.
 IRR_SCAN_POINTS = 4096
 
 
@@ -500,95 +527,91 @@ def _irr_objective(rate: float, times: np.ndarray, amounts: np.ndarray) -> float
     return float(np.sum(amounts / (1.0 + rate) ** times))
 
 
-def _irr_scan_grid() -> np.ndarray:
-    """Rates to evaluate, dense near -1 where the discount factor moves fastest."""
+def _positive_rate_root_count(amounts: np.ndarray) -> int | None:
+    """Certify zero or one root on r > 0 using cumulative cash balances.
 
-    half = IRR_SCAN_POINTS // 2
-    near_minus_one = -1.0 + np.logspace(-4.0, 0.0, half, endpoint=False)
-    upward = np.logspace(-4.0, np.log10(IRR_SEARCH_HIGH), half)
-    return np.unique(np.concatenate((near_minus_one, upward)))
-
-
-def _bracketed_roots(times: np.ndarray, amounts: np.ndarray) -> list[tuple[float, float]]:
-    """Return every bracket on the scan grid across which the objective changes sign."""
-
-    grid = _irr_scan_grid()
-    with np.errstate(over="ignore", divide="ignore", invalid="ignore"):
-        values = np.array([_irr_objective(rate, times, amounts) for rate in grid])
-    usable = np.isfinite(values)
-    grid, values = grid[usable], values[usable]
-    signs = np.sign(values)
-    changed = np.flatnonzero(signs[1:] * signs[:-1] < 0)
-    return [(float(grid[index]), float(grid[index + 1])) for index in changed]
-
-
-def _irr_uniqueness(
-    times: np.ndarray, amounts: np.ndarray
-) -> tuple[str, tuple[float, float] | None]:
-    """Decide whether this series has one rate, none, or several, and where the one is.
-
-    Two sufficient conditions settle the common cases without searching.
-
-    The sign rule: a series whose amounts change sign exactly once has exactly one rate above
-    -100%. With no sign change at all there is no rate to find.
-
-    Norstrom's criterion (1972): a series may change sign many times and still have a unique
-    rate — a project paying for a mid-life augmentation is the ordinary case here — provided its
-    *cumulative* balance starts negative, turns positive once and never turns back.
-
-    Neither condition is necessary, so failing both does not mean the rate is ambiguous. A
-    project that never recovers its outlay fails Norstrom and still has exactly one rate, deeply
-    negative. Refusing there would withhold a real figure, so the fallback is to scan the search
-    range and answer from the root structure actually present: one crossing is reported, several
-    are not. Quoting whichever of several rates a solver reached first would state a precision
-    the cash flows do not carry.
+    Summation by parts expresses discounted cash flow as the Laplace transform
+    of the cumulative balance. A balance of one sign has no positive-rate zero.
+    One crossing with a nonzero final balance of the opposite sign gives exactly
+    one positive-rate zero (Norstrom). More crossings are inconclusive.
+    This criterion makes no claim about negative rates.
     """
-
-    material = amounts[np.abs(amounts) > TOLERANCE]
-    if material.size < 2:
-        return "not_evaluable_no_sign_change", None
-    signs = np.sign(material)
-    sign_changes = int(np.sum(signs[1:] != signs[:-1]))
-    if sign_changes == 0:
-        return "not_evaluable_no_sign_change", None
-
-    if sign_changes == 1:
-        return "unique", None
-
-    cumulative = np.cumsum(amounts)
-    if cumulative[0] < -TOLERANCE and cumulative[-1] > TOLERANCE:
-        balance = np.sign(cumulative[np.abs(cumulative) > TOLERANCE])
-        if balance.size > 1 and int(np.sum(balance[1:] != balance[:-1])) == 1:
-            return "unique", None
-
-    brackets = _bracketed_roots(times, amounts)
-    if not brackets:
-        return "not_evaluable_no_root_in_search_range", None
-    if len(brackets) > 1:
-        return "not_evaluable_multiple_rates", None
-    return "unique", brackets[0]
+    balances = np.cumsum(amounts)
+    material = balances[np.abs(balances) > TOLERANCE]
+    if not len(material):
+        return None
+    changes = np.count_nonzero(np.sign(material[1:]) != np.sign(material[:-1]))
+    if changes == 0:
+        return 0
+    if changes == 1 and abs(balances[-1]) > TOLERANCE:
+        return 1
+    return None
 
 
 def _project_irr(times: np.ndarray, amounts: np.ndarray) -> tuple[float | None, str]:
-    uniqueness, bracket = _irr_uniqueness(times, amounts)
-    if uniqueness != "unique":
-        return None, uniqueness
+    """Return a rate only with a uniqueness certificate, never from a scan alone.
 
-    def objective(rate: float) -> float:
-        return _irr_objective(rate, times, amounts)
+    Reverse the dated cash flows to apply the positive-rate criterion to negative
+    rates: multiplying NPV by a positive exponential preserves its zeros. Work in
+    log(1+r), reversing time for negative values, to avoid overflow near -100%.
+    Unresolved multiple-sign cash flows retain NPV but have no reported IRR.
+    """
+    mask = np.abs(amounts) > TOLERANCE
+    times, amounts = times[mask], amounts[mask]
+    if len(amounts) < 2 or np.all(amounts > 0) or np.all(amounts < 0):
+        return None, "not_evaluable_no_sign_change"
+    times = times - times[0]
+    # Scaling changes neither roots nor the root-count certificates.
+    amounts = amounts / np.max(np.abs(amounts))
+    reversed_times = times[-1] - times[::-1]
 
-    if bracket is not None:
-        return float(brentq(objective, bracket[0], bracket[1], xtol=1e-12)), "calculated"
+    def objective(log_rate: float) -> float:
+        if log_rate >= 0:
+            return float(np.sum(amounts * np.exp(-times * log_rate)))
+        return float(np.sum(amounts[::-1] * np.exp(reversed_times * log_rate)))
 
-    low_value = objective(IRR_SEARCH_LOW)
-    for high in (1.0, 10.0, 100.0, 1_000.0, IRR_SEARCH_HIGH):
-        high_value = objective(high)
-        if np.sign(low_value) != np.sign(high_value):
-            return (
-                float(brentq(objective, IRR_SEARCH_LOW, high, xtol=1e-12)),
-                "calculated",
-            )
-    return None, "not_evaluable_no_root_in_search_range"
+    sign_changes = np.count_nonzero(np.sign(amounts[1:]) != np.sign(amounts[:-1]))
+    positive_count = _positive_rate_root_count(amounts)
+    negative_count = _positive_rate_root_count(amounts[::-1])
+    zero_root = abs(float(np.sum(amounts))) <= TOLERANCE
+    if sign_changes == 1:
+        certified_count: int | None = 1
+    elif positive_count is not None and negative_count is not None:
+        certified_count = positive_count + negative_count + int(zero_root)
+    else:
+        certified_count = None
+    if certified_count is not None and certified_count > 1:
+        return None, "not_evaluable_multiple_rates"
+    if certified_count == 0:
+        return None, "not_evaluable_no_root_in_search_range"
+
+    low, high = float(np.log1p(IRR_SEARCH_LOW)), float(np.log1p(IRR_SEARCH_HIGH))
+    if certified_count == 1:
+        if zero_root:
+            return 0.0, "calculated"
+        if np.sign(objective(low)) == np.sign(objective(high)):
+            return None, "not_evaluable_no_root_in_search_range"
+        root = brentq(objective, low, high, xtol=1e-13)
+        return float(np.expm1(root)), "calculated"
+
+    # A scan can exhibit multiple roots, but cannot rule out close or tangent roots.
+    # Expand the diagnostic scan until the first/last nonzero cash flow dominates
+    # all remaining terms. This can reveal roots too close to -100% to express as
+    # floating-point rates, which still defeat a claim of global uniqueness.
+    positive_limit = max(1.0, np.log(np.sum(np.abs(amounts[1:])) / abs(amounts[0]))
+                         / times[1] + 1.0)
+    negative_limit = max(1.0, np.log(np.sum(np.abs(amounts[:-1])) / abs(amounts[-1]))
+                         / reversed_times[1] + 1.0)
+    grid = np.unique(np.concatenate((
+        np.linspace(-negative_limit, 0.0, IRR_SCAN_POINTS // 2),
+        np.linspace(0.0, positive_limit, IRR_SCAN_POINTS // 2),
+    )))
+    values = np.array([objective(value) for value in grid])
+    crossings = int(np.count_nonzero(values[1:] * values[:-1] < 0))
+    found = crossings + int(zero_root)
+    if found > 1:
+        return None, "not_evaluable_multiple_rates"
+    return None, "not_evaluable_uniqueness_not_established"
 
 
 def _payback(

@@ -1,5 +1,8 @@
 # Implementation plan
 
+Current correctness repair: `repair-numerical-accounting` fixes numerical and accounting
+counterexamples before Stage 8 implementation. Validation and review precede merge.
+
 ## GitHub milestone workflow
 
 Every new milestone uses a feature branch, validation, diff review and one pull request. The

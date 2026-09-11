@@ -4,6 +4,15 @@ All notable project changes are documented here.
 
 ## [Unreleased]
 
+### Fixed
+
+- Certify IRR uniqueness across positive and negative rates; withhold unresolved rates.
+- Weight annual break-even margin by actual discounted operating days; preserve losses under
+  realization haircuts.
+- Separate cash margin from shadow wear penalties and deduct commissioning costs once.
+- Carry cohort energy through additions, retirement and fade with a reconciled energy ledger;
+  allow energy-only additions and constant power under energy fade. Add counterexample regressions.
+
 ### Added
 
 - **The fundamentals forecast-dispatch benchmark ran against the accepted digest, and the

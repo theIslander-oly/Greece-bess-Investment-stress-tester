@@ -42,6 +42,8 @@ def _daily_results(schedule: pd.DataFrame) -> pd.DataFrame:
         schedule.groupby("market_day", sort=True, as_index=False)
         .agg(
             net_market_margin_eur=("net_market_margin_eur", "sum"),
+            market_cash_margin_eur=("market_cash_margin_eur", "sum"),
+            monetary_degradation_adder_eur=("degradation_cost_eur", "sum"),
             grid_discharge_mwh=("discharge_grid_mwh", "sum"),
         )
         .assign(augmentation_cost_eur=0.0)

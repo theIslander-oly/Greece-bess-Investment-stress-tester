@@ -12,6 +12,11 @@ not investment evidence, expected revenue, financial advice or a bankable study.
 
 **Rendered reports:** the deterministic renderer composes verified manifests into a self-contained aggregate HTML report and includes manifest-local inline SVG charts of already-recorded scenario-range values. Charts derive no analytical quantity, open no manifest-named file, and retain each result label, basis and exclusion. Public deployment of the accepted-replay aggregate report remains outstanding until its custody-gated Pages job succeeds.
 
+**Numerical/accounting repair:** cash margin now excludes the dispatch wear penalty; losses
+retain their full value under revenue haircuts, break-even uses the actual daily horizon,
+and degradation dispatch carries an explicit energy ledger. IRR requires a uniqueness
+certificate. Rerun affected outputs; see the [repair record](docs/history/implementation_report_numerical_accounting_2026-09-11.md).
+
 ## Accepted official-history findings
 
 These are **historical replay and backtest results, not expected revenue, a forecast or

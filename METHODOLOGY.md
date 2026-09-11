@@ -239,6 +239,16 @@ allocated proportionally across active cohorts. Capacity additions, replacements
 retained-capacity thresholds and optional EFC warranty limits are explicit. The model is a
 transparent approximation and not an electrochemical lifetime model.
 
+Stored energy is carried between days by cohort. Additions are empty by default; explicit
+`commissioning_energy_mwh` and additional `commissioning_energy_cost_eur` declare external
+energy and its cost. Retiring a cohort removes its stored energy. Calendar and cycle fade
+make the same proportion of cohort energy unavailable, recorded as separate losses; this
+is an explicit approximation, not an electrochemical assertion. Grid flows, conversion and
+self-discharge losses reconcile opening to closing energy. Dispatch starts at carried energy
+and targets the configured terminal SOC on beginning-of-day usable capacity. Inadmissible
+starting SOC is refused rather than silently filled. Energy-only additions are allowed;
+`power_fade_exponent=0` keeps power independent of capacity fade.
+
 ### 5.1 What the degraded aggregate is
 
 A degradation dispatch solves each market day optimally under the limits that day begins with,
@@ -282,14 +292,32 @@ treats money received in January as if it arrived in December. For EUR 1,000 pai
 EUR 1,200 received evenly across 365 daily periods, the dated series gives 45.586% and the annual
 relocation 20.015%.
 
-A rate is reported only where it is unique, established in order by: a single sign change in the
-amounts; Norstrom's criterion, where the cumulative balance starts negative, turns positive once
-and never turns back; or a scan of the search range that finds exactly one root. The first two
-are sufficient conditions and neither is necessary, so the scan exists to avoid withholding a
-real figure from a series that fails both — a project that never recovers its outlay has exactly
-one rate, deeply negative. Where several rates exist none is quoted, because there is no single
-one to state. Two roots closer together than adjacent scan points would be missed; the scan is
-therefore the fallback, not the first test.
+A rate is reported only with a uniqueness certificate over rates greater than -100%.
+A single cash-flow sign change certifies uniqueness. For other series, cumulative-balance
+criteria are applied separately to positive rates and to reversed cash flows for negative
+rates, with a zero-rate root counted separately. A scan can establish multiple roots but
+cannot certify uniqueness or absence. Unresolved cases return
+`not_evaluable_uniqueness_not_established`; NPV remains available. A certified unique rate
+is solved in log-rate space within [-0.9999, 1,000,000]. For annual cash flows
+-100, +200, -50, both approximately -70.71% and +70.71% exist; neither is reported alone.
+
+### 6.2 Cash margin and break-even conventions
+
+`market_cash_margin_eur` is settled revenue less electricity purchases and trading fees.
+The dispatch wear adder is a shadow penalty, reported separately; legacy
+`net_market_margin_eur` subtracts that penalty. Finance uses cash margin, deducting actual
+augmentation and additional commissioning-energy costs once. Commissioning-energy cost must
+exclude costs already included in augmentation CAPEX. Legacy net-plus-wear inputs are
+reconciled by adding wear back; a net-only input is assumed to declare cash margin.
+
+A realization fraction f acts on daily gains only: f * max(M, 0) + min(M, 0).
+Losses are retained in full. Break-even realization likewise keeps losses fixed.
+The break-even average annual market margin is the required **realized** uniform daily
+cash margin annualized on 365.25 days: -PV(non-margin cash flows) divided by
+sum over operating days of (1 + discount rate)^(-dated years) / 365.25.
+It therefore uses the actual daily horizon, including partial and leap years, and receives
+no second realization haircut. At zero discount, EUR 365 CAPEX over 546 days requires
+EUR 244.168956 annually, not EUR 182.50.
 
 ## 7. Seasonal block-bootstrap foundation
 
