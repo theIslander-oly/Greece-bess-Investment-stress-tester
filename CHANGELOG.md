@@ -6,6 +6,10 @@ All notable project changes are documented here.
 
 ### Added
 
+- Prepare Stage 9's manual official-history comparison with a digest-gated dated declaration,
+  existing-custody verification, exact calendar checks and private evidence indexing. Retain
+  failed-run diagnostics and every result sign. No official run or publication is performed.
+
 - Stage 9, design and implementation: `greek_bess.selection` and `compare-selection-objectives`
   compare selecting a forecast by validation RMSE against selecting it by validation settled
   margin. Both objectives read one candidate grid, declared in fixed order in
@@ -26,6 +30,9 @@ fundamentals result stands exactly as committed. No official-history result is p
 that run is gated separately.
 
 ### Changed
+
+- Replace the status page's self-staling head SHA with a live CI link; suite counts belong in
+  dated validation records.
 
 - Consolidate the active documentation. The change cut `STATUS.md` from 1,492 lines to 81, leaving
   it stating the present, and `PLAN.md` from 827 to 73, leaving it stating the tracker and the next

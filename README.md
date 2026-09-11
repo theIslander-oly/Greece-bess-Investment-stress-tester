@@ -571,6 +571,9 @@ margin, regret, cycling and capacity beside the price errors. Its design of reco
 select differently, which is what stops the comparison being vacuous; like the study runner, it is
 validated on deterministic synthetic prices and has produced no official-history result, so it
 supports no empirical claim about which objective serves the battery study.
+The manual `Compare official selection objectives` workflow prepares that measurement under
+[the dated run declaration](docs/selection_run_declaration_2026-09-11.md), with digest and custody
+guards and private evidence retention. Operator approval and dispatch are still outstanding.
 
 Percentile outputs (P5/P50/P95) and loss probabilities were removed from the roadmap because
 the seasonal bootstrap resamples a non-stationary 2020-2026 history uniformly and therefore

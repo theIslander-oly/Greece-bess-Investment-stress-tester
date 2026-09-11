@@ -2,7 +2,7 @@
 
 **Version:** 0.9.7
 **Updated:** 11 September 2026
-**Head:** `54f3fb1` on `main`, CI green on Python 3.12 and 3.13, full suite 780 tests.
+**Validation:** [Current CI](https://github.com/theIslander-oly/Greece-bess-Investment-stress-tester/actions/workflows/tests.yml) runs Python 3.12 and 3.13. Dated implementation reports record suite counts.
 
 This page states where the work stands today. The dated record of how it got here is in
 [`docs/history/status_log_through_2026-09-11.md`](docs/history/status_log_through_2026-09-11.md);
@@ -30,8 +30,11 @@ predeclared in [the Stage 9 design](docs/value_based_selection_design.md).
 What exists is a method and a synthetic proof that the two objectives can select differently — a
 forecast wrong by a constant preserves every intraday ordering and dispatches at the ceiling,
 while one that is right almost everywhere but moves the cheapest hour has the better RMSE and
-settles less. What does not exist is a measurement on official data. That run cannot be performed
-from a working checkout and is gated separately, so Stage 9 makes no empirical claim today.
+settles less. What does not exist is a measurement on official data. The manual workflow
+`Compare official selection objectives` and its [dated declaration](docs/selection_run_declaration_2026-09-11.md)
+are prepared for operator review. It verifies existing custody, fixes the complete calendar and
+retains private evidence irrespective of outcome. Approval of the declaration and dispatch remain
+the next gate, so Stage 9 makes no empirical claim today.
 
 Before that, a numerical and accounting repair (#71) and its impact assessment (#72) corrected
 IRR certification, partial-horizon break-even weighting, cash-versus-shadow-cost treatment and

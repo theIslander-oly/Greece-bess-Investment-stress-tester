@@ -48,10 +48,13 @@ reports held-out margin, regret against perfect foresight and against the retros
 candidate, cycling, capacity and price errors. The synthetic divergence case is committed and
 passing, so the two objectives are known to be capable of selecting differently.
 
-**Next gate: the official-history run.** No official result exists yet, and none can be produced
-from a working checkout — the egress constraint below applies, so this is a workflow dispatch with
-its own custody declarations, run against the accepted history under the operator's authorization.
-Until then Stage 9 has a method and no measurement, and the tracker says so.
+**Next gate: approve the declaration and dispatch the official-history run.** Branch
+`stage9-official-selection-workflow` prepares `Compare official selection objectives` and
+[`selection_run_declaration_2026-09-11.md`](docs/selection_run_declaration_2026-09-11.md).
+The workflow checks the declaration digest, verifies existing custody before reading prices,
+refuses incomplete calendars and retains private evidence for any result sign. No official result
+exists; Stage 9 remains in progress. Review the declaration and CI before authorizing dispatch.
+Publication and a change to the shipped selection policy remain separate gates.
 
 ## Stage 10 — deliver the portfolio release
 
