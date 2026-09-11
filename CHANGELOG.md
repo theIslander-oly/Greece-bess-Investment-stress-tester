@@ -27,8 +27,10 @@ that run is gated separately.
 
 ### Changed
 
-- Consolidate the active documentation. `STATUS.md` (1,492 lines) now states the present in 80
-  lines and `PLAN.md` (827 lines) states the tracker and the next gate in 73. The dated logs both
+- Consolidate the active documentation. The change cut `STATUS.md` from 1,492 lines to 81, leaving
+  it stating the present, and `PLAN.md` from 827 to 73, leaving it stating the tracker and the next
+  gate. (Both grow again as work lands; these are the figures for this change, not a standing
+  claim about either file's length.) The dated logs both
   had accumulated move verbatim to `docs/history/status_log_through_2026-09-11.md` and
   `docs/history/plan_log_through_2026-09-11.md`, indexed in `docs/history/README.md`, which already
   declared that history belongs there. Active root documentation falls 8,063 to 5,948 lines;
@@ -46,7 +48,11 @@ that run is gated separately.
   10's acceptance check exists to catch.
 - Document `normalize-henex-directory`, which was registered, parsed and runnable while being named
   nowhere in the repository except its own declaration. A registry test now fails if any registered
-  command is missing from `docs/command_reference.md`.
+  command is missing from `docs/command_reference.md`. Two behavioural tests now cover the command
+  itself, closing the gap the consolidation left open: one normalizes a nested directory of
+  workbooks, proving discovery recurses and latest-revision selection drops the superseded copy;
+  the other pins the refusal path, where a directory holding no result workbooks exits 1 with a
+  message and writes no history rather than raising a traceback.
 
 - Certify IRR uniqueness across positive and negative rates; withhold unresolved rates.
 - Weight annual break-even margin by actual discounted operating days; preserve losses under
