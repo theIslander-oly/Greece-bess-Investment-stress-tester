@@ -6,6 +6,15 @@ All notable project changes are documented here.
 
 ### Added
 
+- **The fundamentals forecast-dispatch benchmark ran against the accepted digest, and the
+  result is mixed.** `docs/fundamentals_benchmark_2026-09-11.md` records Stage 7 steps 6–7:
+  run `34524611285` settled all three matched arms per model family over the 320 common
+  held-out days (2025-10-08 to 2026-08-25), not exploratory. Against its own matched control,
+  `ridge_fundamentals` settled EUR 4,899.71 more (+0.14%) and
+  `hist_gradient_boosting_fundamentals` settled EUR 6,843.46 less (−0.19%). Both directions are
+  recorded, per the predeclared rule that favorable performance is not an acceptance criterion.
+  This closes Stage 7 of `Greek_BESS_Execution_Plan.md`.
+
 - **The point-in-time feature table is accepted, and the primary text the declarations rest on is
   retained.** `docs/fundamentals_acceptance_2026-09-10.md` records the verdict `accepted` for the
   table combined by run `34503398871`, naming the accepted feature set
@@ -26,6 +35,15 @@ All notable project changes are documented here.
   matched the retained digest.
 
 ### Fixed
+
+- **The benchmark workflow settled a challenger without its matched control.**
+  `benchmark-fundamentals.yml`'s dispatch step named only the full-history-baseline and
+  challenger arms in `--methods`, omitting the matched-control arms the forecast step already
+  produced. `benchmark-fundamentals-dispatch` correctly refused: settling a challenger beside
+  anything but its own matched control is exactly the confound the matched-control amendment
+  exists to prevent. Adding `ridge_matched` and `hist_gradient_boosting_matched` let run
+  `34524611285` complete; run `34522951370` had failed before producing any figure, so no result
+  or digest is affected.
 
 - **The declared pre-coupling gate closure was an hour early, and the retained primary text is
   what showed it.** The 3 September 2026 declaration set the Greek day-ahead closure at 12:00
