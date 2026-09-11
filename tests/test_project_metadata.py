@@ -63,12 +63,29 @@ class ProjectVersionTests(unittest.TestCase):
 
 
 class DocumentationContractTests(unittest.TestCase):
-    def test_plan_keeps_declared_availability_outside_the_equivalent_basis(self) -> None:
-        plan = (PROJECT_ROOT / "PLAN.md").read_text(encoding="utf-8")
-        normalized = " ".join(plan.split())
+    def test_methodology_keeps_declared_availability_outside_the_equivalent_basis(
+        self,
+    ) -> None:
+        # This guard used to read `PLAN.md`, which restated a rule
+        # `METHODOLOGY.md` already owned. It now checks the methodology
+        # reference itself, so the contract is pinned where the rule lives
+        # rather than to a copy of it in a planning document.
+        methodology = (PROJECT_ROOT / "METHODOLOGY.md").read_text(encoding="utf-8")
+        normalized = " ".join(methodology.split())
 
         self.assertIn(
-            "Differing declared availability schedules are permitted scenario judgments",
+            "The price transformation and the availability schedule are on the other "
+            "side of that line.",
+            normalized,
+        )
+        self.assertIn(
+            "carried as provenance on every reported figure rather than checked as basis",
+            normalized,
+        )
+        # Availability must never join the enumerated equivalent basis.
+        self.assertIn(
+            "battery parameters, the terminal-energy constraint, the selected source "
+            "era and the path identities must match across the ensemble",
             normalized,
         )
         self.assertNotIn(

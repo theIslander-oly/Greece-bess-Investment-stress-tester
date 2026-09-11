@@ -40,3 +40,19 @@ Execution-plan corrections are likewise recorded by date, including
 [`implementation_report_stage7_acceptance_2026-09-10.md`](implementation_report_stage7_acceptance_2026-09-10.md)
 and
 [`implementation_report_stage8_integrated_study_2026-09-11.md`](implementation_report_stage8_integrated_study_2026-09-11.md).
+
+## Superseded running logs
+
+`STATUS.md` and `PLAN.md` each accumulated a dated log that restated the whole project history on
+every update. On 11 September 2026 those logs moved here so that the two pages state the present
+and the next gate respectively:
+
+- [`status_log_through_2026-09-11.md`](status_log_through_2026-09-11.md) — the dated status
+  sections, in the order they were written. One heading is corrected against the original: a
+  second section titled `Stage 7, step 5` recorded step 4's custody and acceptance preflight and
+  is titled step 4 here.
+- [`plan_log_through_2026-09-11.md`](plan_log_through_2026-09-11.md) — the session handoffs,
+  standing-position notes and completed-milestone records, including the v0.9 text that was
+  overtaken by benchmark run `34524611285`.
+
+No figure, run id or digest was changed in either move.

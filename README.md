@@ -276,7 +276,9 @@ Detailed scenario, transformation and reporting commands have moved to the
 ## Repository guide
 
 - [`PROMPT.md`](PROMPT.md) — approved mission, scope and interpretation rules.
-- [`PLAN.md`](PLAN.md) and [`STATUS.md`](STATUS.md) — milestones and current progress.
+- [`STATUS.md`](STATUS.md) — where the work stands now; [`PLAN.md`](PLAN.md) — the stage tracker
+  and the next gate. Neither restates project history; that is in
+  [`docs/history/`](docs/history/).
 - [`DECISIONS.md`](DECISIONS.md) — dated analytical and repository decisions.
 - [`METHODOLOGY.md`](METHODOLOGY.md) — end-to-end analytical method.
 - [`LIMITATIONS.md`](LIMITATIONS.md) — consolidated cautions and exclusions.

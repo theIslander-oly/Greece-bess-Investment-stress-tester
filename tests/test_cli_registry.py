@@ -10,6 +10,7 @@ replaced that arrangement.
 from __future__ import annotations
 
 import unittest
+from pathlib import Path
 
 from greek_bess.cli import COMMANDS, build_parser
 from greek_bess.cli._main import COMMAND_MODULES
@@ -49,6 +50,21 @@ class CommandRegistryTests(unittest.TestCase):
     def test_the_registry_covers_every_command_module(self) -> None:
         declared = sum(len(module.COMMANDS) for module in COMMAND_MODULES)
         self.assertEqual(declared, len(COMMANDS))
+
+    def test_every_command_is_named_in_the_command_reference(self) -> None:
+        # `normalize-henex-directory` was registered, parsed and runnable while
+        # being named nowhere in the repository except its own declaration: no
+        # reference entry, no workflow, no test. A command nobody documents is
+        # one nobody can use, so the reference is checked rather than trusted.
+        reference = (
+            Path(__file__).resolve().parents[1] / "docs" / "command_reference.md"
+        ).read_text(encoding="utf-8")
+
+        undocumented = [
+            command.name for command in COMMANDS if command.name not in reference
+        ]
+
+        self.assertEqual(undocumented, [])
 
 
 if __name__ == "__main__":

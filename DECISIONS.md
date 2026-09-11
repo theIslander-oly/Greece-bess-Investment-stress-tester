@@ -1,5 +1,32 @@
 # Decision log
 
+## 2026-09-11 — Keep the status page and the plan to the present, and archive their logs
+
+- **Decision:** `STATUS.md` states where the work stands and `PLAN.md` states the tracker and the
+  next gate. Neither restates project history. The dated logs both had accumulated move to
+  `docs/history/`, which `docs/history/README.md` already declared as the home for records of the
+  past — the two pages had been contradicting that declaration by holding 2,165 lines of it.
+  Active root documentation falls from 8,063 to 5,948 lines; total markdown rises by 255, because
+  nothing is deleted and no figure, run id, digest or date is altered.
+- **Why now:** Stage 10's acceptance check requires a `STATUS.md` and a `PLAN.md` with no
+  contradictory current-state claims, and `PLAN.md` already carried one: it recorded Stage 7
+  complete with benchmark run `34524611285` while also stating the run "has never been dispatched".
+  A page that replays every version cannot be checked for contradictions by reading it.
+- **Scope:** No stage is renumbered; stages 1–8 remain Complete and Stage 9 remains next. No source
+  module changes, so no analytical output can move.
+- **Evidence considered for code, and rejected as grounds for removal:** an import-graph walk from
+  the CLI entry point reaches 70 of 71 modules, and all 38 subcommands are registered and paired.
+  Nothing was removed, because nothing was shown to be unnecessary. Size alone is not evidence, and
+  a first textual scan that appeared to show four unused CLI modules was a measurement artifact of
+  a multi-line relative import, withdrawn rather than acted on.
+- **One real gap, fixed rather than removed:** `normalize-henex-directory` was registered and
+  runnable while named nowhere else in the repository. It is now documented, and a registry test
+  fails if any registered command is missing from `docs/command_reference.md`.
+- **Rejected:** archiving `DECISIONS.md` or `CHANGELOG.md` in the same change. Both are dated
+  append-only records whose length is a property of the history rather than duplication of it, and
+  neither was measured as duplicated. That remains a separate question with its own evidence.
+- **Record:** `docs/history/implementation_report_documentation_consolidation_2026-09-11.md`.
+
 ## 2026-09-11 — Repair numerical and cash/energy accounting conventions
 
 Use certified IRR uniqueness, discounted daily exposure for annual break-even, and realization
