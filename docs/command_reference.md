@@ -1068,6 +1068,7 @@ future price path.
 `operating_margin_case` must explicitly be one of:
 
 - `perfect_foresight_upper_bound`;
+- `daily_policy_degraded_simulation`;
 - `historical_forecast_backtest`;
 - `user_supplied_scenario`.
 
@@ -1133,6 +1134,64 @@ Conventions:
 The `Decompose the accepted replay by delivery year` GitHub Actions workflow runs the whole
 sequence against an accepted `greek-dam-official-history` artifact, after verifying it
 against its committed custody record, and uploads the per-year tables as a private artifact.
+
+## 13. Run one integrated study
+
+`run-integrated-study` is the one command that connects the chain the repository could
+previously only run in pieces: plan each day on the information a strategy was allowed to read,
+settle it at realized prices, age that strategy from its own realized throughput, and finance
+the resulting operating path. It computes no new arithmetic — every step is an existing module —
+and it owns the join between them.
+
+```bash
+greek-bess run-integrated-study \
+  outputs/greek_dam_history.csv \
+  --study-config examples/integrated_study_synthetic_demonstration.json \
+  --output-dir outputs/study
+```
+
+This writes five artifacts, all named after the declared `study_id`:
+
+- `<study_id>.daily.csv`, one row per strategy per delivery day;
+- `<study_id>.strategies.csv`, one row per strategy, including its end-of-window state;
+- `<study_id>.cash_flows.csv`, dated cash flows per strategy;
+- `<study_id>.summary.json`, the recorded result;
+- `<study_id>.manifest.json`, the run manifest, which `render-report` consumes unchanged.
+
+One JSON file declares the whole study: the window, the price source, the strategies, and the
+battery, degradation and finance configurations. Each strategy names a `planner` — one of the
+naïve forecast methods, or `perfect_foresight` — and the `decision_information` it reads. A
+strategy whose declared information set does not match its planner is refused, because a
+comparison of what strategies knew cannot survive a strategy misdescribing what it knew.
+
+What the command refuses, and why:
+
+- **A gap in the declared window.** A missing delivery day fails the run, naming the day. No
+  price is filled, no forecast is imputed and no day becomes a no-trade day. A fill policy is
+  the one change that would let a short replay quietly become a long one.
+- **An incomplete forecast for any compared strategy.** Every strategy must have a complete
+  forecast for every day of the window. An excluded day is a diagnostic, not an outcome.
+- **A finance horizon that is not exactly the window.** Finance covers the declared days and
+  nothing else: no annualisation, no extrapolation to a project life, no repeated year.
+- **A terminal SOC that does not restore the initial SOC**, which would let a strategy borrow
+  energy across days and book it as margin.
+
+Each strategy holds its own degradation state, advanced only by its own settled throughput, so
+two strategies that discharge differently reach different end-of-window capacities and
+declaration order reaches no result. Prices for delivery days after the window are discarded
+before any forecast is generated, and the discarded count is recorded.
+
+**No ceiling is reported across strategies.** A perfect-foresight ceiling is conditional on a
+physical state, and after the first day the strategies hold different states. The daily table
+carries each strategy's own per-day ceiling and regret under its own state; the summary records
+`shared_ceiling_reported: false` and says why. The result is recorded under the
+`integrated_study` kind on the `historical_replay_simulation` basis: one policy's outcome over a
+declared historical window, not a bound and not expected revenue.
+
+The finance `operating_margin_case` describes the operating path rather than the cost basis, so
+it is derived from each strategy's planner — `daily_policy_degraded_simulation` for
+`perfect_foresight`, `historical_forecast_backtest` for a forecast planner — and the declared
+case is recorded beside the derived ones.
 
 ## Record and verify custody of an accepted official artifact
 

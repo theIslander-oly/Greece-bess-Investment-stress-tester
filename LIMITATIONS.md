@@ -359,3 +359,43 @@ increments. No finance or degradation state is coupled to this comparison, by de
 ## v0.9.5 transfer and execution limitations
 
 Training and validation are entirely hourly, while the fixed test beginning 1 October 2025 is entirely quarter-hour. Hourly GFS values are broadcast across four test intervals and cannot represent within-hour weather variation. Wind-capacity weights proxy irradiance and temperature imperfectly. An official result remains exploratory unless common held-out quarter-hour days contain every day of a complete meteorological season. Custody and data acceptance establish identity and suitability, not forecast skill, future source stability, expected revenue, or investment value.
+
+## Integrated study limitations
+
+The study runner has been validated on deterministic synthetic prices alone and has produced no
+official-history result. Nothing it has computed is evidence about Greek prices or about battery
+value.
+
+**What a completed study would and would not be.** A strategy's total is what that strategy's own
+policy achieved over one declared historical window under illustrative cost assumptions. It is
+not expected revenue, not a forecast, not investment evidence, and not a bound: the limits each
+day begins with depend on what that strategy discharged earlier, so the aggregate is a simulation
+in exactly the sense `METHODOLOGY.md` §5.1 sets out. A lifetime-optimal policy would be at least
+as large.
+
+**No ceiling spans the strategies.** A perfect-foresight ceiling is conditional on a physical
+state, and from the second day onward the strategies hold different states. Each strategy's own
+per-day ceiling and regret are recorded; no figure anywhere in the output is a ceiling for the
+study, and none should be constructed by summing the per-day ones.
+
+**The horizon is the window and nothing more.** Finance covers exactly the declared days. An
+18-month study reports 18 months: it does not annualise, extrapolate to a project life, or repeat
+a year. A rate of return computed over a short window is dominated by that window's price regime
+and by the fixed costs allocated to it, and is not a project IRR.
+
+**A comparison is only as good as the window it ran on.** One continuous window of a
+non-stationary history is one draw. A strategy ranking on it is not evidence that the ranking
+would recur, and no sampling-variability, dispersion or significance statistic is derived from
+the daily differences.
+
+**Scope.** Planners are the naïve forecast methods and perfect foresight; the ML and fundamentals
+planners are not wired in. All strategies share one declared battery and one declared degradation
+model, instantiated separately — a comparison of differently sized batteries is not expressible.
+Multi-year extrapolation, a terminal-value model beyond the configured residual, intraday or
+ancillary revenue, revenue stacking and any lifetime-optimal dispatch policy remain excluded, each
+a scope change requiring its own decision.
+
+**The standing dispatch assumptions still hold.** Price-taking acceptance of every planned
+quantity, no bid acceptance, no imbalance exposure, and a terminal state restored at the end of
+every market day. The terminal-SOC convention is required for the strategies to be comparable and
+is a modelling choice, not an operating strategy.

@@ -749,3 +749,52 @@ A valid tiling still reproduces the equivalent unsplit table exactly.
 ## Fundamentals official-run order
 
 The v0.9.5 workflow enforces: declaration validation; official-history and feature-table custody verification; strict publication-time availability audit; revision-aware point-in-time join without filling; DJF 2025–26 completeness preflight; forecast ablation from the accepted digest; and forecast-planned dispatch settled on realized prices using the unchanged 50 MW / 100 MWh battery. Hourly training and validation precede an entirely quarter-hour test, where each hourly GFS value is explicitly broadcast over four intervals. Missing, late, conflicting, interpolated, or inadmissibly graded observations cannot enter an accepted run.
+
+## Integrated study
+
+The integrated study is the composition of the modules above rather than a new method. For one
+declared continuous window, for each compared strategy and each delivery day in order, it
+reads only the information that strategy was allowed to read, plans against that strategy's own
+beginning-of-day limits, settles the plan at realized prices, ages that strategy's state from
+the cell discharge its own settled schedule produced, and — once the window is complete — passes
+each strategy's dated operating path to the finance model unchanged.
+
+Four properties make that composition safe, and each is enforced where it could otherwise fail
+quietly.
+
+**Per-strategy state isolation.** Every strategy holds its own `DegradationState` from the same
+declared starting point, advanced only by its own settled throughput. The strategies differ in
+what they knew, not in what they were, and the declaration order of the strategies reaches no
+result. One shared state object would produce plausible numbers in which a cautious strategy
+paid for an aggressive one's throughput, so the recorded symptom — different cell throughput,
+identical end-of-window capacity — is refused wherever cycle fade could have separated them.
+
+**No shared conditional ceiling.** A perfect-foresight ceiling is conditional on a physical
+state, and after the first day the strategies no longer share one. This is §5.1 applied across
+strategies rather than across days: the study records a per-strategy, per-day ceiling under that
+strategy's own state, and reports no ceiling for the study.
+
+**Refusal instead of bridging.** Built days and excluded days partition the declared window
+exactly, and for this study every excluded day fails the run — there is no capped list and
+exclusion is a diagnostic, not an outcome. A missing delivery day is named; an incomplete
+forecast for any compared strategy is named with its method and first day. No price is filled,
+no forecast is imputed, and no day becomes a no-trade day. Prices for delivery days after the
+window are discarded before any forecast is generated, so a longer history cannot enter through
+the window's last days.
+
+**Finance uses exactly the declared horizon.** The finance window must equal the study window. A
+shorter replay does not become a longer project: nothing is annualised, extrapolated to a
+project life, or repeated. The operating-margin case describes the operating path rather than
+the cost basis, so it is derived from each strategy's planner and the declared case is recorded
+beside the derived ones.
+
+Physical fade and the monetary degradation adder stay distinct. The adder is a dispatch signal
+already inside the settled margin; augmentation capital cost is a cash flow the finance model
+applies once. Fees, the adder, augmentation and each day's initial and terminal stored energy
+are reconciled against their configured inputs on every run, because the join is what this layer
+adds and nothing downstream could detect a broken one from the numbers alone.
+
+The result is recorded on the `historical_replay_simulation` basis under the `integrated_study`
+kind: one policy's settled outcome over a declared historical window under illustrative cost
+assumptions. It is not expected revenue, not a forecast, not investment evidence, and not a
+lifetime optimum or an upper bound.

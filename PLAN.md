@@ -23,8 +23,50 @@ The staged plan in `Greek_BESS_Execution_Plan.md` is active. Only one stage move
 | 5 | Complete | Degradation result basis merged as `df7ffec` |
 | 6 | Complete | Matched-training control merged as `196a5c1` (amendment `cba04f0`) |
 | 7 | Complete | Acceptance (`docs/fundamentals_acceptance_2026-09-10.md`) and benchmark result (`docs/fundamentals_benchmark_2026-09-11.md`, run `34524611285`) both committed; result is mixed by model family and recorded as such |
-| 8 | In progress | Design unit proposed in `docs/integrated_study_design.md`; implementation follows adoption |
+| 8 | Complete | Design adopted in `docs/integrated_study_design.md`; implementation unit landed as the `greek_bess.study` package and `run-integrated-study`, validated against all eight acceptance checks on synthetic prices (`docs/history/implementation_report_stage8_integrated_study_2026-09-11.md`) |
 | 9–10 | Pending | Follow the fixed plan in order |
+
+### Session handoff — 11 September 2026, stage 8 complete
+
+**Active stage:** 8 is complete. Stage 9 (`benchmark-value-based-selection`, review finding 10)
+is next.
+
+**Branch and commit:** `claude/festive-keller-o7se9q`, open as a pull request against `main`.
+
+**Exact changes.** A new package `src/greek_bess/study/` (`config.py`, `runner.py`,
+`results.py`) and `src/greek_bess/cli/study.py`, providing `run-integrated-study`: one declared
+configuration, one command, one declared window run end to end for every compared strategy —
+plan on the information that strategy may read, settle at realized prices, age that strategy from
+its own realized cell throughput, finance exactly that window. Five artifacts per study, named
+after the declared `study_id`. `src/greek_bess/reporting/contract.py` gains the closed-registry
+kind `integrated_study` on the `historical_replay_simulation` basis; the renderer needed no
+change. `examples/integrated_study_synthetic_demonstration.json` is the committed example
+configuration. `tests/test_integrated_study.py` carries 23 tests, one named for each of the
+design's eight acceptance checks plus the declaration refusals.
+`tests/test_report_render.py` gains guaranteed values for the new kind. README, `CHANGELOG.md`,
+`STATUS.md`, `DECISIONS.md`, `METHODOLOGY.md`, `docs/command_reference.md` and
+`docs/history/README.md` are updated, and `docs/command_reference.md`'s list of finance
+operating-margin cases gains the `daily_policy_degraded_simulation` case it had been missing
+since stage 5.
+
+**Evidence.** `ruff check` clean, `mypy` clean across 70 source files, `pytest` 730 passed,
+`python -m build --wheel` succeeds with the new package in the wheel. The zero-fade reproduction
+reproduces `backtest_forecast_dispatch` to six decimal places on every day; the causality test
+multiplies every price after a delivery day and finds every earlier decision unchanged. No
+official-data workflow ran, no dataset was accepted, no official figure was produced, and no
+module under `dispatch/`, `degradation/`, `finance/` or `reporting/` changed except the one
+registry entry.
+
+**One recorded finding.** `FinanceConfig.operating_margin_case` describes the operating path, not
+the cost basis, so one finance configuration cannot describe two strategies' paths. The study
+derives the case per strategy and records the declared case beside the derived ones;
+`finance/model.py` is unchanged. Decision entry dated 11 September 2026.
+
+**Blocker.** None.
+
+**Next single action.** Open Stage 9 (`benchmark-value-based-selection`): define the supplementary
+experiment comparing validation-RMSE selection with validation-settled-margin selection, per the
+fixed execution-plan order.
 
 ### Session handoff — 11 September 2026, stage 7 complete
 

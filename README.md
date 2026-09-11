@@ -254,6 +254,15 @@ The current implementation provides:
   all, and it lays a scenario ensemble out side by side: its per-path ranges, its per-scenario
   provenance and the equivalent-basis evidence it recorded.
 
+- a `run-integrated-study` command that runs one declared window end to end: every strategy
+  plans on the information it is allowed to read, settles at realized prices, ages under its own
+  realized throughput and is financed over exactly that window. Each strategy owns its
+  degradation state, so declaration order reaches no result and two strategies that discharge
+  differently reach different end-of-window capacities. A gap in the window fails the run naming
+  the day; no price is filled and no forecast is imputed. No perfect-foresight ceiling is
+  reported across strategies, because a ceiling is conditional on a physical state and the
+  strategies stop sharing one after the first day.
+
 The first v0.7 foundation also provides deterministic, seeded seasonal block-bootstrap price
 paths with sampled-block provenance. Each validated path can now be dispatched independently
 under one shared battery configuration and availability assumption. Probability outputs,
@@ -375,6 +384,7 @@ src/greek_bess/
     ingest.py
     manifests.py
     stress.py
+    study.py
   data/
     admie.py
     admie_timing.py
@@ -402,6 +412,10 @@ src/greek_bess/
   reporting/
     contract.py
     render.py
+  study/
+    config.py         # the declared study, its strategies and their information sets
+    runner.py         # the per-day loop: read, plan, settle, age
+    results.py        # per-strategy tables, reconciliations and the recorded result
   stress/
     availability.py
     bootstrap.py
@@ -413,6 +427,7 @@ examples/
   battery_50mw_100mwh.json
   illustrative_degradation_with_augmentation.json
   illustrative_finance_not_project_specific.json
+  integrated_study_synthetic_demonstration.json
 tests/
 ```
 
@@ -527,6 +542,21 @@ the accepted price history alone, and the fundamentals question remains unanswer
 answered negatively.** A negative result would be recorded under the same labels, and a thin
 accepted coverage makes a run exploratory rather than general.
 ADMIE load and RES forecasts stay out of scope by any route, including through another publisher.
+Stage 7 closed with the first official fundamentals result, mixed by model family and recorded
+as mixed. Stage 8 then built the integrated study runner, the composition the execution plan
+opened this phase to obtain: `run-integrated-study` reads one declared configuration and runs one
+declared window end to end, so the question the project exists to ask — *does a better forecast
+pay for itself once the battery ages under the throughput that forecast causes?* — no longer
+requires a human to run three commands and join their outputs by hand. That join was the one step
+no contract governed, and an error in it would have been invisible. The runner adds no
+arithmetic: it calls the existing forecast, dispatch, degradation and finance modules in the one
+order that makes the join safe, and its own module owns only the contracts the join needs — each
+strategy's private ageing state, the refusal to bridge a gap, the finance horizon that is exactly
+the declared window, and the rule that no perfect-foresight ceiling is reported across strategies
+once their physical states have diverged. Its design of record is
+`docs/integrated_study_design.md`; the implementation is validated on deterministic synthetic
+prices and has produced no official-history study.
+
 Percentile outputs (P5/P50/P95) and loss probabilities were removed from the roadmap because
 the seasonal bootstrap resamples a non-stationary 2020-2026 history uniformly and therefore
 supports no calibrated probability interpretation; see the 2026-08-27 decision entries.

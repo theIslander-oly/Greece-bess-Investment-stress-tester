@@ -185,6 +185,34 @@ GUARANTEED_VALUES: dict[str, Any] = {
             "days_challenger_settled_higher": 25,
         }
     ],
+    "result_basis_note": (
+        "Each market day is planned on the information that strategy was allowed to read and "
+        "settled at realized prices under the limits it begins the day with."
+    ),
+    "study_id": "illustrative-study",
+    "price_source": "synthetic",
+    "window_start_day": "2025-01-01",
+    "window_end_day": "2025-01-31",
+    "window_day_count": 31,
+    "strategies": [
+        {
+            "strategy_id": "daily-persistence",
+            "planner": "daily_persistence",
+            "decision_information": "price_history_before_delivery_day",
+            "net_market_margin_eur": 1234.5,
+            "final_usable_energy_mwh": 49.5,
+        }
+    ],
+    "coverage": {
+        "declared_window_day_count": 31,
+        "built_day_count": 31,
+        "excluded_day_count": 0,
+        "excluded_days_by_cause": {},
+    },
+    "shared_ceiling_reported": False,
+    "finance_horizon_policy": (
+        "Finance covers exactly the declared window and nothing is annualised."
+    ),
 }
 
 FIGURE_BLOCK = re.compile(
