@@ -48,6 +48,10 @@ that run is gated separately.
 
 ### Fixed
 
+- Read mixed whole-second and fractional-second ISO feature receipts without coercing valid
+  instants to missing values. A deterministic two-row regression covers both row orders,
+  following the GFS combination failure in CI run `34620574507`.
+
 - Correct two mislabelled records found while consolidating. `STATUS.md` carried two sections
   titled *Stage 7, step 5*; the second recorded step 4's custody and acceptance preflight and is
   titled step 4 in the archive. `PLAN.md` simultaneously recorded Stage 7 complete with benchmark

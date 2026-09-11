@@ -11,6 +11,12 @@ privately and retain all signs; a successful evidence index is distinct from fai
 No operator approval, official run, result publication or default-policy change is implied.
 Stage 9 remains in progress and Stage 10 remains pending.
 
+CI run `34620574507` exposed a Stage 3 CSV receipt precision defect: first-row format inference
+coerced a valid whole-second receipt beside fractional seconds to missing. Use explicit ISO8601
+parsing and preserve both precisions. A two-row regression fails in both orders before the fix
+and passes afterwards. This is a narrow repair of the observed validation gate; stages remain
+unchanged and no forecast or settlement model is added or revised.
+
 The workflow index records input/output identity and runtime versions; it is not a generic
 renderer manifest. Stage 9 has no registered result kind, so rendering remains release work.
 Replace the status head-SHA line with a current-CI link instead of repeatedly correcting a

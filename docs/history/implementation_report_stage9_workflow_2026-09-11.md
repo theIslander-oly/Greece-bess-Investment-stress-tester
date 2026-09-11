@@ -13,7 +13,7 @@ Calendar checks refuse missing, extra and incomplete delivery days. Result check
 full declared validation/evaluation windows and the frozen selection digest. The evidence index
 records file hashes, declared inputs, source commit, workflow attempt and runtime package versions.
 Retention is independent of the signed result; failed attempts retain diagnostics without a
-completed evidence index. No analytical source module changes.
+completed evidence index. The selection and dispatch arithmetic is unchanged.
 
 The status head-SHA line becomes a live CI link, avoiding a new stale SHA on every merge.
 Stage 9 remains in progress and Stage 10 remains pending.
@@ -26,6 +26,15 @@ positive headline values. No official prices were downloaded or inspected.
 Development dependency installation was blocked by the execution environment's network approval;
 Ruff, mypy, the full pytest suite and wheel build are therefore delegated to the PR CI matrix
 on Python 3.12 and 3.13. Their outcome must be verified before this milestone is accepted.
+
+Initial CI run `34620574507` passed all 789 tests and the wheel build on Python 3.12.
+Python 3.13 passed all nine new workflow tests but exposed an existing receipt precision defect
+in the GFS retrieval-to-combination test: pandas inferred fractional seconds from the first CSV
+row and coerced a whole-second receipt to NaT. A deterministic two-row regression reproduced
+the failure locally in both row orders. The CSV reader now declares ISO8601 parsing; the same
+regression passes and preserves both exact instants. This narrow Stage 3 data-integrity repair
+is included to clear the observed CI gate, without changing any stage order or forecast model.
+The final CI run must validate the resulting 790-test suite on both interpreters.
 
 ## Remaining gate
 
