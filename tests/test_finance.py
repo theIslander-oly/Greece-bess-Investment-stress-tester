@@ -265,10 +265,9 @@ class DatedCashFlowMetricTests(unittest.TestCase):
         self.assertLessEqual(abs(residual), 1e-7 * max(1.0, config.total_initial_capex_eur))
         self.assertAlmostEqual(float(times[-1]), 366 / 365.25, places=12)
 
-    def test_a_series_that_never_recovers_still_reports_its_single_rate(self) -> None:
-        # This series fails the cumulative-balance criterion — it never repays its outlay — and
-        # still has exactly one rate. Refusing it would withhold a real figure, so the scan
-        # settles it from the root structure actually present.
+    def test_a_series_that_never_recovers_can_have_two_negative_rates(self) -> None:
+        # The final flow is negative. The old finite scan found one rate and missed
+        # another extremely close to -100%. Three independent signs prove two roots.
         operating = _daily(margin=1.0, discharge=0.0)
         operating.loc[::7, "net_market_margin_eur"] = -1.0
         config = _config(
@@ -280,10 +279,14 @@ class DatedCashFlowMetricTests(unittest.TestCase):
             residual_value_eur=0.0,
         )
         result = evaluate_project_finance(operating, config)
-        self.assertEqual(result.summary["irr_status"], "calculated")
-        irr = result.summary["irr_fraction"]
-        assert irr is not None
-        self.assertLess(irr, 0.0)
+        cash = np.r_[-1000., operating["net_market_margin_eur"].to_numpy()]
+        times = np.arange(len(cash)) / 365.25
+        reversed_times = times[-1] - times[::-1]
+        signs = [np.sign(np.sum(cash[::-1] * np.exp(reversed_times * u)))
+                 for u in (-1000., -10., 0.)]
+        self.assertEqual(signs, [-1, 1, -1])
+        self.assertEqual(result.summary["irr_status"], "not_evaluable_multiple_rates")
+        self.assertIsNone(result.summary["irr_fraction"])
 
     def test_totals_fees_and_augmentation_are_unchanged_by_the_metric_change(self) -> None:
         # The timing correction must not move, drop or double-count any euro.

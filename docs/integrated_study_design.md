@@ -120,9 +120,10 @@ restating it.
 receives the **cell discharge that strategy's settled schedule actually produced**, and returns
 its end-of-day state. Calendar fade applies to every strategy alike; cycle fade does not.
 
-**4.5 Emit one dated operating row.** `market_day`, `net_market_margin_eur`,
-`grid_discharge_mwh`, `augmentation_cost_eur` — the columns
-[Verified] `finance/model.py` requires — plus the strategy id.
+**4.5 Emit one dated operating row.** `market_day`, `market_cash_margin_eur`,
+`net_market_margin_eur`, `monetary_degradation_adder_eur`, `grid_discharge_mwh`,
+`augmentation_cost_eur`, `commissioning_energy_cost_eur`, the cohort energy ledger and
+strategy id. Cash margin equals legacy net margin plus the separately reported wear penalty.
 
 **4.6 Finance and record.** After the window completes, each strategy's operating path goes to
 `evaluate_project_finance` unchanged, and the run is recorded under the report contract.
@@ -157,16 +158,17 @@ enters the dispatch objective (`src/greek_bess/dispatch/perfect_foresight.py`), 
 `DegradationConfig` carries physical fade that changes usable capacity.
 These are different quantities and the study reports them separately.
 
-**Costs are not double-counted.** The monetary adder is a dispatch signal already inside
-`net_market_margin_eur`; augmentation capital cost is a cash flow the finance model applies once.
-The acceptance test reconciles both against their configured inputs.
+**Costs are not double-counted.** Finance reads `market_cash_margin_eur`, which excludes the
+shadow wear penalty. Actual augmentation and additional commissioning-energy costs are
+cash flows applied once. The acceptance test reconciles these quantities independently.
 
 ### 5.4 Terminal SOC
 
-Every strategy restores the configured initial SOC at each day's end.
-[Verified] Both existing backtests already require `terminal_soc_fraction == initial_soc_fraction`
-for independent daily solves. This keeps daily values comparable and prevents a strategy from
-borrowing energy across days, which would otherwise appear as free margin.
+Every strategy targets the configured terminal SOC on its own beginning-of-day usable capacity.
+The fixed-capacity forecast backtests require terminal SOC equal to initial SOC. Under changing
+capacity, that target must not reset opening energy: each strategy carries its own cohort energy,
+records retirement and fade losses, and explicitly declares commissioning energy and cost.
+An empty capacity addition must be charged through settled grid purchases to reach the target.
 
 ### 5.5 Coverage
 

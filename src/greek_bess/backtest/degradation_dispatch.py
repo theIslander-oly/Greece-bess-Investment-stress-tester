@@ -15,6 +15,8 @@ the result it produces actually is, so nothing downstream can read the total as 
 
 from __future__ import annotations
 
+from collections.abc import Iterator
+from contextlib import contextmanager
 from dataclasses import asdict, dataclass, replace
 from typing import Any
 
@@ -25,12 +27,14 @@ from ..data.quality import assess_quality
 from ..data.schema import ensure_canonical
 from ..degradation import (
     DegradationConfig,
+    DegradationInputError,
     complete_degradation_day,
     degradation_cohort_table,
     initialize_degradation_state,
     prepare_degradation_day,
     warranty_discharge_headroom_mwh,
 )
+from ..degradation.stored_energy import StoredEnergyLedger, refuse_augmentation_before
 from ..dispatch import BatteryDispatchConfig, optimize_perfect_foresight
 
 DEGRADED_DISPATCH_LABEL = (
@@ -55,6 +59,16 @@ DEGRADED_DISPATCH_BASIS_NOTE = (
 
 class DegradationDispatchInputError(ValueError):
     """Raised when prices, dispatch and degradation assumptions are inconsistent."""
+
+
+@contextmanager
+def _ledger_errors() -> Iterator[None]:
+    """Report a shared stored-energy refusal as this module's own input error."""
+
+    try:
+        yield
+    except DegradationInputError as exc:
+        raise DegradationDispatchInputError(str(exc)) from exc
 
 
 @dataclass(frozen=True)
@@ -117,6 +131,9 @@ def simulate_degradation_dispatch(
     )
     interval_outputs: list[pd.DataFrame] = []
     daily_outputs: list[dict[str, Any]] = []
+    with _ledger_errors():
+        refuse_augmentation_before(first_day, degradation_config.augmentation_events)
+    ledger = StoredEnergyLedger(battery_config)
 
     for market_day, day_with_key in working.groupby("market_day", sort=True):
         day = day_with_key.loc[:, data.columns].reset_index(drop=True)
@@ -131,6 +148,8 @@ def simulate_degradation_dispatch(
             raise DegradationDispatchInputError(
                 f"{market_day} has zero usable power under degradation assumptions"
             )
+        with _ledger_errors():
+            opening = ledger.open_day(start, events, battery_config)
 
         warranty_headroom_cell = warranty_discharge_headroom_mwh(
             start, degradation_config
@@ -160,6 +179,8 @@ def simulate_degradation_dispatch(
             discharge_power_mw=start.usable_discharge_power_mw,
             energy_capacity_mwh=start.usable_energy_mwh,
             max_daily_equivalent_cycles=dynamic_daily_cycles,
+            initial_soc_fraction=opening.initial_soc_fraction,
+            terminal_soc_fraction=battery_config.effective_terminal_soc_fraction,
         )
 
         dispatched = optimize_perfect_foresight(day, dynamic_battery)
@@ -173,6 +194,17 @@ def simulate_degradation_dispatch(
             cell_discharge_mwh,
             degradation_config,
         )
+
+        with _ledger_errors():
+            closing = ledger.close_day(
+                opening=opening,
+                start=start,
+                end=end,
+                schedule=dispatched.schedule,
+                summary=dispatched.summary,
+                cell_discharge_mwh=cell_discharge_mwh,
+                battery=battery_config,
+            )
 
         interval = dispatched.schedule.copy()
         interval["market_day"] = market_day
@@ -221,6 +253,18 @@ def simulate_degradation_dispatch(
                 "augmentation_cost_eur": float(
                     sum(event.cost_eur for event in events)
                 ),
+                "commissioning_energy_cost_eur": opening.commissioning_energy_cost_eur,
+                "opening_stored_energy_mwh": opening.opening_energy_mwh,
+                "retired_stored_energy_mwh": opening.retired_energy_mwh,
+                "commissioning_energy_mwh": opening.commissioning_energy_mwh,
+                "calendar_fade_energy_loss_mwh": opening.calendar_fade_energy_loss_mwh,
+                "initial_energy_mwh": opening.initial_energy_mwh,
+                "terminal_energy_mwh": closing.terminal_energy_mwh,
+                "cycle_fade_energy_loss_mwh": closing.cycle_fade_energy_loss_mwh,
+                "closing_stored_energy_mwh": closing.closing_energy_mwh,
+                "conversion_loss_mwh": closing.conversion_loss_mwh,
+                "self_discharge_loss_mwh": closing.self_discharge_loss_mwh,
+                "energy_balance_residual_mwh": closing.balance_residual_mwh,
                 "nominal_energy_mwh_start": start.nominal_energy_mwh,
                 "usable_energy_mwh_start": start.usable_energy_mwh,
                 "retained_capacity_fraction_start": (
@@ -251,6 +295,7 @@ def simulate_degradation_dispatch(
                 "net_market_margin_eur": dispatched.summary[
                     "net_market_margin_eur"
                 ],
+                "market_cash_margin_eur": dispatched.summary["market_cash_margin_eur"],
                 "gross_discharge_revenue_eur": dispatched.summary[
                     "gross_discharge_revenue_eur"
                 ],
@@ -305,6 +350,23 @@ def simulate_degradation_dispatch(
         "first_market_day": str(daily_results["market_day"].min()),
         "last_market_day": str(daily_results["market_day"].max()),
         "net_market_margin_eur": total_margin,
+        "market_cash_margin_eur": float(daily_results["market_cash_margin_eur"].sum()),
+        "dispatch_wear_penalty_eur": float(daily_results["monetary_degradation_adder_eur"].sum()),
+        "commissioning_energy_cost_eur": float(
+            daily_results["commissioning_energy_cost_eur"].sum()
+        ),
+        "energy_accounting_convention": "cohort_energy_ledger_v1",
+        "initial_stored_energy_mwh": float(daily_results["opening_stored_energy_mwh"].iloc[0]),
+        "final_stored_energy_mwh": float(daily_results["closing_stored_energy_mwh"].iloc[-1]),
+        "energy_ledger_totals_mwh": {
+            key: float(daily_results[key].sum())
+            for key in ("commissioning_energy_mwh", "retired_stored_energy_mwh",
+                        "calendar_fade_energy_loss_mwh", "cycle_fade_energy_loss_mwh",
+                        "conversion_loss_mwh", "self_discharge_loss_mwh")
+        },
+        "maximum_energy_balance_residual_mwh": float(
+            daily_results["energy_balance_residual_mwh"].abs().max()
+        ),
         "augmentation_cost_eur": augmentation_cost,
         "grid_charge_mwh": float(daily_results["grid_charge_mwh"].sum()),
         "grid_discharge_mwh": float(daily_results["grid_discharge_mwh"].sum()),
@@ -333,7 +395,14 @@ def simulate_degradation_dispatch(
             final_snapshot.below_retirement_threshold
         ),
         "daily_terminal_soc_policy": (
-            "Configured initial SOC fraction restored at every market-day end"
+            "Carry stored energy between days; target the configured terminal SOC fraction "
+            "of beginning-of-day usable capacity, then record energy made unavailable by fade"
+        ),
+        "stored_energy_policy": (
+            "Energy allocated by usable cohort capacity. Fade makes the same fraction of "
+            "stored energy unavailable; retirement removes its cohort's stored energy. "
+            "Added capacity starts empty unless commissioning energy is declared; its "
+            "separate cost is passed to finance"
         ),
         "capacity_timing_policy": (
             "Beginning-of-day degraded limits use calendar age and only prior "
@@ -349,8 +418,8 @@ def simulate_degradation_dispatch(
             "project-finance workflow"
         ),
         "monetary_degradation_adder_policy": (
-            "The existing per-MWh monetary degradation adder remains separate from "
-            "physical capacity fade and should be zero unless independently justified"
+            "The per-MWh degradation adder is a non-cash dispatch wear penalty; "
+            "market_cash_margin_eur excludes it, and finance deducts actual expenses once"
         ),
         "battery_config": battery_config.to_dict(),
         "degradation_config": degradation_config.to_dict(),

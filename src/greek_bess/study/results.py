@@ -132,9 +132,16 @@ def assemble_integrated_study(run: IntegratedStudyRun) -> IntegratedStudyResult:
             "imbalance exposure are excluded"
         ),
         "monetary_degradation_adder_policy": (
-            "The per-MWh monetary adder is a dispatch signal already inside "
-            "net_market_margin_eur; augmentation capital cost is a separate cash flow the "
-            "finance model applies once. The two are reported separately and not combined"
+            "The per-MWh monetary adder is a non-cash dispatch wear penalty. It steers the "
+            "plan and is deducted in net_market_margin_eur, but market_cash_margin_eur "
+            "excludes it and finance reads that. Augmentation capital cost and declared "
+            "commissioning energy are separate cash flows the finance model applies once"
+        ),
+        "stored_energy_policy": (
+            "Each strategy carries its own stored energy between days, allocated by usable "
+            "cohort capacity. Fade makes the same proportion unavailable and retirement "
+            "removes its cohort's energy; capacity added by an augmentation starts empty "
+            "unless the event declares commissioning energy, whose cost finance pays once"
         ),
     }
     return IntegratedStudyResult(
@@ -159,6 +166,7 @@ def _strategy_summary(
         "operating_margin_case": strategy_run.spec.operating_margin_case,
         "market_day_count": int(len(daily)),
         "net_market_margin_eur": float(daily["net_market_margin_eur"].sum()),
+        "market_cash_margin_eur": float(daily["market_cash_margin_eur"].sum()),
         "planned_margin_eur": float(daily["planned_margin_eur"].sum()),
         "grid_charge_mwh": float(daily["grid_charge_mwh"].sum()),
         "grid_discharge_mwh": float(daily["grid_discharge_mwh"].sum()),
@@ -169,7 +177,16 @@ def _strategy_summary(
             daily["monetary_degradation_adder_eur"].sum()
         ),
         "augmentation_cost_eur": float(daily["augmentation_cost_eur"].sum()),
-        "loss_making_day_count": int(daily["net_market_margin_eur"].lt(0).sum()),
+        "commissioning_energy_cost_eur": float(
+            daily["commissioning_energy_cost_eur"].sum()
+        ),
+        "commissioning_energy_mwh": float(daily["commissioning_energy_mwh"].sum()),
+        "opening_stored_energy_mwh": float(daily["opening_stored_energy_mwh"].iloc[0]),
+        "closing_stored_energy_mwh": float(daily["closing_stored_energy_mwh"].iloc[-1]),
+        "maximum_energy_balance_residual_mwh": float(
+            daily["energy_balance_residual_mwh"].abs().max()
+        ),
+        "loss_making_day_count": int(daily["market_cash_margin_eur"].lt(0).sum()),
         "planned_price_mae_eur_per_mwh": _optional_mean(
             daily["planned_price_mae_eur_per_mwh"]
         ),
@@ -214,9 +231,13 @@ def _reconcile(config: IntegratedStudyConfig, strategy_run: StrategyRun) -> None
     daily = strategy_run.daily_results
     strategy_id = strategy_run.spec.strategy_id
 
+    # A day an augmentation lands on opens below the configured fraction by construction:
+    # added capacity is empty unless the event declares commissioning energy. Every other day
+    # must open exactly where the previous one closed, scaled by that day's usable capacity.
+    carried_day = daily["augmentation_event_ids"].eq("")
     energy_start_error = (
         daily["initial_energy_mwh"] - daily["configured_initial_energy_mwh"]
-    ).abs()
+    ).abs().where(carried_day, 0.0)
     energy_end_error = (
         daily["terminal_energy_mwh"] - daily["configured_terminal_energy_mwh"]
     ).abs()
@@ -267,6 +288,31 @@ def _reconcile(config: IntegratedStudyConfig, strategy_run: StrategyRun) -> None
             f"against its own components (worst deviation EUR {worst_margin:.9f})"
         )
 
+    expected_cash_margin = (
+        daily["discharge_energy_revenue_eur"]
+        - daily["charging_energy_cost_eur"]
+        - daily["buy_fees_eur"]
+        - daily["sell_fees_eur"]
+    )
+    worst_cash = float((daily["market_cash_margin_eur"] - expected_cash_margin).abs().max())
+    if worst_cash > RECONCILIATION_TOLERANCE:
+        raise IntegratedStudyInputError(
+            f"Strategy {strategy_id} records a cash margin that does not reconcile against "
+            f"its own components (worst deviation EUR {worst_cash:.9f})"
+        )
+
+    # The wear adder is a dispatch signal. Finance must receive the cash margin without it,
+    # or the study pays a shadow price in euro it never owed.
+    cash_total = float(daily["market_cash_margin_eur"].sum())
+    finance_cash = float(
+        strategy_run.finance.daily_cash_flows["market_margin_input_eur"].sum()
+    )
+    if abs(cash_total - finance_cash) > RECONCILIATION_TOLERANCE:
+        raise IntegratedStudyInputError(
+            f"Strategy {strategy_id} settled EUR {cash_total:.2f} of cash margin but finance "
+            f"read EUR {finance_cash:.2f}"
+        )
+
     augmentation_total = float(daily["augmentation_cost_eur"].sum())
     finance_augmentation = float(
         strategy_run.finance.daily_cash_flows["augmentation_cost_eur"].sum()
@@ -275,6 +321,16 @@ def _reconcile(config: IntegratedStudyConfig, strategy_run: StrategyRun) -> None
         raise IntegratedStudyInputError(
             f"Strategy {strategy_id} passes EUR {augmentation_total:.2f} of augmentation "
             f"cost to finance but finance applied EUR {finance_augmentation:.2f}"
+        )
+
+    commissioning_total = float(daily["commissioning_energy_cost_eur"].sum())
+    finance_commissioning = float(
+        strategy_run.finance.daily_cash_flows["commissioning_energy_cost_eur"].sum()
+    )
+    if abs(commissioning_total - finance_commissioning) > RECONCILIATION_TOLERANCE:
+        raise IntegratedStudyInputError(
+            f"Strategy {strategy_id} passes EUR {commissioning_total:.2f} of commissioning "
+            f"energy cost to finance but finance applied EUR {finance_commissioning:.2f}"
         )
 
 

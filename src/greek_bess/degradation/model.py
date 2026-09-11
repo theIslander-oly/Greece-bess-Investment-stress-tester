@@ -38,6 +38,8 @@ class AugmentationEvent:
     added_discharge_power_mw: float
     cost_eur: float = 0.0
     retired_cohort_ids: tuple[str, ...] = ()
+    commissioning_energy_mwh: float = 0.0
+    commissioning_energy_cost_eur: float = 0.0
 
     def __post_init__(self) -> None:
         normalized_day = _as_date(self.day, "augmentation day")
@@ -45,12 +47,14 @@ class AugmentationEvent:
         if not self.event_id or not self.event_id.strip():
             raise DegradationInputError("augmentation event_id cannot be empty")
         object.__setattr__(self, "event_id", self.event_id.strip())
-        for name in (
-            "added_energy_mwh",
-            "added_charge_power_mw",
-            "added_discharge_power_mw",
-        ):
-            _require_positive(name, getattr(self, name))
+        if self.event_id == "initial":
+            raise DegradationInputError("augmentation event_id initial is reserved")
+        _require_positive("added_energy_mwh", self.added_energy_mwh)
+        for name in ("added_charge_power_mw", "added_discharge_power_mw",
+                     "commissioning_energy_mwh", "commissioning_energy_cost_eur"):
+            _require_nonnegative(name, getattr(self, name))
+        if self.commissioning_energy_mwh > self.added_energy_mwh:
+            raise DegradationInputError("commissioning_energy_mwh exceeds added energy capacity")
         _require_nonnegative("augmentation cost_eur", self.cost_eur)
         retired = tuple(str(value).strip() for value in self.retired_cohort_ids)
         if any(not value for value in retired):
@@ -106,7 +110,7 @@ class DegradationConfig:
             "cycle_fade_fraction_per_equivalent_cycle",
             self.cycle_fade_fraction_per_equivalent_cycle,
         )
-        _require_positive("power_fade_exponent", self.power_fade_exponent)
+        _require_nonnegative("power_fade_exponent", self.power_fade_exponent)
         if (self.warranty_years is None) != (
             self.warranty_retained_capacity_fraction is None
         ):

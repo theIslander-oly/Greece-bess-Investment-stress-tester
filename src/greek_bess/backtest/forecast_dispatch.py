@@ -128,6 +128,8 @@ def backtest_forecast_dispatch(
                 "forecast_rmse_eur_per_mwh": float(np.sqrt(np.mean(error**2))),
                 "forecast_margin_eur": forecast_margin,
                 "realized_margin_eur": realized_margin,
+                "market_cash_margin_eur": float(settled["market_cash_margin_eur"].sum()),
+                "monetary_degradation_adder_eur": float(settled["degradation_cost_eur"].sum()),
                 "perfect_foresight_margin_eur": perfect_margin,
                 "regret_eur": perfect_margin - realized_margin,
                 "perfect_foresight_capture_ratio": (
@@ -177,6 +179,7 @@ def backtest_forecast_dispatch(
         "backtested_forecast_metrics": backtested_forecast_metrics,
         "forecast_planned_margin_eur": forecast_total,
         "realized_margin_eur": realized_total,
+        "market_cash_margin_eur": float(interval_schedule["market_cash_margin_eur"].sum()),
         "perfect_foresight_margin_eur": perfect_total,
         "perfect_foresight_regret_eur": perfect_total - realized_total,
         "perfect_foresight_capture_ratio": (
@@ -223,6 +226,7 @@ def _settle_day(
             "charging_energy_cost_eur": "forecast_charging_energy_cost_eur",
             "discharge_energy_revenue_eur": "forecast_discharge_energy_revenue_eur",
             "net_market_margin_eur": "forecast_net_market_margin_eur",
+            "market_cash_margin_eur": "forecast_market_cash_margin_eur",
         }
     )
     forecast_prices = settled["price_eur_per_mwh"].to_numpy(dtype=float)
@@ -244,6 +248,9 @@ def _settle_day(
     settled["realized_discharge_energy_revenue_eur"] = realized_discharge_revenue
     settled["realized_net_market_margin_eur"] = (
         realized_discharge_revenue - realized_charge_cost - fees_and_degradation
+    )
+    settled["market_cash_margin_eur"] = (
+        settled["realized_net_market_margin_eur"] + settled["degradation_cost_eur"]
     )
     settled["perfect_foresight_charge_mw"] = perfect_schedule[
         "charge_mw"

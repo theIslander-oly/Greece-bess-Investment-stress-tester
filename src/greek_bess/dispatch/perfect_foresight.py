@@ -413,6 +413,9 @@ def _build_schedule(
     schedule["buy_fee_eur"] = buy_fee
     schedule["sell_fee_eur"] = sell_fee
     schedule["degradation_cost_eur"] = degradation
+    schedule["market_cash_margin_eur"] = (
+        discharge_revenue - charge_cost - buy_fee - sell_fee
+    )
     schedule["net_market_margin_eur"] = (
         discharge_revenue - charge_cost - buy_fee - sell_fee - degradation
     )
@@ -449,6 +452,8 @@ def _build_summary(
         "buy_fees_eur": buy_fees,
         "sell_fees_eur": sell_fees,
         "degradation_cost_eur": degradation,
+        "market_cash_margin_eur": float(schedule["market_cash_margin_eur"].sum()),
+        "wear_penalty_policy": "degradation_cost_eur is a non-cash dispatch wear penalty",
         "net_market_margin_eur": net_margin,
         "grid_charge_mwh": charge_mwh,
         "grid_discharge_mwh": discharge_mwh,
@@ -571,6 +576,8 @@ def _daily_summary(
         "buy_fees_eur": float(schedule["buy_fee_eur"].sum()),
         "sell_fees_eur": float(schedule["sell_fee_eur"].sum()),
         "degradation_cost_eur": float(schedule["degradation_cost_eur"].sum()),
+        "market_cash_margin_eur": float(schedule["market_cash_margin_eur"].sum()),
+        "wear_penalty_policy": "degradation_cost_eur is a non-cash dispatch wear penalty",
         "net_market_margin_eur": float(schedule["net_market_margin_eur"].sum()),
         "grid_charge_mwh": charge_mwh,
         "grid_discharge_mwh": discharge_mwh,
