@@ -559,6 +559,19 @@ once their physical states have diverged. Its design of record is
 `docs/integrated_study_design.md`; the implementation is validated on deterministic synthetic
 prices and has produced no official-history study.
 
+Stage 9 asks a narrower question about the same chain: the tool has always *reported* both price
+error and settled value, but it *chooses* the model it reports by lowest validation RMSE alone.
+A battery earns from the ordering and spread of prices inside a delivery day rather than from the
+level of the price predicted, and those are not the same quantity — this repository has already
+recorded `rolling_mean` beating `ridge` on value while losing to it on RMSE.
+`compare-selection-objectives` scores one declared candidate grid by both objectives on validation
+days, freezes and hashes each pick before settling a single evaluation day, and reports held-out
+margin, regret, cycling and capacity beside the price errors. Its design of record is
+`docs/value_based_selection_design.md`. A committed synthetic case proves the two objectives can
+select differently, which is what stops the comparison being vacuous; like the study runner, it is
+validated on deterministic synthetic prices and has produced no official-history result, so it
+supports no empirical claim about which objective serves the battery study.
+
 Percentile outputs (P5/P50/P95) and loss probabilities were removed from the roadmap because
 the seasonal bootstrap resamples a non-stationary 2020-2026 history uniformly and therefore
 supports no calibrated probability interpretation; see the 2026-08-27 decision entries.

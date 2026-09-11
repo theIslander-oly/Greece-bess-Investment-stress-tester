@@ -995,6 +995,41 @@ Forecast RMSE and dispatch value are both reported because the lowest price erro
 not necessarily produce the most valuable battery schedule. Synthetic demonstrations
 must not be interpreted as evidence of real project profitability.
 
+### Compare selection by price error against selection by battery value
+
+The command above reports both quantities. This one asks which of them should *choose* the
+model, which is the Stage 9 question:
+
+```bash
+greek-bess compare-selection-objectives \
+  data/curated/henex_prices.csv \
+  --battery examples/battery_50mw_100mwh.json \
+  --validation-start-day 2024-01-01 \
+  --evaluation-start-day 2025-01-01 \
+  --min-training-days 365 \
+  --output outputs/selection_evaluation.csv
+```
+
+Every declared candidate is scored on the validation window twice — once by interval RMSE and
+once by settled margin — and each objective selects one candidate. Both picks are frozen and
+hashed before a single evaluation day is settled, so a selection cannot have been revised after
+seeing an evaluation number; the recorded `frozen_selection_sha256` covers the candidate names,
+the objective values that chose them and the window dates. Ties break to the candidate declared
+first in `greek_bess.selection.candidates.DECLARED_CANDIDATES`, and the tie is recorded rather
+than resolved silently.
+
+The evaluation scoreboard goes to `--output`, the validation scoreboard and the summary beside
+it, and `--forecasts` writes the candidate forecast table when given. The summary carries the
+headline signed difference — evaluation margin under margin-selection minus evaluation margin
+under RMSE-selection — with held-out margin, regret against perfect foresight and against the
+retrospective best candidate, cycling, capacity and price errors for each objective.
+
+`--evidence-class` declares what the evaluation window can support. It defaults to
+`retrospective_supplementary`, which is what a window this repository has already inspected can
+carry; `predeclared_untouched` is for a window declared before it was read. The protocol, the
+tie-break and what this experiment cannot establish are in
+[the Stage 9 design](value_based_selection_design.md).
+
 ## 10. Simulate degradation and augmentation-aware dispatch
 
 ```bash

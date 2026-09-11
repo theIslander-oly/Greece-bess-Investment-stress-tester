@@ -26,7 +26,7 @@ v0.1-v0.6 implementation predates the connected repository and entered through t
 | 6 | Complete | Matched-training control merged as `196a5c1` (amendment `cba04f0`) |
 | 7 | Complete | Acceptance (`docs/fundamentals_acceptance_2026-09-10.md`) and benchmark result (`docs/fundamentals_benchmark_2026-09-11.md`, run `34524611285`) both committed; the result is mixed by model family and recorded as such |
 | 8 | Complete | `greek_bess.study` and `run-integrated-study` merged as PR #69, with the cash and stored-energy conventions corrected in PR #71 (`docs/integrated_study_design.md` sections 4.5, 5.3, 5.4) |
-| 9 | **Next** | Branch `benchmark-value-based-selection`; see below |
+| 9 | **In progress** | Design (`docs/value_based_selection_design.md`), `greek_bess.selection` and `compare-selection-objectives` implemented and validated, with the synthetic divergence case committed. No official-history result yet; see below |
 | 10 | Pending | Branch `release-integrated-research-study`; see below |
 
 ## Stage 9 — evaluate selection by battery value
@@ -39,6 +39,19 @@ where better RMSE earns less margin.
 The existing benchmark is not changed retrospectively. Already inspected historical periods are
 labelled retrospective supplementary evidence; any confirmatory claim needs a newly predeclared
 untouched or prospective period. An unfavourable result is retained and reported as one.
+
+**Done.** The protocol is predeclared in
+[`docs/value_based_selection_design.md`](docs/value_based_selection_design.md). `greek_bess.selection`
+scores one declared candidate grid by both objectives on validation days, freezes and hashes each
+pick before settling any evaluation day, breaks ties by declared order and records them, and
+reports held-out margin, regret against perfect foresight and against the retrospective best
+candidate, cycling, capacity and price errors. The synthetic divergence case is committed and
+passing, so the two objectives are known to be capable of selecting differently.
+
+**Next gate: the official-history run.** No official result exists yet, and none can be produced
+from a working checkout — the egress constraint below applies, so this is a workflow dispatch with
+its own custody declarations, run against the accepted history under the operator's authorization.
+Until then Stage 9 has a method and no measurement, and the tracker says so.
 
 ## Stage 10 — deliver the portfolio release
 
