@@ -1,5 +1,27 @@
 # Decision log
 
+## 2026-09-11 — Prepare the Stage 9 official comparison for a separate dispatch gate
+
+Reuse accepted history run `33483975614`, the existing six price-only candidates and the
+2024-10-01 / 2025-10-01 split, ending 2026-08-25. Pin the implementation and battery in the
+[run declaration](docs/selection_run_declaration_2026-09-11.md). The window is already inspected
+and must be retrospective supplementary evidence. Require the reviewed declaration digest,
+existing custody verification and complete declared calendars. Capture numerical CLI output
+privately and retain all signs; a successful evidence index is distinct from failed diagnostics.
+No operator approval, official run, result publication or default-policy change is implied.
+Stage 9 remains in progress and Stage 10 remains pending.
+
+CI run `34620574507` exposed a Stage 3 CSV receipt precision defect: first-row format inference
+coerced a valid whole-second receipt beside fractional seconds to missing. Use explicit ISO8601
+parsing and preserve both precisions. A two-row regression fails in both orders before the fix
+and passes afterwards. This is a narrow repair of the observed validation gate; stages remain
+unchanged and no forecast or settlement model is added or revised.
+
+The workflow index records input/output identity and runtime versions; it is not a generic
+renderer manifest. Stage 9 has no registered result kind, so rendering remains release work.
+Replace the status head-SHA line with a current-CI link instead of repeatedly correcting a
+commit that cannot name its own future merge. Dated reports retain validation measurements.
+
 ## 2026-09-11 — Keep the status page and the plan to the present, and archive their logs
 
 - **Decision:** `STATUS.md` states where the work stands and `PLAN.md` states the tracker and the

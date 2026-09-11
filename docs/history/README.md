@@ -56,3 +56,5 @@ and the next gate respectively:
   overtaken by benchmark run `34524611285`.
 
 No figure, run id or digest was changed in either move.
+
+- [Stage 9 official-run workflow](implementation_report_stage9_workflow_2026-09-11.md).

@@ -232,7 +232,11 @@ def read_point_in_time_csv(path: Path, *, require_publication_time: bool = True)
     frame = pd.read_csv(path, float_precision="round_trip")
     for column in _TIMESTAMP_COLUMNS:
         if column in frame.columns:
-            frame[column] = pd.to_datetime(frame[column], utc=True, errors="coerce")
+            # ISO timestamps may mix whole and fractional seconds in one receipt column.
+            # Inferring one format from the first row would coerce the other precision to NaT.
+            frame[column] = pd.to_datetime(
+                frame[column], format="ISO8601", utc=True, errors="coerce"
+            )
     if "market_day" in frame.columns:
         frame["market_day"] = frame["market_day"].map(_as_date)
     return ensure_point_in_time(frame, require_publication_time=require_publication_time)
