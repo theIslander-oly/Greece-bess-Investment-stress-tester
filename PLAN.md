@@ -26,8 +26,8 @@ v0.1-v0.6 implementation predates the connected repository and entered through t
 | 6 | Complete | Matched-training control merged as `196a5c1` (amendment `cba04f0`) |
 | 7 | Complete | Acceptance (`docs/fundamentals_acceptance_2026-09-10.md`) and benchmark result (`docs/fundamentals_benchmark_2026-09-11.md`, run `34524611285`) both committed; the result is mixed by model family and recorded as such |
 | 8 | Complete | `greek_bess.study` and `run-integrated-study` merged as PR #69, with the cash and stored-energy conventions corrected in PR #71 (`docs/integrated_study_design.md` sections 4.5, 5.3, 5.4) |
-| 9 | **Review** | Official run `34623616511` succeeded under the approved declaration; evidence verified and aggregate publication authorized. Result record: `docs/selection_benchmark_2026-09-11.md`. Review and merge the result PR |
-| 10 | Pending | Branch `release-integrated-research-study`; see below |
+| 9 | Complete | Result PR #77 merged as `abfac6a`; CI run `34824236600` passed on Python 3.12 and 3.13 |
+| 10 | **In progress** | Branch `release-integrated-research-study`; reproducible demo and digest-gated official workflow prepared for review |
 
 ## Stage 9 — evaluate selection by battery value
 
@@ -54,10 +54,8 @@ custody verified before prices were consumed. The [aggregate result](docs/select
 records a positive signed difference, with complete calendars, frozen selections and private
 evidence verified. Publication of the prepared aggregate record was separately authorized.
 
-**Next action: review and merge the result PR.** Branch
-`codex/stage9-official-selection-results` records the approved findings and provenance.
-Stage 9 is in Review until that gate closes. Stage 10 remains Pending and requires an explicit
-decision to proceed; neither the result nor its publication changes the shipped selection policy.
+**Complete.** Result PR #77 merged as `abfac6a`, with CI run `34824236600` passing on Python 3.12
+and 3.13. The result did not change the shipped selection policy.
 
 ## Stage 10 — deliver the portfolio release
 
@@ -65,8 +63,18 @@ Use the existing renderer. Produce a reproducible synthetic demonstration and an
 official-history study with traceable inputs, under the existing custody and publication gates.
 Verify the actual published report before calling publication complete.
 
-Its acceptance check requires a `STATUS.md` and a `PLAN.md` that make no contradictory
-current-state claims.
+**In progress.** One declared synthetic configuration can now generate its own deterministic
+price history, run the integrated study and render its verified manifest in one command. The
+renderer lays every recorded strategy field out side by side without deriving a ranking or a
+shared ceiling. The [official run declaration](docs/integrated_study_run_declaration_2026-09-14.md)
+preregisters the accepted-history window and the 50 MW/100 MWh versus 25 MW/100 MWh
+configuration sensitivity; the prepared workflow verifies the declaration and existing custody,
+runs both configurations, renders their manifests, seals private evidence and does not publish.
+
+**Next action: review, validate and merge the Stage 10 workflow PR.** Only after that merge may
+the operator approve the unchanged declaration digest and dispatch the official run. Result
+publication remains a separate gate. The final acceptance check requires `STATUS.md` and
+`PLAN.md` to make no contradictory current-state claims.
 
 ## Reassess model additions only afterwards
 

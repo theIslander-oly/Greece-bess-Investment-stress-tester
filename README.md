@@ -10,6 +10,12 @@ leakage-safe causal forecast backtests.
 `greek-bess demo --output docs/sample_report.html`. It uses no token or official data and is
 not investment evidence, expected revenue, financial advice or a bankable study.
 
+The Stage 10 integrated demonstration is also reproducible from one declared configuration:
+`greek-bess run-integrated-study --study-config examples/integrated_study_synthetic_demonstration.json --output-dir outputs/study --report outputs/integrated-study.html`.
+It generates deterministic synthetic prices, plans, settles, ages and finances all declared
+strategies, then renders only the verified manifest. It is a software demonstration, not market
+evidence.
+
 **Rendered reports:** the deterministic renderer composes verified manifests into a self-contained aggregate HTML report and includes manifest-local inline SVG charts of already-recorded scenario-range values. Charts derive no analytical quantity, open no manifest-named file, and retain each result label, basis and exclusion. Public deployment of the accepted-replay aggregate report remains outstanding until its custody-gated Pages job succeeds.
 
 **Numerical/accounting repair:** cash margin now excludes the dispatch wear penalty; losses
@@ -271,7 +277,9 @@ The current implementation provides:
   differently reach different end-of-window capacities. A gap in the window fails the run naming
   the day; no price is filled and no forecast is imputed. No perfect-foresight ceiling is
   reported across strategies, because a ceiling is conditional on a physical state and the
-  strategies stop sharing one after the first day.
+  strategies stop sharing one after the first day. A synthetic configuration may additionally
+  declare every generation input and omit the prices file; `--report` then renders the verified
+  manifest in the same command. Official studies still require an explicit price artifact.
 
 The first v0.7 foundation also provides deterministic, seeded seasonal block-bootstrap price
 paths with sampled-block provenance. Each validated path can now be dispatched independently
@@ -567,7 +575,10 @@ strategy's private ageing state, the refusal to bridge a gap, the finance horizo
 the declared window, and the rule that no perfect-foresight ceiling is reported across strategies
 once their physical states have diverged. Its design of record is
 `docs/integrated_study_design.md`; the implementation is validated on deterministic synthetic
-prices and has produced no official-history study.
+prices. Stage 10 now adds a one-configuration synthetic release demonstration and a
+[digest-gated official declaration](docs/integrated_study_run_declaration_2026-09-14.md) for the
+accepted-history 50 MW/100 MWh versus 25 MW/100 MWh configuration sensitivity. The official
+study has not been dispatched and the prepared workflow does not publish.
 
 Stage 9 asks a narrower question about the same chain: the tool has always *reported* both price
 error and settled value, but it *chooses* the model it reports by lowest validation RMSE alone.
@@ -579,11 +590,8 @@ days, freezes and hashes each pick before settling a single evaluation day, and 
 margin, regret, cycling and capacity beside the price errors. Its design of record is
 `docs/value_based_selection_design.md`. A committed synthetic case proves the two objectives can
 select differently, which is what stops the comparison being vacuous; like the study runner, it is
-validated on deterministic synthetic prices and has produced no official-history result, so it
-supports no empirical claim about which objective serves the battery study.
-The manual `Compare official selection objectives` workflow prepares that measurement under
-[the dated run declaration](docs/selection_run_declaration_2026-09-11.md), with digest and custody
-guards and private evidence retention. Operator approval and dispatch are still outstanding.
+validated on deterministic synthetic prices. Its official retrospective supplementary result is
+recorded above and changes no shipped selection policy.
 
 Percentile outputs (P5/P50/P95) and loss probabilities were removed from the roadmap because
 the seasonal bootstrap resamples a non-stationary 2020-2026 history uniformly and therefore

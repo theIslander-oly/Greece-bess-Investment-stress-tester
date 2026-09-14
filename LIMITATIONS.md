@@ -379,6 +379,12 @@ The study runner has been validated on deterministic synthetic prices alone and 
 official-history result. Nothing it has computed is evidence about Greek prices or about battery
 value.
 
+The Stage 10 official workflow and declaration are preparation, not a result. The preregistered
+50 MW/100 MWh versus 25 MW/100 MWh run is a controlled configuration sensitivity on one already
+inspected historical window. It cannot establish an optimal size. Its finance assumptions are
+held identical, including PCS cost, to isolate the physical configuration; they are illustrative
+and do not estimate either configuration's actual cost.
+
 **What a completed study would and would not be.** A strategy's total is what that strategy's own
 policy achieved over one declared historical window under illustrative cost assumptions. It is
 not expected revenue, not a forecast, not investment evidence, and not a bound: the limits each

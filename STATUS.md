@@ -1,7 +1,7 @@
 # Project status
 
 **Version:** 0.9.7
-**Updated:** 11 September 2026
+**Updated:** 14 September 2026
 **Validation:** [Current CI](https://github.com/theIslander-oly/Greece-bess-Investment-stress-tester/actions/workflows/tests.yml) runs Python 3.12 and 3.13. Dated implementation reports record suite counts.
 
 This page states where the work stands today. The dated record of how it got here is in
@@ -10,10 +10,23 @@ the stage tracker and what happens next are in [`PLAN.md`](PLAN.md).
 
 ## Where the work stands
 
-Stages 1 through 8 of `Greek_BESS_Execution_Plan.md` are complete. Stage 9 is in review:
-the declared official comparison succeeded, its evidence passed independent verification,
-and the operator approved publication of the aggregate record. The result PR awaits review
-and merge. Stage 10 remains pending. Nothing is renumbered.
+Stages 1 through 9 of `Greek_BESS_Execution_Plan.md` are complete. Stage 9 result PR #77 merged
+as `abfac6a`; CI run `34824236600` passed on Python 3.12 and 3.13. Stage 10 is in progress on
+`release-integrated-research-study`. Nothing is renumbered.
+
+The Stage 10 release layer now lets one configuration declare deterministic synthetic generation,
+run the integrated study and render its verified manifest in one command. Repeated runs of the
+committed demonstration produced byte-identical daily, strategy, cash-flow and summary artifacts.
+The renderer now presents every recorded strategy field side by side without deriving a ranking,
+cross-configuration figure or shared ceiling.
+
+The [official Stage 10 declaration](docs/integrated_study_run_declaration_2026-09-14.md)
+preregisters a 329-day accepted-history study and a controlled 50 MW/100 MWh versus
+25 MW/100 MWh configuration sensitivity. The prepared workflow checks the declaration digest
+and existing custody before prices are read, runs both fixed configurations, renders only their
+verified manifests and seals a private evidence bundle. It performs no publication. The next
+action is review, validation and merge of that workflow change; an official dispatch and any
+publication remain separately gated.
 
 The tool retrieves an official Greek DAM price history, records and renders it under custody and
 manifest gates, optimizes perfect-foresight dispatch against it, backtests naive and ML forecasts
@@ -34,7 +47,7 @@ selection on 329 complete evaluation days, under the declared 50 MW / 100 MWh ba
 The margin-selected candidate also cycled more. This is retrospective supplementary evidence
 on one inspected window; it changes no shipped selection policy. Existing custody, declaration
 digests, complete calendars and the frozen selection record verified, and private evidence is
-retained independently of result sign. The next action is review and merge of the result PR.
+retained independently of result sign.
 
 Before that, a numerical and accounting repair (#71) and its impact assessment (#72) corrected
 IRR certification, partial-horizon break-even weighting, cash-versus-shadow-cost treatment and

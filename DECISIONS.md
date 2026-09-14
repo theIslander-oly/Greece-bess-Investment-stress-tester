@@ -1,5 +1,30 @@
 # Decision log
 
+## 2026-09-14 — Open Stage 10 with a reproducible demo and a separately gated official study
+
+Stage 9 is complete: result PR #77 merged as `abfac6a`, and CI run `34824236600` passed on
+Python 3.12 and 3.13. The operator's instruction to continue opens Stage 10 on branch
+`release-integrated-research-study`.
+
+Allow an integrated-study configuration to declare every synthetic-generation input. When it
+does, `run-integrated-study` may omit a price file, generate only that declared series and render
+its verified manifest in the same command. Official studies still require an explicit price
+artifact. Automatically recorded configuration and price/generation digests cannot be replaced by
+caller-supplied provenance.
+
+For the official aggregate, preregister the accepted-history window 1 October 2025 through
+25 August 2026 and run the existing `perfect_foresight`, `rolling_mean` and `ensemble` planners
+under separate degradation states. Do not declare `daily_persistence`: the day following the
+spring 23-hour market day lacks one same-position prior-day observation, and the study contract
+refuses that incomplete forecast rather than filling it.
+
+Run the committed 50 MW/100 MWh and representative 25 MW/100 MWh examples as two separate
+studies on the same history, strategies, degradation and illustrative finance assumptions. This
+is a controlled physical-configuration sensitivity, not evidence of an optimal size. Finance is
+held identical, including PCS cost, so the comparison does not masquerade as cost optimisation.
+The workflow verifies the declaration digest and existing custody before reading prices, retains
+all signs privately, and does not publish. Dispatch and publication require separate approval.
+
 ## 2026-09-11 — Record the approved Stage 9 measurement without changing selection policy
 
 The operator approved the dated declaration and one official comparison dispatch after
