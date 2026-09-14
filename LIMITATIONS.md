@@ -96,8 +96,9 @@
   gross-margin upper bound. Paths are solved independently with shared assumptions; no path
   probability, percentile, ranking, degradation, finance or investment conclusion is produced.
 
-- Current ML models use calendar and historical prices only; validated weather, demand, fuel,
-  renewable and interconnector forecasts are not yet included.
+- The price-only ML baselines use calendar and historical prices. The accepted fundamentals
+  benchmark adds three NOAA GFS weather variables under a point-in-time contract; demand, fuel,
+  renewable-output and interconnector forecasts remain excluded.
 - The Greek DAM moved from hourly to quarter-hour delivery on 1 October 2025. Persistence lags have
   no matching wall-clock slot on that day, and models trained on hourly history forecast
   quarter-hour delivery later in the held-out test period. This is disclosed rather than corrected.
@@ -289,7 +290,13 @@
 
 ## Point-in-time join limitations
 
-Passing the v0.9.2 join establishes only that the selected synthetic-test value obeyed the declared as-of rule and is traceable to identified bytes. It does not establish that a real feature is correct, representative of Greece, available under a defensible market cutoff, accepted for forecasting or useful for settled battery value. The three real operator declarations are absent, so no real join result, model, manifest or acceptance document exists. Coarser containment is an explicit broadcast rather than interpolation; finer-to-coarser aggregation remains refused. ADMIE-originated forecasts remain excluded by every route.
+Passing the v0.9.2 join establishes only that a selected value obeyed the declared as-of rule and
+is traceable to identified bytes. The accepted official feature set passed that contract under
+the declarations and exclusions recorded in
+`docs/fundamentals_acceptance_2026-09-10.md`; this does not establish that a feature is correct,
+representative of Greece, stable in future publications or useful outside the declared benchmark.
+Coarser containment is an explicit broadcast rather than interpolation; finer-to-coarser
+aggregation remains refused. ADMIE-originated forecasts remain excluded by every route.
 
 Evidence-grade admission cannot be used to select an older revision: the latest pre-cutoff
 revision is selected first, and an inadmissible selected grade excludes the day. This prevents
@@ -297,11 +304,12 @@ stale cherry-picking but does not validate the provider's revision policy or pub
 
 ## Fundamentals ablation limitations
 
-The v0.9.3 ablation is validated entirely on synthetic fixtures. It has produced no benchmark
-figure, because the three operator declarations do not exist and therefore no accepted feature
-table exists; nothing here is evidence about weather, about Greek prices or about battery value.
+The v0.9.3 ablation has deterministic synthetic regression coverage and one official-history
+benchmark against the accepted feature-set digest. That benchmark is a historical result over
+one declared period: it found a small, mixed settled-margin effect by model family and does not
+establish recurring weather value, expected revenue or an investment conclusion.
 
-What the ablation could establish, once run on an accepted feature table, is narrow. It measures
+What the ablation establishes is narrow. It measures
 price error on one held-out period, under one declared cutoff, one feature set and one battery-
 independent forecast comparison. Price error is not dispatch value, and the accepted evidence
 already shows the two can disagree: a naive `rolling_mean` has worse RMSE than `ridge` and
@@ -326,13 +334,15 @@ and supports no general conclusion, whatever its numbers say.
 
 ## Settled fundamentals dispatch limitations
 
-The v0.9.4 comparison is validated entirely on synthetic fixtures and has produced no figure, for
-the same single reason as v0.9.1 through v0.9.3: the decision cutoff, the decision lead and the
-sampling geography are undeclared, so no accepted feature table exists to benchmark against.
-Nothing here is evidence about weather, about Greek prices or about battery value.
+The v0.9.4 comparison has deterministic synthetic regression coverage and one official-history
+result under the accepted decision cutoff, zero-minute decision lead, wind-capacity-weighted
+geography and feature-set digest. The ridge challenger settled EUR 4,899.71 more than its matched
+control and the histogram-gradient-boosting challenger settled EUR 6,843.46 less over the same
+320 held-out days. Those sign-mixed historical differences are not recurring weather value,
+expected revenue or investment evidence.
 
-What the comparison could establish once run on an accepted table is narrower than it may look.
-It measures euro settled on one held-out period, under one battery, one declared cutoff and one
+What the comparison establishes is narrower than it may look. It measures euro settled on one
+held-out period, under one battery, one declared cutoff and one
 feature set, against a market history that almost entirely predates operating battery
 competition. Storage units entered the Greek Day-Ahead and Intraday Markets only in April 2026,
 so an incremental margin measured here describes what the information would have been worth in a

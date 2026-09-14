@@ -6,9 +6,15 @@ All notable project changes are documented here.
 
 ### Added
 
+- Record the approved Stage 9 official selection result from run `34623616511`: validation-margin
+  selection settled EUR 12,639.14 more than validation-RMSE selection on the declared 329-day
+  evaluation window, with more cycling. Publish aggregate metrics and provenance under the
+  retrospective supplementary label; retain private evidence and keep the shipped policy unchanged.
+
 - Prepare Stage 9's manual official-history comparison with a digest-gated dated declaration,
   existing-custody verification, exact calendar checks and private evidence indexing. Retain
-  failed-run diagnostics and every result sign. No official run or publication is performed.
+  failed-run diagnostics and every result sign. The workflow-preparation change performed no
+  official run or publication.
 
 - Stage 9, design and implementation: `greek_bess.selection` and `compare-selection-objectives`
   compare selecting a forecast by validation RMSE against selecting it by validation settled
@@ -26,10 +32,14 @@ All notable project changes are documented here.
   less margin. Without it Stage 9 would be measuring nothing.
 
 No existing benchmark changes, no stage is renumbered, and no recorded figure moves: the Stage 7
-fundamentals result stands exactly as committed. No official-history result is produced here —
-that run is gated separately.
+fundamentals result stands exactly as committed. The design-and-implementation change produced
+no official-history result; the separately approved measurement is recorded above.
 
 ### Changed
+
+- Move Stage 9 to Review with one next action: review and merge the aggregate-result PR. Keep
+  Stage 10 pending, and remove README and limitations claims that predated official fundamentals
+  acceptance.
 
 - Replace the status page's self-staling head SHA with a live CI link; suite counts belong in
   dated validation records.

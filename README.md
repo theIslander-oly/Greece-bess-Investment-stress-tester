@@ -21,7 +21,7 @@ IRR requires a uniqueness certificate. Rerun affected outputs; see the [repair r
 
 These are **historical replay and backtest results, not expected revenue, a forecast or
 investment evidence**. The accepted history covers 1 November 2020 through 25 August 2026;
-2020 and 2026 are partial years. Every figure below is transcribed from the
+2020 and 2026 are partial years. The delivery-year table is transcribed from the
 [accepted decomposition](docs/official_annual_decomposition_2026-08-28.md).
 
 | Delivery year | Accepted official market days | Daily-composed perfect-foresight gross-margin ceiling (EUR) | Historical causal-method capture ratio on each method's own backtested days | Negative-price intervals | Mean within-day price range (EUR/MWh) |
@@ -55,6 +55,16 @@ recorded as mixed:
 Both differences are small next to the day-to-day settlement swings recorded alongside them.
 This is a historical research result, not a forecast, expected revenue or investment evidence.
 
+**Stage 9 selection comparison, 329 complete evaluation days (2025-10-01 to 2026-08-25).**
+Under the declared 50 MW / 100 MWh battery, validation-margin selection chose
+`gradient_lr_005_leaf_15` and settled EUR 3,663,998.68; validation-RMSE selection chose
+`ridge_alpha_1` and settled EUR 3,651,359.54. The recorded signed difference is
+**EUR +12,639.14**, with more cycling under the margin-selected candidate. This is
+`retrospective_supplementary` evidence from one inspected window spanning hourly validation
+and quarter-hour evaluation. It changes no shipped selection policy. See the
+[approved aggregate record](docs/selection_benchmark_2026-09-11.md) for assumptions, price
+errors, cycling, comparator labels and reproducible provenance.
+
 ## What this tool cannot tell you
 
 Read this before interpreting any output:
@@ -79,8 +89,8 @@ table carrying the publication instant and byte digest behind every value, a per
 audit against a declared decision cutoff, a revision-aware as-of join, a two-arm forecast
 benchmark that holds the models, hyperparameters, seed, refit cadence and delivery days fixed and
 varies only the information, and a settled dispatch comparison that answers the question the
-project actually asks. Nothing it retrieves is accepted for forecasting, and no surface runs until
-the operator declares the cutoff, the decision lead and the sampling geography.
+project actually asks. Official feature acceptance and the matched-control benchmark are
+recorded in the [fundamentals result](docs/fundamentals_benchmark_2026-09-11.md).
 
 v0.9.3 added `benchmark-fundamentals-forecast`: a control arm on calendar and price-history
 features and a challenger arm with the accepted point-in-time columns appended, both measured on
@@ -103,8 +113,8 @@ and their sign counts are written beside it. No interval or significance statist
 those differences: they are a series of historical outcomes on one period. A challenger that
 settles less than its control is recorded exactly as one that settles more.
 
-Both benchmarks are validated on synthetic fixtures only; no real feature table exists, so no
-benchmark figure has been produced.
+Both benchmarks have synthetic regression coverage and an accepted official-history result;
+the matched-control amendment and mixed findings are recorded above.
 
 
 ## Measured engineering evidence

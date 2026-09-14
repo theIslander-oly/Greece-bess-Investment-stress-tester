@@ -58,3 +58,4 @@ and the next gate respectively:
 No figure, run id or digest was changed in either move.
 
 - [Stage 9 official-run workflow](implementation_report_stage9_workflow_2026-09-11.md).
+- [Stage 9 official result record](implementation_report_stage9_results_2026-09-11.md).

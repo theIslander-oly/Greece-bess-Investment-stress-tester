@@ -8,6 +8,7 @@ line had moved on. These tests keep the three declarations locked together.
 
 from __future__ import annotations
 
+import hashlib
 import re
 import tomllib
 import unittest
@@ -63,6 +64,29 @@ class ProjectVersionTests(unittest.TestCase):
 
 
 class DocumentationContractTests(unittest.TestCase):
+    def test_limitations_acknowledge_the_accepted_fundamentals_result(self) -> None:
+        limitations = (PROJECT_ROOT / "LIMITATIONS.md").read_text(encoding="utf-8")
+        normalized = " ".join(limitations.split())
+
+        self.assertIn("docs/fundamentals_acceptance_2026-09-10.md", normalized)
+        self.assertIn("one official-history benchmark", normalized)
+        self.assertNotIn("no accepted feature table exists", normalized)
+        self.assertNotIn("The three real operator declarations are absent", normalized)
+
+    def test_selection_result_identifies_its_linked_declaration(self) -> None:
+        report = PROJECT_ROOT / "docs/selection_benchmark_2026-09-11.md"
+        text = report.read_text(encoding="utf-8")
+        target = re.search(r"\[dated declaration\]\(([^)]+)\)", text)
+        recorded = re.search(r"Declaration SHA-256: `([0-9a-f]{64})`", text)
+        self.assertIsNotNone(target, "The result must identify its declaration")
+        self.assertIsNotNone(recorded, "The result must carry the approved declaration digest")
+        assert target is not None and recorded is not None
+        declaration = report.parent / target.group(1)
+        # Git's text checkout may translate LF on Windows. The recorded digest identifies
+        # the committed UTF-8/LF declaration, not the workstation's newline convention.
+        committed_text = declaration.read_text(encoding="utf-8").encode("utf-8")
+        self.assertEqual(recorded.group(1), hashlib.sha256(committed_text).hexdigest())
+
     def test_methodology_keeps_declared_availability_outside_the_equivalent_basis(
         self,
     ) -> None:

@@ -1,5 +1,25 @@
 # Decision log
 
+## 2026-09-11 — Record the approved Stage 9 measurement without changing selection policy
+
+The operator approved the dated declaration and one official comparison dispatch after
+merged-commit CI succeeded. Run `34623616511`, attempt 1, reused accepted history `33483975614`
+under declaration SHA-256 `78822530a6f9c1d2f0f45e50ea08d0864dffd4ebf23c989cc4cb5428751fc611`.
+Existing custody verified before price consumption; declaration pins, complete native calendars,
+all-candidate coverage, frozen selection and retained evidence identity passed independent checks.
+
+After private aggregate review, the operator authorized publication of
+[the result and provenance](docs/selection_benchmark_2026-09-11.md). The signed evaluation
+difference is EUR +12,639.14 in favour of validation-margin selection, accompanied by more
+cycling. Retain the result under `retrospective_supplementary`; one inspected window establishes
+no recurring advantage or confirmatory claim. A favourable result does not change the shipped
+validation-RMSE selection policy. No candidate, fitting setting, window or battery assumption
+was revised, and no retry was performed.
+
+Stage 9 moves to Review pending the result PR's review and merge. Stage 10 and any public report
+deployment remain separately gated. Official prices, interval forecasts and numerical diagnostics
+stay outside Git; artifact retention and local copies are not independent durable custody.
+
 ## 2026-09-11 — Prepare the Stage 9 official comparison for a separate dispatch gate
 
 Reuse accepted history run `33483975614`, the existing six price-only candidates and the
