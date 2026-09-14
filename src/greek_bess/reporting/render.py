@@ -68,7 +68,7 @@ from .contract import (
     read_run_manifest,
 )
 
-REPORT_RENDER_VERSION = 3
+REPORT_RENDER_VERSION = 4
 
 REPORT_TITLE = "Greek DAM battery stress tester — recorded run report"
 
@@ -134,6 +134,7 @@ INDEX_RULE = (
 #: in rendering order. A key listed here is rendered by its section and not also as a generic
 #: headline or detail row, so one recorded value appears exactly once.
 COMPOSITION_SECTIONS: dict[str, tuple[tuple[str, str], ...]] = {
+    "integrated_study": (("strategies", "strategies_side_by_side"),),
     "scenario_ensemble_range": (
         ("scenarios", "scenarios_side_by_side"),
         ("equivalent_basis", "equivalent_basis"),
@@ -158,12 +159,17 @@ SCENARIO_PROVENANCE_ROWS: tuple[tuple[str, tuple[str, ...]], ...] = (
 #: Heading and lead paragraph for each composition section. They are renderer vocabulary, so
 #: they are checked against ``FORBIDDEN_REPORT_TERMS`` for a kind that declares it.
 COMPOSITION_HEADINGS: dict[str, str] = {
+    "strategies_side_by_side": "Strategies under this declared configuration",
     "scenarios_side_by_side": "Scenarios side by side",
     "equivalent_basis": "The basis every scenario shared",
     "per_path_ranges": "Range per bootstrap path",
 }
 
 COMPOSITION_LEADS: dict[str, str] = {
+    "strategies_side_by_side": (
+        "One column per strategy, in declaration order. Every cell is the exact value the "
+        "study manifest recorded; the table derives no ranking, aggregate or shared ceiling."
+    ),
     "scenarios_side_by_side": (
         "One column per named scenario, in the order the scenarios were declared. There is no "
         "baseline column and no default scenario set: every scenario here was named by the "
@@ -738,6 +744,11 @@ def _composition_chrome(source: _Source) -> list[str]:
         if section == "scenarios_side_by_side":
             phrases.extend(caption for caption, _ in SCENARIO_PROVENANCE_ROWS)
             phrases.append("Scenario")
+        elif section == "strategies_side_by_side":
+            records = _recorded_sequence(source, key)
+            if records:
+                phrases.extend(_caption(name) for name in _record_columns(records))
+            phrases.append("Strategy")
         elif section == "equivalent_basis":
             phrases.extend(_caption(name) for name in _equivalent_basis_captions(summary[key]))
         elif section == "per_path_ranges":
@@ -847,6 +858,62 @@ def _render_scenarios_side_by_side(
     )
 
 
+def _render_strategies_side_by_side(
+    source: _Source, key: str, figures: list[RenderedFigure]
+) -> str:
+    """One column per strategy, including every field the study recorded for each one."""
+
+    strategies = _recorded_sequence(source, key)
+    if not strategies:
+        return _not_recorded(key, empty=strategies is not None)
+    columns = _record_columns(strategies)
+    if "strategy_id" not in columns:
+        raise ReportRenderError(
+            "A recorded integrated-study strategy has no strategy_id; the report cannot "
+            "attribute its figures"
+        )
+
+    header = ["<tr><th scope=\"col\">Strategy</th>"]
+    for position, strategy in enumerate(strategies):
+        header.append(
+            "<th scope=\"col\">"
+            + _figure_cell(
+                source,
+                key="strategy_id",
+                summary_path=(key, position, "strategy_id"),
+                recorded=_lookup(strategy, ("strategy_id",)),
+                figures=figures,
+            )
+            + "</th>"
+        )
+    header.append("</tr>")
+
+    rows = ["".join(header)]
+    for column in columns:
+        if column == "strategy_id":
+            continue
+        cells = [f"<tr><th scope=\"row\">{html.escape(_caption(column))}</th>"]
+        for position, strategy in enumerate(strategies):
+            cells.append(
+                "<td>"
+                + _figure_cell(
+                    source,
+                    key=column,
+                    summary_path=(key, position, column),
+                    recorded=_lookup(strategy, (column,)),
+                    figures=figures,
+                )
+                + "</td>"
+            )
+        cells.append("</tr>")
+        rows.append("".join(cells))
+    return (
+        "<div class=\"side-by-side\"><table class=\"strategies\">"
+        + "".join(rows)
+        + "</table></div>"
+    )
+
+
 def _render_equivalent_basis(
     source: _Source, key: str, figures: list[RenderedFigure]
 ) -> str:
@@ -947,6 +1014,19 @@ def _path_range_columns(records: Any) -> tuple[str, ...]:
     return columns
 
 
+def _record_columns(records: Sequence[Mapping[str, Any]]) -> tuple[str, ...]:
+    """Return one exact shared field order, refusing a ragged comparison table."""
+
+    columns = tuple(str(name) for name in records[0])
+    for row in records[1:]:
+        if tuple(str(name) for name in row) != columns:
+            raise ReportRenderError(
+                "Recorded comparison rows declare different fields. A ragged table would "
+                "show blanks that read as values, so the report refuses it"
+            )
+    return columns
+
+
 def _recorded_sequence(source: _Source, key: str) -> tuple[Mapping[str, Any], ...] | None:
     """The recorded rows of a composition table, or ``None`` when the key is not a list of rows.
 
@@ -980,6 +1060,7 @@ def _lookup(recorded: Any, path: Sequence[str]) -> tuple[bool, Any]:
 
 
 _COMPOSITION_RENDERERS: dict[str, Any] = {
+    "strategies_side_by_side": _render_strategies_side_by_side,
     "scenarios_side_by_side": _render_scenarios_side_by_side,
     "equivalent_basis": _render_equivalent_basis,
     "per_path_ranges": _render_path_ranges,

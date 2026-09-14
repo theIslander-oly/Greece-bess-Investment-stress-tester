@@ -982,6 +982,50 @@ class MultiRunIndexTests(unittest.TestCase):
         self.assertNotIn('class="report-index"', render_report().html)
 
 
+class IntegratedStudyCompositionTests(unittest.TestCase):
+    """The release report lays every recorded strategy field out without deriving a ranking."""
+
+    def test_every_strategy_cell_walks_back_to_the_manifest(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            path = _manifest_path(Path(raw), RESULT_KINDS["integrated_study"])
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            second = dict(payload["summary"]["strategies"][0])
+            second.update(
+                {
+                    "strategy_id": "weekly-persistence",
+                    "planner": "weekly_persistence",
+                    "net_market_margin_eur": 987.25,
+                    "final_usable_energy_mwh": 49.75,
+                }
+            )
+            payload["summary"]["strategies"].append(second)
+            path.write_text(json.dumps(payload), encoding="utf-8")
+
+            report = render_report([path])
+            block = _blocks(report.html)[_anchor("run-integrated_study")]
+
+            self.assertIn("Strategies under this declared configuration", block)
+            self.assertNotIn("Rank", block)
+            strategy_figures = [
+                figure for figure in report.figures if figure.summary_path[0] == "strategies"
+            ]
+            expected_count = sum(len(row) for row in payload["summary"]["strategies"])
+            self.assertEqual(len(strategy_figures), expected_count)
+            for figure in strategy_figures:
+                recorded = _resolve(payload["summary"], figure.summary_path)
+                self.assertEqual(figure.value_text, _format_like_manifest(recorded))
+
+    def test_a_ragged_strategy_table_is_refused(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            path = _manifest_path(Path(raw), RESULT_KINDS["integrated_study"])
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            payload["summary"]["strategies"].append({"strategy_id": "incomplete"})
+            path.write_text(json.dumps(payload), encoding="utf-8")
+
+            with self.assertRaisesRegex(ReportRenderError, "different fields"):
+                render_report([path])
+
+
 class ScenarioEnsembleCompositionTests(unittest.TestCase):
     """v0.8.1: a scenario ensemble laid out side by side, from the manifest and nothing else."""
 

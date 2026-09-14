@@ -8,6 +8,7 @@ from .config import (
     IntegratedStudyConfig,
     IntegratedStudyInputError,
     StrategySpec,
+    SyntheticPriceGenerationConfig,
     operating_margin_case_for,
     read_integrated_study_config,
 )
@@ -32,6 +33,7 @@ __all__ = [
     "IntegratedStudyRun",
     "StrategyRun",
     "StrategySpec",
+    "SyntheticPriceGenerationConfig",
     "assemble_integrated_study",
     "operating_margin_case_for",
     "read_integrated_study_config",

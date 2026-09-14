@@ -1,8 +1,15 @@
 {
   "study_id": "synthetic-integrated-study-demonstration",
   "window_start_day": "2026-02-01",
-  "window_end_day": "2026-03-31",
+  "window_end_day": "2026-03-28",
   "price_source": "synthetic",
+  "synthetic_price_generation": {
+    "history_start_day": "2026-01-01",
+    "resolution_minutes": 60,
+    "seed": 42,
+    "negative_price_share": 0.02,
+    "retrieved_at_utc": "2026-09-14T00:00:00+00:00"
+  },
   "result_label": "Deterministic synthetic prices, illustrative costs; a demonstration of the study runner and not market evidence.",
   "rolling_window_days": 28,
   "strategies": [
@@ -51,7 +58,7 @@
   },
   "finance": {
     "project_start_day": "2026-02-01",
-    "project_end_day": "2026-03-31",
+    "project_end_day": "2026-03-28",
     "operating_margin_case": "historical_forecast_backtest",
     "discount_rate_fraction": 0.08,
     "battery_system_capex_eur": 30000000.0,

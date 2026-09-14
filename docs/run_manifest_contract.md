@@ -218,3 +218,16 @@ computing, which is exactly what the renderer contract forbids. `equivalent_basi
 for the same reason it is on `scenario_ensemble_range` — a reader must be able to see what the
 compared runs shared without opening the CSVs — and it is rendered by the generic path, since no
 composition section is registered for this kind.
+
+## Renderer contract amendment, 14 September 2026 (renderer version 4)
+
+The manifest envelope and `REPORT_CONTRACT_VERSION` remain unchanged at 1. Renderer version 4
+lays an `integrated_study` manifest's recorded `strategies` out side by side: one strategy per
+column and every recorded field as a row. Each cell remains an exact manifest value with a
+`RenderedFigure.summary_path` back to its source. No ranking, cross-configuration difference,
+aggregate or shared ceiling is derived.
+
+Every strategy row must record the same fields and must carry `strategy_id`. A ragged table is
+refused rather than padded with blanks, because a blank would read as a value. Older manifests
+still read; an older integrated-study manifest with no usable strategy sequence states that
+nothing was recorded for the composition section.
