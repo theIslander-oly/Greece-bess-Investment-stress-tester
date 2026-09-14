@@ -26,7 +26,7 @@ v0.1-v0.6 implementation predates the connected repository and entered through t
 | 6 | Complete | Matched-training control merged as `196a5c1` (amendment `cba04f0`) |
 | 7 | Complete | Acceptance (`docs/fundamentals_acceptance_2026-09-10.md`) and benchmark result (`docs/fundamentals_benchmark_2026-09-11.md`, run `34524611285`) both committed; the result is mixed by model family and recorded as such |
 | 8 | Complete | `greek_bess.study` and `run-integrated-study` merged as PR #69, with the cash and stored-energy conventions corrected in PR #71 (`docs/integrated_study_design.md` sections 4.5, 5.3, 5.4) |
-| 9 | **In progress** | Design (`docs/value_based_selection_design.md`), `greek_bess.selection` and `compare-selection-objectives` implemented and validated, with the synthetic divergence case committed. No official-history result yet; see below |
+| 9 | **Review** | Official run `34623616511` succeeded under the approved declaration; evidence verified and aggregate publication authorized. Result record: `docs/selection_benchmark_2026-09-11.md`. Review and merge the result PR |
 | 10 | Pending | Branch `release-integrated-research-study`; see below |
 
 ## Stage 9 — evaluate selection by battery value
@@ -48,13 +48,16 @@ reports held-out margin, regret against perfect foresight and against the retros
 candidate, cycling, capacity and price errors. The synthetic divergence case is committed and
 passing, so the two objectives are known to be capable of selecting differently.
 
-**Next gate: approve the declaration and dispatch the official-history run.** Branch
-`stage9-official-selection-workflow` prepares `Compare official selection objectives` and
-[`selection_run_declaration_2026-09-11.md`](docs/selection_run_declaration_2026-09-11.md).
-The workflow checks the declaration digest, verifies existing custody before reading prices,
-refuses incomplete calendars and retains private evidence for any result sign. No official result
-exists; Stage 9 remains in progress. Review the declaration and CI before authorizing dispatch.
-Publication and a change to the shipped selection policy remain separate gates.
+**Official measurement recorded.** Run `34623616511` reused accepted history `33483975614`
+under the approved [declaration](docs/selection_run_declaration_2026-09-11.md), with existing
+custody verified before prices were consumed. The [aggregate result](docs/selection_benchmark_2026-09-11.md)
+records a positive signed difference, with complete calendars, frozen selections and private
+evidence verified. Publication of the prepared aggregate record was separately authorized.
+
+**Next action: review and merge the result PR.** Branch
+`codex/stage9-official-selection-results` records the approved findings and provenance.
+Stage 9 is in Review until that gate closes. Stage 10 remains Pending and requires an explicit
+decision to proceed; neither the result nor its publication changes the shipped selection policy.
 
 ## Stage 10 — deliver the portfolio release
 

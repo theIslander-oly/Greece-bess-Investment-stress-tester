@@ -10,9 +10,10 @@ the stage tracker and what happens next are in [`PLAN.md`](PLAN.md).
 
 ## Where the work stands
 
-Stages 1 through 8 of `Greek_BESS_Execution_Plan.md` are complete. Stage 9 is in progress: it
-has a predeclared protocol, a working implementation and its synthetic proof, and no
-official-history measurement yet. Nothing is renumbered.
+Stages 1 through 8 of `Greek_BESS_Execution_Plan.md` are complete. Stage 9 is in review:
+the declared official comparison succeeded, its evidence passed independent verification,
+and the operator approved publication of the aggregate record. The result PR awaits review
+and merge. Stage 10 remains pending. Nothing is renumbered.
 
 The tool retrieves an official Greek DAM price history, records and renders it under custody and
 manifest gates, optimizes perfect-foresight dispatch against it, backtests naive and ML forecasts
@@ -27,14 +28,13 @@ validation days under one battery configuration, each pick frozen and hashed bef
 evaluation day is settled, ties broken by declared order and recorded. The protocol is
 predeclared in [the Stage 9 design](docs/value_based_selection_design.md).
 
-What exists is a method and a synthetic proof that the two objectives can select differently — a
-forecast wrong by a constant preserves every intraday ordering and dispatches at the ceiling,
-while one that is right almost everywhere but moves the cheapest hour has the better RMSE and
-settles less. What does not exist is a measurement on official data. The manual workflow
-`Compare official selection objectives` and its [dated declaration](docs/selection_run_declaration_2026-09-11.md)
-are prepared for operator review. It verifies existing custody, fixes the complete calendar and
-retains private evidence irrespective of outcome. Approval of the declaration and dispatch remain
-the next gate, so Stage 9 makes no empirical claim today.
+The [official Stage 9 result](docs/selection_benchmark_2026-09-11.md), run `34623616511`,
+records EUR 12,639.14 more settled margin for validation-margin selection over validation-RMSE
+selection on 329 complete evaluation days, under the declared 50 MW / 100 MWh battery.
+The margin-selected candidate also cycled more. This is retrospective supplementary evidence
+on one inspected window; it changes no shipped selection policy. Existing custody, declaration
+digests, complete calendars and the frozen selection record verified, and private evidence is
+retained independently of result sign. The next action is review and merge of the result PR.
 
 Before that, a numerical and accounting repair (#71) and its impact assessment (#72) corrected
 IRR certification, partial-horizon break-even weighting, cash-versus-shadow-cost treatment and
@@ -69,9 +69,10 @@ initial SOC, carried energy scales exactly with usable capacity.
 | Point-in-time fundamentals feature table, accepted by digest | [`docs/fundamentals_acceptance_2026-09-10.md`](docs/fundamentals_acceptance_2026-09-10.md) |
 | The fundamentals benchmark result, mixed and recorded as mixed | [`docs/fundamentals_benchmark_2026-09-11.md`](docs/fundamentals_benchmark_2026-09-11.md) |
 | What the accounting repair moved | [`docs/repair_impact_register_2026-09-11.md`](docs/repair_impact_register_2026-09-11.md) |
+| Stage 9 official selection comparison | [`docs/selection_benchmark_2026-09-11.md`](docs/selection_benchmark_2026-09-11.md) |
 
-The fundamentals benchmark is the one place where a model comparison reached official data, and
-its result is mixed by model family: `ridge_fundamentals` earned EUR 4,899.71 more settled margin
+The earlier fundamentals benchmark remains mixed by model family: `ridge_fundamentals`
+earned EUR 4,899.71 more settled margin
 than its matched control and `hist_gradient_boosting_fundamentals` earned EUR 6,843.46 less, over
 320 common held-out days. Favourable performance was never an acceptance criterion.
 
