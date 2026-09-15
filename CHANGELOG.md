@@ -4,6 +4,12 @@ All notable project changes are documented here.
 
 ## [Unreleased]
 
+### Maintenance
+
+- Reduce the README to quickstart, accepted findings, current capabilities and reference links;
+  remove stale phase plans and the obsolete claim that forecasting uses price history only.
+- Ignore local `private/` workflow evidence and check that README file references resolve.
+
 ### Added
 
 - Begin Stage 10's portfolio release layer. `run-integrated-study` can generate a deterministic
