@@ -802,3 +802,17 @@ The result is recorded on the `historical_replay_simulation` basis under the `in
 kind: one policy's settled outcome over a declared historical window under illustrative cost
 assumptions. It is not expected revenue, not a forecast, not investment evidence, and not a
 lifetime optimum or an upper bound.
+
+A synthetic release run may omit an external price file only when the same study configuration
+declares its history start, interval resolution, random seed, negative-price share and fixed
+timezone-aware retrieval timestamp. The manifest records the exact configuration digest and the
+canonical digest of those generation inputs. An official run cannot declare synthetic generation
+and always requires a separately verified canonical price artifact. Additional workflow
+provenance may extend these automatic identities but cannot replace them.
+The command also refuses synthetic source rows under an official declaration and non-synthetic
+source rows under a synthetic declaration; official acceptance still comes from the separate
+custody gate rather than from the source string alone.
+
+The static renderer lays an integrated study's strategies out as one column per strategy and one
+row per recorded field. It reads only the verified manifest, retains exact values and derives no
+ranking, cross-configuration statistic or shared ceiling.

@@ -1,26 +1,19 @@
 {
-  "study_id": "synthetic-integrated-study-demonstration",
-  "window_start_day": "2026-02-01",
-  "window_end_day": "2026-03-28",
-  "price_source": "synthetic",
-  "synthetic_price_generation": {
-    "history_start_day": "2026-01-01",
-    "resolution_minutes": 60,
-    "seed": 42,
-    "negative_price_share": 0.02,
-    "retrieved_at_utc": "2026-09-14T00:00:00+00:00"
-  },
-  "result_label": "Deterministic synthetic prices, illustrative costs; a demonstration of the study runner and not market evidence.",
+  "study_id": "official-integrated-study-50mw-100mwh",
+  "window_start_day": "2025-10-01",
+  "window_end_day": "2026-08-25",
+  "price_source": "official",
+  "result_label": "Retrospective aggregate simulation on accepted official Greek DAM history under illustrative costs. Configuration sensitivity only; not expected revenue, investment evidence, an optimal-size claim, financial advice or a bankable study.",
   "rolling_window_days": 28,
   "strategies": [
     {
-      "strategy_id": "perfect-foresight",
+      "strategy_id": "perfect-foresight-own-state",
       "planner": "perfect_foresight",
       "decision_information": "realized_delivery_day_prices"
     },
     {
-      "strategy_id": "daily-persistence",
-      "planner": "daily_persistence",
+      "strategy_id": "rolling-mean",
+      "planner": "rolling_mean",
       "decision_information": "price_history_before_delivery_day"
     },
     {
@@ -39,13 +32,20 @@
     "terminal_soc_fraction": 0.5,
     "charge_efficiency": 0.94,
     "discharge_efficiency": 0.94,
+    "self_discharge_per_hour": 0.0,
     "grid_import_limit_mw": 50.0,
     "grid_export_limit_mw": 50.0,
     "max_daily_equivalent_cycles": 1.5,
-    "require_complete_market_days": true
+    "buy_fee_eur_per_mwh": 0.0,
+    "sell_fee_eur_per_mwh": 0.0,
+    "degradation_cost_eur_per_mwh_discharged": 0.0,
+    "require_complete_market_days": true,
+    "mip_relative_gap": 1e-7,
+    "solver_time_limit_seconds": null,
+    "solve_strategy": "relaxation_first"
   },
   "degradation": {
-    "project_start_day": "2026-01-01",
+    "project_start_day": "2025-10-01",
     "calendar_fade_fraction_per_year": 0.015,
     "cycle_fade_fraction_per_equivalent_cycle": 0.00004,
     "power_fade_exponent": 1.0,
@@ -57,8 +57,8 @@
     "augmentation_events": []
   },
   "finance": {
-    "project_start_day": "2026-02-01",
-    "project_end_day": "2026-03-28",
+    "project_start_day": "2025-10-01",
+    "project_end_day": "2026-08-25",
     "operating_margin_case": "historical_forecast_backtest",
     "discount_rate_fraction": 0.08,
     "battery_system_capex_eur": 30000000.0,

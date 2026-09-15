@@ -14,7 +14,7 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -55,6 +55,86 @@ STUDY_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 
 class IntegratedStudyInputError(ValueError):
     """Raised when a declared study cannot be run exactly as it was declared."""
+
+
+@dataclass(frozen=True)
+class SyntheticPriceGenerationConfig:
+    """Every input needed to reproduce a synthetic study price history."""
+
+    history_start_day: date
+    resolution_minutes: int
+    seed: int
+    negative_price_share: float
+    retrieved_at_utc: str
+
+    def __post_init__(self) -> None:
+        object.__setattr__(
+            self, "history_start_day", _as_date(self.history_start_day, "history_start_day")
+        )
+        if self.resolution_minutes not in (15, 60):
+            raise IntegratedStudyInputError("synthetic resolution_minutes must be 15 or 60")
+        if not isinstance(self.seed, int):
+            raise IntegratedStudyInputError("synthetic seed must be an integer")
+        if not 0.0 <= self.negative_price_share <= 0.25:
+            raise IntegratedStudyInputError(
+                "synthetic negative_price_share must be between 0 and 0.25"
+            )
+        try:
+            parsed = datetime.fromisoformat(
+                self.retrieved_at_utc.replace("Z", "+00:00")
+            )
+        except (AttributeError, ValueError) as exc:
+            raise IntegratedStudyInputError(
+                "synthetic retrieved_at_utc must be an ISO timestamp"
+            ) from exc
+        if parsed.tzinfo is None or parsed.utcoffset() is None:
+            raise IntegratedStudyInputError(
+                "synthetic retrieved_at_utc must include a UTC offset"
+            )
+        if parsed.utcoffset() != timedelta(0):
+            raise IntegratedStudyInputError(
+                "synthetic retrieved_at_utc must use the UTC offset +00:00"
+            )
+
+    @classmethod
+    def from_dict(cls, payload: Any) -> SyntheticPriceGenerationConfig:
+        if not isinstance(payload, dict):
+            raise IntegratedStudyInputError(
+                "synthetic_price_generation must be one JSON object"
+            )
+        required = {
+            "history_start_day",
+            "resolution_minutes",
+            "seed",
+            "negative_price_share",
+            "retrieved_at_utc",
+        }
+        unknown = sorted(set(payload) - required)
+        missing = sorted(required - set(payload))
+        if unknown:
+            raise IntegratedStudyInputError(
+                "Unknown synthetic price generation fields: " + ", ".join(unknown)
+            )
+        if missing:
+            raise IntegratedStudyInputError(
+                "Missing synthetic price generation fields: " + ", ".join(missing)
+            )
+        return cls(
+            history_start_day=_as_date(payload["history_start_day"], "history_start_day"),
+            resolution_minutes=int(payload["resolution_minutes"]),
+            seed=int(payload["seed"]),
+            negative_price_share=float(payload["negative_price_share"]),
+            retrieved_at_utc=str(payload["retrieved_at_utc"]),
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "history_start_day": self.history_start_day.isoformat(),
+            "resolution_minutes": self.resolution_minutes,
+            "seed": self.seed,
+            "negative_price_share": self.negative_price_share,
+            "retrieved_at_utc": self.retrieved_at_utc,
+        }
 
 
 def operating_margin_case_for(planner: str) -> str:
@@ -153,6 +233,7 @@ class IntegratedStudyConfig:
     finance: FinanceConfig
     result_label: str
     rolling_window_days: int = 28
+    synthetic_price_generation: SyntheticPriceGenerationConfig | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.study_id, str) or not STUDY_ID_PATTERN.match(self.study_id):
@@ -173,6 +254,18 @@ class IntegratedStudyConfig:
         if self.price_source not in PRICE_SOURCES:
             raise IntegratedStudyInputError(
                 "price_source must be one of: " + ", ".join(PRICE_SOURCES)
+            )
+        if self.price_source == "official" and self.synthetic_price_generation is not None:
+            raise IntegratedStudyInputError(
+                "An official study cannot declare synthetic_price_generation"
+            )
+        if (
+            self.synthetic_price_generation is not None
+            and self.synthetic_price_generation.history_start_day >= self.window_start_day
+        ):
+            raise IntegratedStudyInputError(
+                "synthetic history_start_day must precede the study window so forecast "
+                "strategies have declared prior information"
             )
         strategies = tuple(self.strategies)
         if not strategies:
@@ -269,7 +362,7 @@ class IntegratedStudyConfig:
             "finance",
             "result_label",
         }
-        optional = {"rolling_window_days"}
+        optional = {"rolling_window_days", "synthetic_price_generation"}
         unknown = sorted(set(payload) - required - optional)
         missing = sorted(required - set(payload))
         if unknown:
@@ -297,10 +390,15 @@ class IntegratedStudyConfig:
             finance=FinanceConfig.from_dict(payload["finance"]),
             result_label=str(payload["result_label"]),
             rolling_window_days=int(payload.get("rolling_window_days", 28)),
+            synthetic_price_generation=(
+                SyntheticPriceGenerationConfig.from_dict(payload["synthetic_price_generation"])
+                if payload.get("synthetic_price_generation") is not None
+                else None
+            ),
         )
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        payload = {
             "study_id": self.study_id,
             "window_start_day": self.window_start_day.isoformat(),
             "window_end_day": self.window_end_day.isoformat(),
@@ -313,6 +411,9 @@ class IntegratedStudyConfig:
             "finance": self.finance.to_dict(),
             "result_label": self.result_label,
         }
+        if self.synthetic_price_generation is not None:
+            payload["synthetic_price_generation"] = self.synthetic_price_generation.to_dict()
+        return payload
 
 
 def read_integrated_study_config(path: Path) -> IntegratedStudyConfig:

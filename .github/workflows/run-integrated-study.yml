@@ -1,0 +1,139 @@
+name: Run the declared official integrated study
+
+on:
+  workflow_dispatch:
+    inputs:
+      history_run_id:
+        description: Accepted price-history run named in the Stage 10 declaration
+        required: true
+        type: string
+      declaration_document_sha256:
+        description: SHA-256 of the reviewed Stage 10 run declaration
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  integrated-study:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    env:
+      HISTORY_RUN_ID: ${{ inputs.history_run_id }}
+      DECLARATION_DOCUMENT_SHA256: ${{ inputs.declaration_document_sha256 }}
+      OMP_NUM_THREADS: "1"
+      OPENBLAS_NUM_THREADS: "1"
+      MKL_NUM_THREADS: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install .
+
+      - name: Verify declaration before downloading history
+        run: python .github/scripts/integrated_study_run.py guard
+
+      - name: Download accepted history
+        uses: actions/download-artifact@v4
+        with:
+          name: greek-dam-official-history
+          run-id: ${{ env.HISTORY_RUN_ID }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: artifacts/greek-dam-official-history
+
+      - name: Verify existing custody before reading prices
+        shell: bash
+        run: |
+          set -euo pipefail
+          greek-bess verify-custody artifacts/greek-dam-official-history \
+            --record docs/custody/greek-dam-official-history.json \
+            --report private/custody.verification.json >private/custody.log 2>&1
+
+      - name: Prepare and check the complete accepted history
+        shell: bash
+        run: |
+          set -euo pipefail
+          greek-bess merge-canonical \
+            artifacts/greek-dam-official-history/henex_archived_prices.csv \
+            artifacts/greek-dam-official-history/henex_daily_prices.csv \
+            --output private/prices.csv >private/prepare.log 2>&1
+          python .github/scripts/integrated_study_run.py check-prices >>private/prepare.log 2>&1
+
+      - name: Record shared official provenance
+        shell: bash
+        run: |
+          python - <<'PY' > private/declared_inputs.json
+          import json
+          import os
+
+          print(json.dumps({
+              "source_workflow": "Fetch official Greek DAM history",
+              "source_run_id": os.environ["HISTORY_RUN_ID"],
+              "source_artifact": "greek-dam-official-history",
+              "official_history_custody": "verified against the committed record",
+              "source_commit": os.environ["GITHUB_SHA"],
+              "evidence_class": "retrospective_aggregate_release",
+              "declaration_document": "docs/integrated_study_run_declaration_2026-09-14.md",
+              "declaration_document_sha256": os.environ["DECLARATION_DOCUMENT_SHA256"],
+              "comparison_interpretation": "configuration sensitivity, not proof of an optimal battery size",
+              "evidence_grades": ["accepted official HEnEx price history under existing custody"],
+          }, indent=2))
+          PY
+
+      - name: Run both preregistered configurations with private output
+        shell: bash
+        run: |
+          set -euo pipefail
+          run_study() {
+            local config="$1" study_id="$2"
+            mkdir -p "private/${study_id}"
+            greek-bess run-integrated-study private/prices.csv \
+              --study-config "$config" \
+              --declared-inputs private/declared_inputs.json \
+              --output-dir "private/${study_id}" \
+              >"private/${study_id}/${study_id}.command.log" 2>&1
+            greek-bess verify-run-manifest \
+              "private/${study_id}/${study_id}.manifest.json" >/dev/null
+          }
+          run_study config/integrated_study_official_50mw_100mwh.json \
+            official-integrated-study-50mw-100mwh
+          run_study config/integrated_study_official_25mw_100mwh.json \
+            official-integrated-study-25mw-100mwh
+
+      - name: Render the two verified study manifests
+        shell: bash
+        run: |
+          set -euo pipefail
+          greek-bess render-report \
+            private/official-integrated-study-50mw-100mwh/*.manifest.json \
+            private/official-integrated-study-25mw-100mwh/*.manifest.json \
+            --output private/integrated-study-report.html \
+            --index private/integrated-study-report.index.json \
+            >private/render.log 2>&1
+
+      - name: Verify the report and seal the evidence
+        run: python .github/scripts/integrated_study_run.py seal >private/seal.log 2>&1
+
+      - name: Retain evidence including failed-run diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integrated-study-private
+          path: private/
+          if-no-files-found: warn
+          retention-days: 90
+
+      - name: Write labels and artifact identity only
+        shell: bash
+        run: |
+          cat >> "$GITHUB_STEP_SUMMARY" <<'EOF'
+          - Artifact: `integrated-study-private`; a completed run carries `evidence_index.json`.
+          - Retrospective aggregate historical simulations under illustrative assumptions.
+          - The 50 MW/100 MWh and 25 MW/100 MWh comparison is configuration sensitivity only.
+          - No result is expected revenue, investment evidence, financial advice or a bankable study.
+          - Publication requires separate review and authorization.
+          EOF

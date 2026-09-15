@@ -1201,6 +1201,28 @@ greek-bess run-integrated-study \
   --output-dir outputs/study
 ```
 
+For the deterministic synthetic release demonstration, every generation input is part of the
+same configuration, so no price file is needed and the verified manifest can be rendered in the
+same command:
+
+```bash
+greek-bess run-integrated-study \
+  --study-config examples/integrated_study_synthetic_demonstration.json \
+  --output-dir outputs/study \
+  --report outputs/integrated-study.html
+```
+
+Omitting the price file is refused unless `price_source` is `synthetic` and the configuration
+declares `history_start_day`, `resolution_minutes`, `seed`, `negative_price_share` and a
+timezone-aware `retrieved_at_utc` under `synthetic_price_generation`. Official studies always
+require a canonical price file, and a file carrying synthetic source rows is refused. Conversely,
+a study declared synthetic cannot read non-synthetic source rows. The manifest automatically
+records the exact study-configuration
+digest and either the supplied price-file digest or the synthetic-generation digest.
+
+`--declared-inputs provenance.json` may add custody, evidence-grade, workflow, commit and
+declaration identity for a controlled run. It cannot replace an automatically recorded key.
+
 This writes five artifacts, all named after the declared `study_id`:
 
 - `<study_id>.daily.csv`, one row per strategy per delivery day;

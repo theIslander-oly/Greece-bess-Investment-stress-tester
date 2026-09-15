@@ -13,8 +13,10 @@ plans would produce better figures and no error.
 
 from __future__ import annotations
 
+import io
 import json
 import unittest
+from contextlib import redirect_stderr
 from dataclasses import replace
 from datetime import date, timedelta
 from pathlib import Path
@@ -167,6 +169,31 @@ class DeclaredStudyTests(unittest.TestCase):
         self.assertEqual(len(config.strategies), 3)
         self.assertEqual(config.finance.project_start_day, config.window_start_day)
         self.assertEqual(config.finance.project_end_day, config.window_end_day)
+        self.assertIsNotNone(config.synthetic_price_generation)
+
+    def test_an_official_study_cannot_declare_synthetic_generation(self) -> None:
+        payload = json.loads(
+            (EXAMPLES / "integrated_study_synthetic_demonstration.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        payload["price_source"] = "official"
+        with self.assertRaisesRegex(
+            IntegratedStudyInputError, "cannot declare synthetic_price_generation"
+        ):
+            IntegratedStudyConfig.from_dict(payload)
+
+    def test_synthetic_generation_timestamp_must_be_utc(self) -> None:
+        payload = json.loads(
+            (EXAMPLES / "integrated_study_synthetic_demonstration.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        payload["synthetic_price_generation"]["retrieved_at_utc"] = (
+            "2026-09-14T03:00:00+03:00"
+        )
+        with self.assertRaisesRegex(IntegratedStudyInputError, r"UTC offset \+00:00"):
+            IntegratedStudyConfig.from_dict(payload)
 
 
 class CheckOneOneCommandOneConfiguration(unittest.TestCase):
@@ -222,6 +249,110 @@ class CheckOneOneCommandOneConfiguration(unittest.TestCase):
             daily = pd.read_csv(outputs / "cli-study.daily.csv")
             self.assertEqual(daily["strategy_id"].nunique(), 3)
             self.assertEqual(len(daily), 3 * 14)
+
+    def test_one_declared_config_generates_and_renders_the_synthetic_release_demo(
+        self,
+    ) -> None:
+        with TemporaryDirectory() as raw:
+            root = Path(raw)
+            config_path = root / "study.json"
+            payload = json.loads(
+                (EXAMPLES / "integrated_study_synthetic_demonstration.json").read_text(
+                    encoding="utf-8"
+                )
+            )
+            payload["study_id"] = "release-demo"
+            payload["window_end_day"] = WINDOW_END.isoformat()
+            payload["finance"]["project_end_day"] = WINDOW_END.isoformat()
+            config_path.write_text(json.dumps(payload), encoding="utf-8")
+            report = root / "release-demo.html"
+
+            exit_code = main(
+                [
+                    "run-integrated-study",
+                    "--study-config",
+                    str(config_path),
+                    "--output-dir",
+                    str(root / "outputs"),
+                    "--report",
+                    str(report),
+                ]
+            )
+
+            self.assertEqual(exit_code, 0)
+            self.assertTrue(report.exists())
+            self.assertTrue(report.with_suffix(".index.json").exists())
+            manifest = read_run_manifest(root / "outputs" / "release-demo.manifest.json")
+            self.assertEqual(
+                manifest.declared_inputs["price_input"],
+                "generated from synthetic_price_generation in the study configuration",
+            )
+            self.assertRegex(
+                str(manifest.declared_inputs["study_config_sha256"]), r"^[0-9a-f]{64}$"
+            )
+            document = report.read_text(encoding="utf-8")
+            self.assertIn("Strategies under this declared configuration", document)
+            self.assertIn("not investment evidence", document)
+
+    def test_additional_provenance_cannot_replace_an_automatic_digest(self) -> None:
+        with TemporaryDirectory() as raw:
+            root = Path(raw)
+            config_path = root / "study.json"
+            config_path.write_bytes(
+                (EXAMPLES / "integrated_study_synthetic_demonstration.json").read_bytes()
+            )
+            extra = root / "provenance.json"
+            extra.write_text(json.dumps({"study_config_sha256": "substitute"}))
+            outputs = root / "outputs"
+
+            errors = io.StringIO()
+            with redirect_stderr(errors):
+                exit_code = main(
+                    [
+                        "run-integrated-study",
+                        "--study-config",
+                        str(config_path),
+                        "--declared-inputs",
+                        str(extra),
+                        "--output-dir",
+                        str(outputs),
+                    ]
+                )
+            self.assertEqual(exit_code, 1)
+            self.assertIn("cannot replace automatic provenance", errors.getvalue())
+            self.assertFalse(outputs.exists())
+
+    def test_an_official_config_cannot_run_on_a_synthetic_price_file(self) -> None:
+        with TemporaryDirectory() as raw:
+            root = Path(raw)
+            prices_path = root / "prices.csv"
+            export = _prices().copy()
+            export["quality_flags"] = export["quality_flags"].map(json.dumps)
+            export.to_csv(prices_path, index=False)
+            payload = json.loads(
+                (EXAMPLES / "integrated_study_synthetic_demonstration.json").read_text(
+                    encoding="utf-8"
+                )
+            )
+            payload["price_source"] = "official"
+            del payload["synthetic_price_generation"]
+            config_path = root / "official.json"
+            config_path.write_text(json.dumps(payload))
+
+            errors = io.StringIO()
+            with redirect_stderr(errors):
+                exit_code = main(
+                    [
+                        "run-integrated-study",
+                        str(prices_path),
+                        "--study-config",
+                        str(config_path),
+                        "--output-dir",
+                        str(root / "outputs"),
+                    ]
+                )
+            self.assertEqual(exit_code, 1)
+            self.assertIn("official cannot read synthetic prices", errors.getvalue())
 
 
 class CheckTwoZeroFadeReproduction(unittest.TestCase):

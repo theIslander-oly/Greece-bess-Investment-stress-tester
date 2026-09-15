@@ -6,6 +6,17 @@ All notable project changes are documented here.
 
 ### Added
 
+- Begin Stage 10's portfolio release layer. `run-integrated-study` can generate a deterministic
+  synthetic history from fully declared configuration inputs and render its verified manifest in
+  the same command. Automatic provenance records the exact configuration and supplied-price or
+  synthetic-generation digests; caller-supplied provenance may extend but cannot replace them.
+- Renderer version 4 presents integrated-study strategies side by side from manifest values only, including every
+  recorded field and no derived ranking, cross-configuration statistic or shared ceiling.
+- Preregister the accepted-history 50 MW/100 MWh versus 25 MW/100 MWh configuration sensitivity
+  and add a digest- and custody-gated workflow that runs both configurations, renders a private
+  aggregate report and seals the evidence. The workflow does not publish and an official run is
+  not authorized by this preparation.
+
 - Record the approved Stage 9 official selection result from run `34623616511`: validation-margin
   selection settled EUR 12,639.14 more than validation-RMSE selection on the declared 329-day
   evaluation window, with more cycling. Publish aggregate metrics and provenance under the
@@ -36,6 +47,14 @@ fundamentals result stands exactly as committed. The design-and-implementation c
 no official-history result; the separately approved measurement is recorded above.
 
 ### Changed
+
+- Close Stage 9 after PR #77 merged as `abfac6a` and CI run `34824236600` passed on Python 3.12
+  and 3.13; move Stage 10 to In progress with one next gate: review and merge its workflow PR.
+- End the committed integrated synthetic demonstration on 28 March 2026. The former end date
+  crossed the spring 23-hour market day, leaving `daily_persistence` without one same-position
+  observation on the following day; the strict study contract correctly refuses that gap.
+- Regenerate the committed synthetic-only sample report under renderer version 4. Its recorded
+  analytical figures are unchanged; the renderer-version metadata advances.
 
 - Move Stage 9 to Review with one next action: review and merge the aggregate-result PR. Keep
   Stage 10 pending, and remove README and limitations claims that predated official fundamentals
