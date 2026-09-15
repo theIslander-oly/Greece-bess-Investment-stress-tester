@@ -8,18 +8,26 @@ This page states where the work stands today. The dated record of how it got her
 [`docs/history/status_log_through_2026-09-11.md`](docs/history/status_log_through_2026-09-11.md);
 the stage tracker and what happens next are in [`PLAN.md`](PLAN.md).
 
-## Checkout review — 15 September 2026
+## Readiness audit — 15 September 2026
 
-Remote inspection confirmed Stage 10 PR #78 is open at `45fdc7a`, two commits ahead of
-`main`, with CI passing on Python 3.12 and 3.13. The local review consolidates the README
-and ignores private workflow evidence; it changes no analytical code or declared study input.
-Validation and scope are recorded in
-[the checkout review](docs/history/implementation_report_checkout_review_2026-09-15.md).
-The next action remains release review and merge, followed by the official-study gate.
+[The Stages 1–9 audit](docs/history/implementation_report_stages1-9_audit_2026-09-15.md)
+checks retained official artifacts and reproduces a Stage 9 library-input defect: RMSE trusted
+a copied actual-price column while settlement used canonical prices. The repair refuses
+inconsistent copies; the retained official table agrees exactly and its result is unaffected.
+The maintenance branch is `codex/audit-stages1-9`, stacked on the release preparation.
+Review this repair and its prospective declaration before completing release review.
+
+Price and feature custody verify, Stage 7 manifests verify, all 200 matched refit pairs agree,
+and the latest witness covers all three variables. Current-code feature reconstruction matches
+the accepted feature and audit digests and all 2,124 daily coverage records. All 807 tests,
+Ruff, mypy and a clean wheel build pass locally. Stage 8 is implementation-complete;
+its original official-history acceptance check is still pending under Stage 10. Historical
+benchmark reproduction also requires recorded dependencies, not this workstation's defaults.
 
 ## Where the work stands
 
-Stages 1 through 9 of `Greek_BESS_Execution_Plan.md` are complete. Stage 9 result PR #77 merged
+Stages 1–7 and 9 have recorded completion evidence. Stage 8 has completed implementation and
+synthetic validation; its official-history acceptance check remains open under Stage 10. Stage 9 result PR #77 merged
 as `abfac6a`; CI run `34824236600` passed on Python 3.12 and 3.13. Stage 10 is in progress on
 `release-integrated-research-study`. Nothing is renumbered.
 

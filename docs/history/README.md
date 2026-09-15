@@ -62,3 +62,5 @@ No figure, run id or digest was changed in either move.
 - [Stage 10 reproducible release and official-workflow preparation](implementation_report_stage10_workflow_2026-09-14.md).
 
 - [Checkout review and README consolidation — 15 September 2026](implementation_report_checkout_review_2026-09-15.md)
+
+- [Stages 1–9 readiness audit and selection input repair](implementation_report_stages1-9_audit_2026-09-15.md)

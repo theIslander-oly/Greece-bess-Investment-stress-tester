@@ -204,8 +204,12 @@ class FrozenSelectionTests(unittest.TestCase):
         first = compare_selection_objectives(
             prices, battery(), forecasts, candidates=DIVERGENT_GRID
         )
+        moved_forecasts = forecasts.copy()
+        moved_forecasts["actual_price_eur_per_mwh"] = moved_forecasts[
+            "delivery_start_utc"
+        ].map(moved.set_index("delivery_start_utc")["price_eur_per_mwh"])
         second = compare_selection_objectives(
-            moved, battery(), forecasts, candidates=DIVERGENT_GRID
+            moved, battery(), moved_forecasts, candidates=DIVERGENT_GRID
         )
 
         self.assertEqual(
@@ -298,6 +302,26 @@ class FrozenSelectionTests(unittest.TestCase):
 
 
 class SelectionRefusalTests(unittest.TestCase):
+    def test_copied_actual_prices_cannot_change_the_rmse_selection(self) -> None:
+        prices = shaped_prices(date(2026, 3, 1), 2)
+        forecasts = divergent_forecasts(prices, date(2026, 3, 2))
+        # Dispatch reads prices, but RMSE used to trust this independent copy. Replacing it
+        # selected the other candidate without changing either forecast or settlement price.
+        forecasts["actual_price_eur_per_mwh"] = forecasts["high_rmse_right_order"]
+        with self.assertRaisesRegex(ValueSelectionInputError, "realized prices"):
+            compare_selection_objectives(
+                prices, battery(), forecasts, candidates=DIVERGENT_GRID
+            )
+
+    def test_missing_actual_prices_cannot_silently_reduce_rmse_coverage(self) -> None:
+        prices = shaped_prices(date(2026, 3, 1), 2)
+        forecasts = divergent_forecasts(prices, date(2026, 3, 2))
+        forecasts.loc[0, "actual_price_eur_per_mwh"] = np.nan
+        with self.assertRaisesRegex(ValueSelectionInputError, "realized prices"):
+            compare_selection_objectives(
+                prices, battery(), forecasts, candidates=DIVERGENT_GRID
+            )
+
     def test_overlapping_windows_are_refused(self) -> None:
         prices = shaped_prices(date(2026, 3, 1), 8)
         forecasts = divergent_forecasts(prices, date(2026, 3, 5))

@@ -1,5 +1,19 @@
 # Decision log
 
+## 2026-09-15 — Require one realized-price identity for Stage 9 selection and settlement
+
+A synthetic counterexample changed the validation-RMSE pick by modifying only the candidate
+table's copied actual-price column; dispatch still used canonical prices. Refuse missing or
+inconsistent copied actuals before scoring, with absolute tolerance 1e-9 EUR/MWh and zero
+relative tolerance. No selection objective, fitting setting or valid-input arithmetic changes.
+The retained official table has zero discrepancy, so its recorded result stands.
+
+Retain the original run declaration unchanged for the accepted result. Prepare a new dated
+declaration for the repaired implementation; review precedes any future dispatch. The audit
+also distinguishes Stage 8's completed synthetic implementation from its original official-data
+acceptance check, still outstanding under Stage 10. Do not imply that passing unit tests or
+successful historic jobs establishes current availability of every external prerequisite.
+
 ## 2026-09-15 — Consolidate the landing page after inspecting the release checkout
 
 Replace duplicated implementation inventories, old next-phase plans and release-history lists

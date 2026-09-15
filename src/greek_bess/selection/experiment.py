@@ -49,6 +49,7 @@ import pandas as pd
 
 from ..backtest.forecast_dispatch import ForecastDispatchInputError
 from ..backtest.ml_dispatch import _backtest_precomputed_forecast
+from ..data.schema import ensure_canonical
 from ..dispatch import BatteryDispatchConfig
 from ..forecast import calculate_forecast_metrics
 from .candidates import (
@@ -124,6 +125,7 @@ def compare_selection_objectives(
             f"Unknown evidence_class {evidence_class!r}; expected one of {list(EVIDENCE_CLASSES)}"
         )
     validation_rows, evaluation_rows = _split_rows(forecasts, grid)
+    _validate_realized_price_identity(prices, forecasts)
 
     # Step 1 — score on validation days only. Nothing below this line has read an evaluation
     # price, and the scoreboard is the only input the selection rules are given.
@@ -225,6 +227,29 @@ def _split_rows(
             "days that follow the window it is frozen for"
         )
     return validation_rows, evaluation_rows
+
+
+def _validate_realized_price_identity(prices: pd.DataFrame, forecasts: pd.DataFrame) -> None:
+    """Price-error selection and dispatch settlement must use the same realized prices."""
+
+    actual = ensure_canonical(prices, allow_empty=False).set_index("delivery_start_utc")
+    starts = pd.to_datetime(forecasts["delivery_start_utc"], utc=True, errors="coerce")
+    if starts.isna().any() or starts.duplicated().any() or not actual.index.is_unique:
+        raise ValueSelectionInputError("Realized-price matching requires valid unique intervals")
+    expected = starts.map(actual["price_eur_per_mwh"]).to_numpy(dtype=float)
+    supplied = pd.to_numeric(
+        forecasts["actual_price_eur_per_mwh"], errors="coerce"
+    ).to_numpy(dtype=float)
+    if (
+        not np.isfinite(expected).all()
+        or not np.isfinite(supplied).all()
+        or not np.allclose(supplied, expected, rtol=0.0, atol=1e-9)
+    ):
+        raise ValueSelectionInputError(
+            "Candidate forecast actual prices must match the realized prices used for "
+            "settlement on every interval (absolute tolerance 1e-9 EUR/MWh); missing or "
+            "inconsistent values cannot select a model"
+        )
 
 
 def _score_candidates(
