@@ -1,5 +1,17 @@
 # Decision log
 
+## 2026-09-15 — Consolidate the landing page after inspecting the release checkout
+
+Replace duplicated implementation inventories, old next-phase plans and release-history lists
+in the README with links to their maintained references. Preserve the accepted aggregate findings
+verbatim. Describe the current distinction between separate ML/weather benchmarks and the
+integrated runner's naive/perfect-foresight planners. Keep the explicitly approved synthetic
+sample and its byte regression; no analytical method or accepted evidence changes.
+
+Ignore the root `private/` directory used by the official-study workflow so its CSVs, JSON
+receipts and logs cannot enter an ordinary add. Existing private files are retained locally.
+This is release maintenance on `release-integrated-research-study`, not a new model milestone.
+
 ## 2026-09-14 — Open Stage 10 with a reproducible demo and a separately gated official study
 
 Stage 9 is complete: result PR #77 merged as `abfac6a`, and CI run `34824236600` passed on
