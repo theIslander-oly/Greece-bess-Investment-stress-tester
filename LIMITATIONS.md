@@ -375,9 +375,10 @@ Training and validation are entirely hourly, while the fixed test beginning 1 Oc
 
 ## Integrated study limitations
 
-The study runner has been validated on deterministic synthetic prices alone and has produced no
-official-history result. Nothing it has computed is evidence about Greek prices or about battery
-value.
+The study runner has deterministic synthetic validation and one completed official-history
+run, `35252229873`, covering the declared 329 days and two configurations. Its private artifact,
+manifests, daily accounting and dated finance have independently reconciled. The result remains
+retrospective research under illustrative assumptions; public publication is separately gated.
 
 The first declared official attempt, run `35191734263`, failed before producing a result because
 the naïve rolling mean lacked exact historical `:15`, `:30` and `:45` slots on the first
@@ -386,7 +387,7 @@ it contains. This assumes the historical hourly price is the only resolution ava
 four target positions; it does not recover within-hour variation that was never observed. Finer
 history is not aggregated into a coarser target.
 
-The repaired Stage 10 workflow and prospective declaration are preparation, not a result. The
+The repaired Stage 10 workflow completed the unchanged 17 September declaration. The
 preregistered 50 MW/100 MWh versus 25 MW/100 MWh run is a controlled configuration sensitivity
 on one already inspected historical window. It cannot establish an optimal size. Its finance
 assumptions are held identical, including PCS cost, to isolate the physical configuration; they

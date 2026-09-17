@@ -108,13 +108,21 @@ Read [LIMITATIONS.md](LIMITATIONS.md) before interpreting results and
 
 The core workflows and historical benchmarks are implemented. The
 [Stages 1–9 audit](docs/history/implementation_report_stages1-9_audit_2026-09-15.md) verifies retained
-evidence and repairs inconsistent selection inputs. Stage 8's runner has synthetic validation;
-its original official-data acceptance remains outstanding under Stage 10's prepared
-50 MW/100 MWh and 25 MW/100 MWh study. The first authorized attempt failed before producing a
-result at the hourly-to-quarter-hour forecast transition; its focused repair and revised
-declaration await review. Official acceptance and publication remain open.
+evidence and repairs inconsistent selection inputs. Stage 8's runner now has synthetic validation
+and a completed, privately reconciled official study for 50 MW/100 MWh and 25 MW/100 MWh.
+The first authorized attempt failed before producing a
+result at the hourly-to-quarter-hour forecast transition. Repair PR #81 is merged and its
+merge CI passed. The authorized retry, run `35252229873`, uses the unchanged repaired
+declaration and completed successfully. Independent reconciliation and byte-identical report
+re-rendering passed. Stage 10 remains in review pending publication authorization and verification
+of the published report. Numerical study results remain in the private review bundle.
 [STATUS.md](STATUS.md) records the current evidence and external blockers;
 [PLAN.md](PLAN.md) owns the next steps.
+
+The [model assessment and research agenda](docs/model_assessment_and_research_agenda_2026-09-17.md)
+records the accepted findings, the limits of the current mathematical models and the proposed
+sequence after Stage 10: test selection gains after ageing and costs, value remaining battery
+life, then benchmark forecast challengers on untouched data. No model is established as best.
 
 ## Data policy
 

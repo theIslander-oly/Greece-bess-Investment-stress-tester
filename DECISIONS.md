@@ -1,5 +1,30 @@
 # Decision log
 
+## 2026-09-17 — Continue the declared study and preserve the research agenda
+
+After PR #81 merged as `76d48d5aea505fefe51ca948cc901d6fbda594a0` and merge CI
+`35251110866` succeeded, the operator instructed continuation of the current study and
+recording of the model assessment. Treat this as authorization for one private retry of
+the reviewed 17 September declaration, SHA-256
+`007c90444aedf17135601035c3b46a9731b7117a531692f92e4173f28cdcbe79`.
+Run `35252229873` uses accepted history `33483975614` and resolves to that merged commit.
+No source, window, strategy, cost or degradation assumption changes. Publication is separate.
+
+The run succeeded. Independent private review verifies the original archive and all 18 indexed
+files, both manifests, all six complete strategy calendars, energy continuity, daily grid-cycle
+limits, cell-throughput degradation, cash-flow timing and finance residuals. Local re-rendering
+reproduces the workflow HTML byte for byte. Stage 8's official-history acceptance is satisfied;
+Stage 10 moves to review while public result publication remains unauthorized. Record the
+acceptance evidence without adding the new numerical outcomes to tracked documentation.
+
+Record [the model assessment and ordered research agenda](docs/model_assessment_and_research_agenda_2026-09-17.md).
+The present dispatch and finance formulations are suitable for the declared research questions;
+forecast superiority is unproved, additive fade is illustrative, and daily policy is not a
+lifetime optimum. After Stage 10, prioritize whether forecast-selection gains survive ageing
+and costs, then whether valuing remaining battery life improves dispatch, and then a limited
+forecast benchmark on untouched data. More complex degradation requires suitable calibration.
+These are proposed experiments, not authorization to alter the active study or add markets.
+
 ## 2026-09-17 — Align causal naïve forecasts across the hourly-to-quarter-hour transition
 
 Authorized official run `35191734263` passed its declaration, custody and calendar gates, then
