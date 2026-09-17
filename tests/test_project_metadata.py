@@ -64,6 +64,16 @@ class ProjectVersionTests(unittest.TestCase):
 
 
 class DocumentationContractTests(unittest.TestCase):
+    def test_readme_local_references_resolve(self) -> None:
+        readme = (PROJECT_ROOT / "README.md").read_text(encoding="utf-8")
+        targets = re.findall(r"\[[^\]]+\]\(([^)]+)\)", readme)
+        self.assertTrue(targets, "The landing page must link to its reference documents")
+        for target in targets:
+            if "://" in target or target.startswith("#"):
+                continue
+            with self.subTest(target=target):
+                self.assertTrue((PROJECT_ROOT / target.split("#", 1)[0]).exists())
+
     def test_limitations_acknowledge_the_accepted_fundamentals_result(self) -> None:
         limitations = (PROJECT_ROOT / "LIMITATIONS.md").read_text(encoding="utf-8")
         normalized = " ".join(limitations.split())

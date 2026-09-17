@@ -1,12 +1,21 @@
 # Project status
 
 **Version:** 0.9.7
-**Updated:** 14 September 2026
+**Updated:** 15 September 2026
 **Validation:** [Current CI](https://github.com/theIslander-oly/Greece-bess-Investment-stress-tester/actions/workflows/tests.yml) runs Python 3.12 and 3.13. Dated implementation reports record suite counts.
 
 This page states where the work stands today. The dated record of how it got here is in
 [`docs/history/status_log_through_2026-09-11.md`](docs/history/status_log_through_2026-09-11.md);
 the stage tracker and what happens next are in [`PLAN.md`](PLAN.md).
+
+## Checkout review — 15 September 2026
+
+Remote inspection confirmed Stage 10 PR #78 is open at `45fdc7a`, two commits ahead of
+`main`, with CI passing on Python 3.12 and 3.13. The local review consolidates the README
+and ignores private workflow evidence; it changes no analytical code or declared study input.
+Validation and scope are recorded in
+[the checkout review](docs/history/implementation_report_checkout_review_2026-09-15.md).
+The next action remains release review and merge, followed by the official-study gate.
 
 ## Where the work stands
 
