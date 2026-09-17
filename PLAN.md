@@ -25,9 +25,18 @@ v0.1-v0.6 implementation predates the connected repository and entered through t
 | 5 | Complete | Degradation result basis merged as `df7ffec` |
 | 6 | Complete | Matched-training control merged as `196a5c1` (amendment `cba04f0`) |
 | 7 | Complete | Acceptance (`docs/fundamentals_acceptance_2026-09-10.md`) and benchmark result (`docs/fundamentals_benchmark_2026-09-11.md`, run `34524611285`) both committed; the result is mixed by model family and recorded as such |
-| 8 | Complete | `greek_bess.study` and `run-integrated-study` merged as PR #69, with the cash and stored-energy conventions corrected in PR #71 (`docs/integrated_study_design.md` sections 4.5, 5.3, 5.4) |
+| 8 | Implementation complete; official acceptance pending | `greek_bess.study` and `run-integrated-study` merged as PR #69, with the cash and stored-energy conventions corrected in PR #71 (`docs/integrated_study_design.md` sections 4.5, 5.3, 5.4) |
 | 9 | Complete | Result PR #77 merged as `abfac6a`; CI run `34824236600` passed on Python 3.12 and 3.13 |
 | 10 | **In progress** | Branch `release-integrated-research-study`; reproducible demo and digest-gated official workflow prepared for review |
+
+## Readiness maintenance — 15 September 2026
+
+Review the [Stages 1–9 audit](docs/history/implementation_report_stages1-9_audit_2026-09-15.md)
+and the refusal repair on `codex/audit-stages1-9` before finishing the release PR. The official
+Stage 9 result is unchanged; a future run uses the prospective 15 September declaration.
+Stage 8's original acceptance includes an official study, so its tested implementation alone
+is not the final acceptance. Complete that check through the prepared Stage 10 run.
+Preserve expiring accepted inputs and witnesses and verify the documented restore path.
 
 ## Stage 9 — evaluate selection by battery value
 
@@ -71,8 +80,10 @@ preregisters the accepted-history window and the 50 MW/100 MWh versus 25 MW/100 
 configuration sensitivity; the prepared workflow verifies the declaration and existing custody,
 runs both configurations, renders their manifests, seals private evidence and does not publish.
 
-**Next action: review, validate and merge the Stage 10 workflow PR.** Only after that merge may
-the operator approve the unchanged declaration digest and dispatch the official run. Result
+**Next action: review the readiness repair and approve the exact declared official dispatch.**
+Stage 10 preparation PR #78 and README cleanup PR #79 have merged. CI passed on the
+preparation merge and the cleanup head. The operator must separately approve the unchanged
+declaration digest before the official run. Result
 publication remains a separate gate. The final acceptance check requires `STATUS.md` and
 `PLAN.md` to make no contradictory current-state claims.
 

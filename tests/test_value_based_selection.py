@@ -204,8 +204,12 @@ class FrozenSelectionTests(unittest.TestCase):
         first = compare_selection_objectives(
             prices, battery(), forecasts, candidates=DIVERGENT_GRID
         )
+        moved_forecasts = forecasts.copy()
+        moved_forecasts["actual_price_eur_per_mwh"] = moved_forecasts[
+            "delivery_start_utc"
+        ].map(moved.set_index("delivery_start_utc")["price_eur_per_mwh"])
         second = compare_selection_objectives(
-            moved, battery(), forecasts, candidates=DIVERGENT_GRID
+            moved, battery(), moved_forecasts, candidates=DIVERGENT_GRID
         )
 
         self.assertEqual(
@@ -298,6 +302,77 @@ class FrozenSelectionTests(unittest.TestCase):
 
 
 class SelectionRefusalTests(unittest.TestCase):
+    def test_realized_price_guard_preserves_zero_negative_and_absolute_tolerance(self) -> None:
+        from greek_bess.selection.experiment import _validate_realized_price_identity
+
+        prices = shaped_prices(date(2026, 3, 1), 2)
+        prices.loc[0, "price_eur_per_mwh"] = 0.0
+        forecasts = divergent_forecasts(prices, date(2026, 3, 2))
+        _validate_realized_price_identity(prices, forecasts)
+        forecasts.loc[0, "actual_price_eur_per_mwh"] = 0.5e-9
+        _validate_realized_price_identity(prices, forecasts)
+        forecasts.loc[0, "actual_price_eur_per_mwh"] = 2e-9
+        with self.assertRaisesRegex(ValueSelectionInputError, "realized prices"):
+            _validate_realized_price_identity(prices, forecasts)
+        # A large absolute price must not enable a relative-error allowance.
+        prices.loc[0, "price_eur_per_mwh"] = 1e6
+        forecasts.loc[0, "actual_price_eur_per_mwh"] = 1e6 + 1e-5
+        with self.assertRaisesRegex(ValueSelectionInputError, "realized prices"):
+            _validate_realized_price_identity(prices, forecasts)
+
+    def test_nonfinite_actuals_are_refused_in_either_price_source(self) -> None:
+        from greek_bess.selection.experiment import _validate_realized_price_identity
+
+        for value in (np.nan, np.inf, -np.inf):
+            for canonical in (False, True):
+                with self.subTest(value=value, canonical=canonical):
+                    prices = shaped_prices(date(2026, 3, 1), 2)
+                    forecasts = divergent_forecasts(prices, date(2026, 3, 2))
+                    if canonical:
+                        prices.loc[0, "price_eur_per_mwh"] = value
+                    else:
+                        forecasts.loc[0, "actual_price_eur_per_mwh"] = value
+                    with self.assertRaisesRegex(ValueSelectionInputError, "realized prices"):
+                        _validate_realized_price_identity(prices, forecasts)
+
+    def test_invalid_duplicate_and_unmatched_matching_keys_are_refused(self) -> None:
+        from greek_bess.selection.experiment import _validate_realized_price_identity
+
+        for mutation in ("invalid", "duplicate_forecast", "duplicate_price", "unmatched"):
+            with self.subTest(mutation=mutation):
+                prices = shaped_prices(date(2026, 3, 1), 2)
+                forecasts = divergent_forecasts(prices, date(2026, 3, 2))
+                if mutation == "invalid":
+                    forecasts.loc[0, "delivery_start_utc"] = pd.NaT
+                elif mutation == "duplicate_forecast":
+                    forecasts.loc[0, "delivery_start_utc"] = forecasts.loc[1, "delivery_start_utc"]
+                elif mutation == "duplicate_price":
+                    prices = pd.concat([prices, prices.iloc[[0]]], ignore_index=True)
+                else:
+                    forecasts.loc[0, "delivery_start_utc"] -= pd.Timedelta(10, unit="D")
+                with self.assertRaises(ValueSelectionInputError):
+                    _validate_realized_price_identity(prices, forecasts)
+
+    def test_copied_actual_prices_cannot_change_the_rmse_selection(self) -> None:
+        prices = shaped_prices(date(2026, 3, 1), 2)
+        forecasts = divergent_forecasts(prices, date(2026, 3, 2))
+        # Dispatch reads prices, but RMSE used to trust this independent copy. Replacing it
+        # selected the other candidate without changing either forecast or settlement price.
+        forecasts["actual_price_eur_per_mwh"] = forecasts["high_rmse_right_order"]
+        with self.assertRaisesRegex(ValueSelectionInputError, "realized prices"):
+            compare_selection_objectives(
+                prices, battery(), forecasts, candidates=DIVERGENT_GRID
+            )
+
+    def test_missing_actual_prices_cannot_silently_reduce_rmse_coverage(self) -> None:
+        prices = shaped_prices(date(2026, 3, 1), 2)
+        forecasts = divergent_forecasts(prices, date(2026, 3, 2))
+        forecasts.loc[0, "actual_price_eur_per_mwh"] = np.nan
+        with self.assertRaisesRegex(ValueSelectionInputError, "realized prices"):
+            compare_selection_objectives(
+                prices, battery(), forecasts, candidates=DIVERGENT_GRID
+            )
+
     def test_overlapping_windows_are_refused(self) -> None:
         prices = shaped_prices(date(2026, 3, 1), 8)
         forecasts = divergent_forecasts(prices, date(2026, 3, 5))

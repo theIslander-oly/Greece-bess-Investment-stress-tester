@@ -1,25 +1,38 @@
 # Project status
 
 **Version:** 0.9.7
-**Updated:** 15 September 2026
+**Updated:** 17 September 2026
 **Validation:** [Current CI](https://github.com/theIslander-oly/Greece-bess-Investment-stress-tester/actions/workflows/tests.yml) runs Python 3.12 and 3.13. Dated implementation reports record suite counts.
 
 This page states where the work stands today. The dated record of how it got here is in
 [`docs/history/status_log_through_2026-09-11.md`](docs/history/status_log_through_2026-09-11.md);
 the stage tracker and what happens next are in [`PLAN.md`](PLAN.md).
 
-## Checkout review — 15 September 2026
+## Readiness audit — 15 September 2026
 
-Remote inspection confirmed Stage 10 PR #78 is open at `45fdc7a`, two commits ahead of
-`main`, with CI passing on Python 3.12 and 3.13. The local review consolidates the README
-and ignores private workflow evidence; it changes no analytical code or declared study input.
-Validation and scope are recorded in
-[the checkout review](docs/history/implementation_report_checkout_review_2026-09-15.md).
-The next action remains release review and merge, followed by the official-study gate.
+[The Stages 1–9 audit](docs/history/implementation_report_stages1-9_audit_2026-09-15.md)
+checks retained official artifacts and reproduces a Stage 9 library-input defect: RMSE trusted
+a copied actual-price column while settlement used canonical prices. The repair refuses
+inconsistent copies; the retained official table agrees exactly and its result is unaffected.
+The maintenance branch is `codex/audit-stages1-9`. Release preparation PR #78 and README
+cleanup PR #79 are now merged; the repair is separately reviewable against `main`.
+Review this repair and its prospective declaration before completing release review.
+
+Price and feature custody verify, Stage 7 manifests verify, all 200 matched refit pairs agree,
+and the latest witness covers all three variables. Current-code feature reconstruction matches
+the accepted feature and audit digests and all 2,124 daily coverage records. All 807 tests,
+Ruff, mypy and a clean wheel build pass locally. Stage 8 is implementation-complete;
+its original official-history acceptance check is still pending under Stage 10. Historical
+benchmark reproduction also requires recorded dependencies, not this workstation's defaults.
+
+The [continuation review](docs/history/implementation_report_release_review_2026-09-17.md)
+records independent repair checks, declaration identities, current retention and the exact
+proposed official dispatch. No official study or publication has occurred.
 
 ## Where the work stands
 
-Stages 1 through 9 of `Greek_BESS_Execution_Plan.md` are complete. Stage 9 result PR #77 merged
+Stages 1–7 and 9 have recorded completion evidence. Stage 8 has completed implementation and
+synthetic validation; its official-history acceptance check remains open under Stage 10. Stage 9 result PR #77 merged
 as `abfac6a`; CI run `34824236600` passed on Python 3.12 and 3.13. Stage 10 is in progress on
 `release-integrated-research-study`. Nothing is renumbered.
 
@@ -33,9 +46,10 @@ The [official Stage 10 declaration](docs/integrated_study_run_declaration_2026-0
 preregisters a 329-day accepted-history study and a controlled 50 MW/100 MWh versus
 25 MW/100 MWh configuration sensitivity. The prepared workflow checks the declaration digest
 and existing custody before prices are read, runs both fixed configurations, renders only their
-verified manifests and seals a private evidence bundle. It performs no publication. The next
-action is review, validation and merge of that workflow change; an official dispatch and any
-publication remain separately gated.
+verified manifests and seals a private evidence bundle. It performs no publication.
+Preparation PR #78 merged as `57c0ba3`, with CI run `34940218055` passing. README
+cleanup PR #79 merged as `d60b85c`, after CI on `f760c7d` passed. The unchanged official
+declaration and its digest await separate dispatch approval; publication remains separately gated.
 
 The tool retrieves an official Greek DAM price history, records and renders it under custody and
 manifest gates, optimizes perfect-foresight dispatch against it, backtests naive and ML forecasts

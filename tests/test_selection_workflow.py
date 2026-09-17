@@ -13,7 +13,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 SCRIPT = Path(".github/scripts/selection_run.py")
-DOCUMENT = Path("docs/selection_run_declaration_2026-09-11.md")
+DOCUMENT = Path("docs/selection_run_declaration_2026-09-15.md")
 WORKFLOW = Path(".github/workflows/benchmark-selection.yml")
 SPEC = importlib.util.spec_from_file_location("selection_run", SCRIPT)
 assert SPEC is not None and SPEC.loader is not None

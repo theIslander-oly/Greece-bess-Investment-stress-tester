@@ -4,7 +4,19 @@ All notable project changes are documented here.
 
 ## [Unreleased]
 
+### Fixed
+
+- Refuse candidate tables whose copied actual prices disagree with canonical settlement prices
+  or contain missing values, preventing inconsistent RMSE selection and metric coverage.
+  Retained official Stage 9 inputs match exactly; the accepted result is unchanged.
+- Correct Stage 8 readiness wording: synthetic implementation is complete, official-history
+  acceptance remains outstanding. Record a private-artifact audit and a prospective Stage 9
+  declaration for the repaired implementation.
+
 ### Maintenance
+
+- Independently review selection price identity, add finite-value, interval-key and absolute-
+  tolerance regressions, and reconcile release status with merged PRs #78 and #79.
 
 - Reduce the README to quickstart, accepted findings, current capabilities and reference links;
   remove stale phase plans and the obsolete claim that forecasting uses price history only.

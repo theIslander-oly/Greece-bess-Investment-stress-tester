@@ -816,3 +816,11 @@ custody gate rather than from the source string alone.
 The static renderer lays an integrated study's strategies out as one column per strategy and one
 row per recorded field. It reads only the verified manifest, retains exact values and derives no
 ranking, cross-configuration statistic or shared ceiling.
+
+## Selection input consistency
+
+Validation price-error selection and dispatch settlement must refer to the same realized prices.
+The Stage 9 comparison matches the candidate table's copied actuals to canonical UTC interval
+keys before scoring; missing, non-finite or inconsistent copies fail. Matching uses absolute
+1e-9 EUR/MWh tolerance and zero relative tolerance. This check changes no selection objective
+or arithmetic for valid inputs; it prevents two objectives from reading different actuals.
