@@ -1,7 +1,7 @@
 # Project status
 
 **Version:** 0.9.7
-**Updated:** 15 September 2026
+**Updated:** 17 September 2026
 **Validation:** [Current CI](https://github.com/theIslander-oly/Greece-bess-Investment-stress-tester/actions/workflows/tests.yml) runs Python 3.12 and 3.13. Dated implementation reports record suite counts.
 
 This page states where the work stands today. The dated record of how it got here is in
@@ -14,7 +14,8 @@ the stage tracker and what happens next are in [`PLAN.md`](PLAN.md).
 checks retained official artifacts and reproduces a Stage 9 library-input defect: RMSE trusted
 a copied actual-price column while settlement used canonical prices. The repair refuses
 inconsistent copies; the retained official table agrees exactly and its result is unaffected.
-The maintenance branch is `codex/audit-stages1-9`, stacked on the release preparation.
+The maintenance branch is `codex/audit-stages1-9`. Release preparation PR #78 and README
+cleanup PR #79 are now merged; the repair is separately reviewable against `main`.
 Review this repair and its prospective declaration before completing release review.
 
 Price and feature custody verify, Stage 7 manifests verify, all 200 matched refit pairs agree,
@@ -23,6 +24,10 @@ the accepted feature and audit digests and all 2,124 daily coverage records. All
 Ruff, mypy and a clean wheel build pass locally. Stage 8 is implementation-complete;
 its original official-history acceptance check is still pending under Stage 10. Historical
 benchmark reproduction also requires recorded dependencies, not this workstation's defaults.
+
+The [continuation review](docs/history/implementation_report_release_review_2026-09-17.md)
+records independent repair checks, declaration identities, current retention and the exact
+proposed official dispatch. No official study or publication has occurred.
 
 ## Where the work stands
 
@@ -41,9 +46,10 @@ The [official Stage 10 declaration](docs/integrated_study_run_declaration_2026-0
 preregisters a 329-day accepted-history study and a controlled 50 MW/100 MWh versus
 25 MW/100 MWh configuration sensitivity. The prepared workflow checks the declaration digest
 and existing custody before prices are read, runs both fixed configurations, renders only their
-verified manifests and seals a private evidence bundle. It performs no publication. The next
-action is review, validation and merge of that workflow change; an official dispatch and any
-publication remain separately gated.
+verified manifests and seals a private evidence bundle. It performs no publication.
+Preparation PR #78 merged as `57c0ba3`, with CI run `34940218055` passing. README
+cleanup PR #79 merged as `d60b85c`, after CI on `f760c7d` passed. The unchanged official
+declaration and its digest await separate dispatch approval; publication remains separately gated.
 
 The tool retrieves an official Greek DAM price history, records and renders it under custody and
 manifest gates, optimizes perfect-foresight dispatch against it, backtests naive and ML forecasts

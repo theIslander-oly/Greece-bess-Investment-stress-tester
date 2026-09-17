@@ -110,7 +110,8 @@ The core workflows and historical benchmarks are implemented. The
 [Stages 1–9 audit](docs/history/implementation_report_stages1-9_audit_2026-09-15.md) verifies retained
 evidence and repairs inconsistent selection inputs. Stage 8's runner has synthetic validation;
 its original official-data acceptance remains outstanding under Stage 10's prepared
-50 MW/100 MWh and 25 MW/100 MWh study. Review the repair before completing the release.
+50 MW/100 MWh and 25 MW/100 MWh study. Its workflow and README cleanup have merged;
+the repair review, official dispatch authorization and publication gates remain open.
 [STATUS.md](STATUS.md) records the current evidence and external blockers;
 [PLAN.md](PLAN.md) owns the next steps.
 

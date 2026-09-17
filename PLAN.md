@@ -80,8 +80,10 @@ preregisters the accepted-history window and the 50 MW/100 MWh versus 25 MW/100 
 configuration sensitivity; the prepared workflow verifies the declaration and existing custody,
 runs both configurations, renders their manifests, seals private evidence and does not publish.
 
-**Next action: review the readiness repair, then validate and merge the Stage 10 workflow PR.** Only after that merge may
-the operator approve the unchanged declaration digest and dispatch the official run. Result
+**Next action: review the readiness repair and approve the exact declared official dispatch.**
+Stage 10 preparation PR #78 and README cleanup PR #79 have merged. CI passed on the
+preparation merge and the cleanup head. The operator must separately approve the unchanged
+declaration digest before the official run. Result
 publication remains a separate gate. The final acceptance check requires `STATUS.md` and
 `PLAN.md` to make no contradictory current-state claims.
 

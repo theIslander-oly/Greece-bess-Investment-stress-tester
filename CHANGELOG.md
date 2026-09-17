@@ -15,6 +15,9 @@ All notable project changes are documented here.
 
 ### Maintenance
 
+- Independently review selection price identity, add finite-value, interval-key and absolute-
+  tolerance regressions, and reconcile release status with merged PRs #78 and #79.
+
 - Reduce the README to quickstart, accepted findings, current capabilities and reference links;
   remove stale phase plans and the obsolete claim that forecasting uses price history only.
 - Ignore local `private/` workflow evidence and check that README file references resolve.
