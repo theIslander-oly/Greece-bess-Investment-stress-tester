@@ -19,6 +19,12 @@ All notable project changes are documented here.
 
 ### Maintenance
 
+- Record the model assessment, accepted presentation findings and an ordered post-Stage-10
+  research agenda. Continue the unchanged repaired official study after PR #81 merge and
+  successful CI. Reconcile completed private run `35252229873`, close Stage 8's official-history
+  acceptance and move Stage 10 to review. Retain the separate publication gate and keep new
+  numerical results in the private review bundle.
+
 - Independently review selection price identity, add finite-value, interval-key and absolute-
   tolerance regressions, and reconcile release status with merged PRs #78 and #79.
 

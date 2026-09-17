@@ -25,17 +25,17 @@ v0.1-v0.6 implementation predates the connected repository and entered through t
 | 5 | Complete | Degradation result basis merged as `df7ffec` |
 | 6 | Complete | Matched-training control merged as `196a5c1` (amendment `cba04f0`) |
 | 7 | Complete | Acceptance (`docs/fundamentals_acceptance_2026-09-10.md`) and benchmark result (`docs/fundamentals_benchmark_2026-09-11.md`, run `34524611285`) both committed; the result is mixed by model family and recorded as such |
-| 8 | Implementation complete; official acceptance pending | `greek_bess.study` and `run-integrated-study` merged as PR #69, with the cash and stored-energy conventions corrected in PR #71 (`docs/integrated_study_design.md` sections 4.5, 5.3, 5.4) |
+| 8 | Complete | Implementation and synthetic checks supplemented by independently reconciled official run `35252229873`; see the 17 September continuation report |
 | 9 | Complete | Result PR #77 merged as `abfac6a`; CI run `34824236600` passed on Python 3.12 and 3.13 |
-| 10 | **In progress** | Branch `release-integrated-research-study`; reproducible demo and digest-gated official workflow prepared for review |
+| 10 | **Review** | Branch `codex/stage10-study-results`; official private study verified; publication authorization and deployed-report verification outstanding |
 
 ## Readiness maintenance — 15 September 2026
 
 Review the [Stages 1–9 audit](docs/history/implementation_report_stages1-9_audit_2026-09-15.md)
 and the refusal repair on `codex/audit-stages1-9` before finishing the release PR. The official
 Stage 9 result is unchanged; a future run uses the prospective 15 September declaration.
-Stage 8's original acceptance includes an official study, so its tested implementation alone
-is not the final acceptance. Complete that check through the prepared Stage 10 run.
+Stage 8's original acceptance includes an official study; the completed Stage 10 retry now
+satisfies that check, as recorded in the 17 September continuation report.
 Preserve expiring accepted inputs and witnesses and verify the documented restore path.
 
 ## Stage 9 — evaluate selection by battery value
@@ -72,7 +72,7 @@ Use the existing renderer. Produce a reproducible synthetic demonstration and an
 official-history study with traceable inputs, under the existing custody and publication gates.
 Verify the actual published report before calling publication complete.
 
-**In progress.** One declared synthetic configuration can now generate its own deterministic
+**In review.** One declared synthetic configuration can now generate its own deterministic
 price history, run the integrated study and render its verified manifest in one command. The
 renderer lays every recorded strategy field out side by side without deriving a ranking or a
 shared ceiling. The [official run declaration](docs/integrated_study_run_declaration_2026-09-14.md)
@@ -85,11 +85,19 @@ producing a result at the hourly-to-quarter-hour transition. The failure is reta
 [17 September declaration](docs/integrated_study_run_declaration_2026-09-17.md) preserves all
 experiment settings and pins an explicit coarser-to-finer forecast-alignment repair.
 
-**Next action: review and merge the resolution-transition repair with final-head CI.** A retry
-then requires authorization of the new declaration digest. If it completes, reconcile all ten
-official acceptance checks before preparing a research summary. Result publication remains a
-separate gate. The final acceptance check requires `STATUS.md` and `PLAN.md` to make no
-contradictory current-state claims.
+Repair PR #81 merged as `76d48d5`; merge CI `35251110866` passed. The operator's instruction
+to continue authorized one private retry of the unchanged 17 September declaration. Run
+`35252229873` resolves to that merged commit. Continuation records use
+`codex/stage10-study-results`.
+
+Run `35252229873` succeeded. The [continuation report](docs/history/implementation_report_stage10_private_study_2026-09-17.md)
+records independent reconciliation of all six paths, artifact identity, manifest figures and
+byte-identical report re-rendering, together with the synthetic acceptance tests.
+
+**Next action: operator review of the completed private aggregate for publication authorization.**
+The private report and findings brief are retained locally. After authorization, publish through
+the applicable approved route and verify the deployed bytes before calling Stage 10 complete.
+No new numerical study outcome is included in this documentation change.
 
 ## Reassess model additions only afterwards
 
@@ -97,6 +105,13 @@ Identify the largest measured source of decision uncertainty, and consider a new
 dispatch or forecast family only if the current model demonstrably fails a relevant test and the
 data exist. Require a declared hypothesis, baseline, validation method and acceptance criterion
 first. Adding models is not progress.
+
+The [dated model assessment](docs/model_assessment_and_research_agenda_2026-09-17.md) records
+the proposed order: couple existing ML selection to ageing/costs, test the opportunity cost of
+remaining battery life, and compare a limited forecast challenger set on untouched or prospective
+data. Assess a calibrated LFP degradation model only with suitable validation data. Additional
+markets require independent data and settlement validation. These remain backlog items;
+Stage 10 is the sole active stage and its experiment is unchanged.
 
 ## Open gates
 

@@ -20,23 +20,26 @@ Merge commit `fc82941` passed CI on Python 3.12 and 3.13.
 Price and feature custody verify, Stage 7 manifests verify, all 200 matched refit pairs agree,
 and the latest witness covers all three variables. Current-code feature reconstruction matches
 the accepted feature and audit digests and all 2,124 daily coverage records. All 812 tests,
-Ruff, mypy and a clean wheel build pass locally. Stage 8 is implementation-complete;
-its original official-history acceptance check is still pending under Stage 10. Historical
+Ruff, mypy and a clean wheel build pass locally. Stage 8's original official-history
+acceptance check was subsequently completed through the Stage 10 retry below. Historical
 benchmark reproduction also requires recorded dependencies, not this workstation's defaults.
 
 The [continuation review](docs/history/implementation_report_release_review_2026-09-17.md)
 records independent selection-repair checks and declaration identities. The authorized Stage 10
 attempt then failed before producing a study; the
 [resolution-transition report](docs/history/implementation_report_stage10_resolution_transition_2026-09-17.md)
-records the failure, retained diagnostics and prospective repair. No official study result or
-publication exists.
+records the failure, retained diagnostics and prospective repair. The repair is now merged as
+PR #81 (`76d48d5`) with successful merge CI `35251110866`. The authorized retry is
+`35252229873`; it succeeded and its private result independently reconciles. Public publication
+is not yet authorized or complete.
 
 ## Where the work stands
 
-Stages 1–7 and 9 have recorded completion evidence. Stage 8 has completed implementation and
-synthetic validation; its official-history acceptance check remains open under Stage 10. Stage 9 result PR #77 merged
-as `abfac6a`; CI run `34824236600` passed on Python 3.12 and 3.13. Stage 10 is in progress on
-`release-integrated-research-study`. Nothing is renumbered.
+Stages 1–9 have recorded completion evidence. Stage 8's implementation and synthetic validation
+are now supplemented by the privately reconciled official-history run `35252229873`.
+Stage 9 result PR #77 merged as `abfac6a`; CI run `34824236600` passed on Python 3.12 and 3.13.
+Stage 10 is in review on
+`codex/stage10-study-results` for the result continuation. Nothing is renumbered.
 
 The Stage 10 release layer now lets one configuration declare deterministic synthetic generation,
 run the integrated study and render its verified manifest in one command. Repeated runs of the
@@ -52,8 +55,19 @@ the rolling mean lacked historical quarter-hour slots on the 1 October 2025 reso
 The [prospective repaired declaration](docs/integrated_study_run_declaration_2026-09-17.md)
 keeps the window, strategies and assumptions fixed and makes coarser-to-finer price containment
 explicit. Synthetic regressions and a retained-history completeness check pass. Its repair branch
-is `stage10-resolution-transition-repair`; review, final-head CI and a new dispatch authorization
-are required. Publication remains separately gated.
+was `stage10-resolution-transition-repair`. Review, merge and CI are complete; the instruction
+to continue authorized retry `35252229873` against the unchanged declaration. Both configurations
+completed, all 18 indexed evidence files verified, and all six strategy paths reconciled for
+calendar coverage, daily energy, cell/grid throughput, capacity fade and dated finance. The
+report re-renders byte identically. The next action is operator review of the private aggregate
+for publication authorization; publication and deployed-byte verification remain outstanding.
+
+The [continuation report](docs/history/implementation_report_stage10_private_study_2026-09-17.md)
+records the acceptance matrix and retained evidence. It publishes no new numerical study outcome.
+
+The [model assessment and research agenda](docs/model_assessment_and_research_agenda_2026-09-17.md)
+preserves the accepted findings and proposed model improvements. It introduces no new method,
+source or active stage and makes no claim that the current models are best.
 
 The tool retrieves an official Greek DAM price history, records and renders it under custody and
 manifest gates, optimizes perfect-foresight dispatch against it, backtests naive and ML forecasts
