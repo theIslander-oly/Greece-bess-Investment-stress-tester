@@ -905,6 +905,9 @@ day is added to history. The methods are:
 - `ensemble`: mean of the causal forecasts available for that interval.
 
 Wall-clock slots and occurrence ranks handle 23/25-hour and 92/100-quarter-hour DST days.
+Across a resolution change, a coarser historical interval is broadcast to each finer target
+interval it contains. A finer historical value is not aggregated into a coarser target; such a
+mapping remains unavailable until an aggregation rule is separately declared.
 The metrics exclude MAPE because zero and negative electricity prices make it unstable or
 misleading. MAE, RMSE, mean error, median absolute error, WAPE, correlation and
 negative-price precision/recall are reported instead.

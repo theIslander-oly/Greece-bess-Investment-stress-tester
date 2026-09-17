@@ -11,7 +11,7 @@ from datetime import date, timedelta
 from importlib.metadata import version
 from pathlib import Path
 
-DOCUMENT = Path("docs/integrated_study_run_declaration_2026-09-14.md")
+DOCUMENT = Path("docs/integrated_study_run_declaration_2026-09-17.md")
 PRIVATE = Path("private")
 
 
