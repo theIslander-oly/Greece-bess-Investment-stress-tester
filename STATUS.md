@@ -14,20 +14,22 @@ the stage tracker and what happens next are in [`PLAN.md`](PLAN.md).
 checks retained official artifacts and reproduces a Stage 9 library-input defect: RMSE trusted
 a copied actual-price column while settlement used canonical prices. The repair refuses
 inconsistent copies; the retained official table agrees exactly and its result is unaffected.
-The maintenance branch is `codex/audit-stages1-9`. Release preparation PR #78 and README
-cleanup PR #79 are now merged; the repair is separately reviewable against `main`.
-Review this repair and its prospective declaration before completing release review.
+Release preparation PR #78, README cleanup PR #79 and selection repair PR #80 are merged.
+Merge commit `fc82941` passed CI on Python 3.12 and 3.13.
 
 Price and feature custody verify, Stage 7 manifests verify, all 200 matched refit pairs agree,
 and the latest witness covers all three variables. Current-code feature reconstruction matches
-the accepted feature and audit digests and all 2,124 daily coverage records. All 807 tests,
+the accepted feature and audit digests and all 2,124 daily coverage records. All 812 tests,
 Ruff, mypy and a clean wheel build pass locally. Stage 8 is implementation-complete;
 its original official-history acceptance check is still pending under Stage 10. Historical
 benchmark reproduction also requires recorded dependencies, not this workstation's defaults.
 
 The [continuation review](docs/history/implementation_report_release_review_2026-09-17.md)
-records independent repair checks, declaration identities, current retention and the exact
-proposed official dispatch. No official study or publication has occurred.
+records independent selection-repair checks and declaration identities. The authorized Stage 10
+attempt then failed before producing a study; the
+[resolution-transition report](docs/history/implementation_report_stage10_resolution_transition_2026-09-17.md)
+records the failure, retained diagnostics and prospective repair. No official study result or
+publication exists.
 
 ## Where the work stands
 
@@ -42,14 +44,16 @@ committed demonstration produced byte-identical daily, strategy, cash-flow and s
 The renderer now presents every recorded strategy field side by side without deriving a ranking,
 cross-configuration figure or shared ceiling.
 
-The [official Stage 10 declaration](docs/integrated_study_run_declaration_2026-09-14.md)
-preregisters a 329-day accepted-history study and a controlled 50 MW/100 MWh versus
-25 MW/100 MWh configuration sensitivity. The prepared workflow checks the declaration digest
-and existing custody before prices are read, runs both fixed configurations, renders only their
-verified manifests and seals a private evidence bundle. It performs no publication.
-Preparation PR #78 merged as `57c0ba3`, with CI run `34940218055` passing. README
-cleanup PR #79 merged as `d60b85c`, after CI on `f760c7d` passed. The unchanged official
-declaration and its digest await separate dispatch approval; publication remains separately gated.
+The 14 September Stage 10 declaration preregistered a 329-day accepted-history study and a
+controlled 50 MW/100 MWh versus 25 MW/100 MWh configuration sensitivity. Authorized run
+`35191734263` verified the declaration, custody and complete history, then failed before a result:
+the rolling mean lacked historical quarter-hour slots on the 1 October 2025 resolution change.
+
+The [prospective repaired declaration](docs/integrated_study_run_declaration_2026-09-17.md)
+keeps the window, strategies and assumptions fixed and makes coarser-to-finer price containment
+explicit. Synthetic regressions and a retained-history completeness check pass. Its repair branch
+is `stage10-resolution-transition-repair`; review, final-head CI and a new dispatch authorization
+are required. Publication remains separately gated.
 
 The tool retrieves an official Greek DAM price history, records and renders it under custody and
 manifest gates, optimizes perfect-foresight dispatch against it, backtests naive and ML forecasts

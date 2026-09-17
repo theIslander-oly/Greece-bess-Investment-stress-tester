@@ -15,7 +15,7 @@ from greek_bess.study import read_integrated_study_config
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / ".github/scripts/integrated_study_run.py"
-DOCUMENT = ROOT / "docs/integrated_study_run_declaration_2026-09-14.md"
+DOCUMENT = ROOT / "docs/integrated_study_run_declaration_2026-09-17.md"
 WORKFLOW = ROOT / ".github/workflows/run-integrated-study.yml"
 CONFIG_50 = ROOT / "config/integrated_study_official_50mw_100mwh.json"
 CONFIG_25 = ROOT / "config/integrated_study_official_25mw_100mwh.json"
@@ -101,7 +101,7 @@ class Stage10WorkflowTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Declaration digest"):
             RUN.guard()
         os.environ["DECLARATION_DOCUMENT_SHA256"] = RUN.digest(Path(
-            "docs/integrated_study_run_declaration_2026-09-14.md"
+            "docs/integrated_study_run_declaration_2026-09-17.md"
         ))
         os.environ["HISTORY_RUN_ID"] = "123"
         with self.assertRaisesRegex(ValueError, "History run"):

@@ -25,6 +25,61 @@ def repeating_prices(start: date, end: date, *, resolution_minutes: int = 60):
 
 
 class NaiveForecastTests(unittest.TestCase):
+    def test_coarser_history_covers_the_hourly_to_quarter_hour_transition(self) -> None:
+        hourly = repeating_prices(
+            date(2025, 9, 1), date(2025, 10, 1), resolution_minutes=60
+        )
+        quarter_hour = repeating_prices(
+            date(2025, 10, 1), date(2025, 10, 3), resolution_minutes=15
+        )
+        frame = pd.concat([hourly, quarter_hour], ignore_index=True)
+
+        result = generate_naive_forecasts(
+            frame,
+            methods=[
+                "daily_persistence",
+                "weekly_persistence",
+                "rolling_mean",
+                "ensemble",
+            ],
+            rolling_window_days=28,
+            start_day=date(2025, 10, 1),
+        )
+
+        first_quarter_hour_day = result.forecasts.loc[
+            result.forecasts["market_day"].eq(date(2025, 10, 1))
+        ]
+        self.assertEqual(len(first_quarter_hour_day), 96)
+        for method in result.methods:
+            with self.subTest(method=method):
+                self.assertFalse(first_quarter_hour_day[method].isna().any())
+        quarter_past_three = first_quarter_hour_day.loc[
+            first_quarter_hour_day["market_slot_minutes"].eq(3 * 60 + 15)
+        ].iloc[0]
+        # The 03:00 hourly observation contains the 03:15 quarter-hour. Repeating prices
+        # make every causal method's expected aligned value transparent.
+        for method in result.methods:
+            with self.subTest(method=method):
+                self.assertEqual(float(quarter_past_three[method]), 10.0)
+
+    def test_finer_history_is_not_silently_aggregated_for_an_hourly_target(self) -> None:
+        quarter_hour = repeating_prices(
+            date(2025, 9, 30), date(2025, 10, 1), resolution_minutes=15
+        )
+        hourly = repeating_prices(
+            date(2025, 10, 1), date(2025, 10, 2), resolution_minutes=60
+        )
+        frame = pd.concat([quarter_hour, hourly], ignore_index=True)
+
+        result = generate_naive_forecasts(
+            frame,
+            methods=["daily_persistence", "rolling_mean"],
+            start_day=date(2025, 10, 1),
+        )
+
+        self.assertTrue(result.forecasts["daily_persistence"].isna().all())
+        self.assertTrue(result.forecasts["rolling_mean"].isna().all())
+
     def test_daily_persistence_is_exact_for_repeating_profile(self) -> None:
         frame = repeating_prices(date(2026, 1, 1), date(2026, 1, 5))
         result = generate_naive_forecasts(frame, methods=["daily_persistence"])

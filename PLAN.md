@@ -80,12 +80,16 @@ preregisters the accepted-history window and the 50 MW/100 MWh versus 25 MW/100 
 configuration sensitivity; the prepared workflow verifies the declaration and existing custody,
 runs both configurations, renders their manifests, seals private evidence and does not publish.
 
-**Next action: review the readiness repair and approve the exact declared official dispatch.**
-Stage 10 preparation PR #78 and README cleanup PR #79 have merged. CI passed on the
-preparation merge and the cleanup head. The operator must separately approve the unchanged
-declaration digest before the official run. Result
-publication remains a separate gate. The final acceptance check requires `STATUS.md` and
-`PLAN.md` to make no contradictory current-state claims.
+Authorized run `35191734263` passed declaration, custody and calendar gates but failed before
+producing a result at the hourly-to-quarter-hour transition. The failure is retained. The
+[17 September declaration](docs/integrated_study_run_declaration_2026-09-17.md) preserves all
+experiment settings and pins an explicit coarser-to-finer forecast-alignment repair.
+
+**Next action: review and merge the resolution-transition repair with final-head CI.** A retry
+then requires authorization of the new declaration digest. If it completes, reconcile all ten
+official acceptance checks before preparing a research summary. Result publication remains a
+separate gate. The final acceptance check requires `STATUS.md` and `PLAN.md` to make no
+contradictory current-state claims.
 
 ## Reassess model additions only afterwards
 

@@ -379,11 +379,18 @@ The study runner has been validated on deterministic synthetic prices alone and 
 official-history result. Nothing it has computed is evidence about Greek prices or about battery
 value.
 
-The Stage 10 official workflow and declaration are preparation, not a result. The preregistered
-50 MW/100 MWh versus 25 MW/100 MWh run is a controlled configuration sensitivity on one already
-inspected historical window. It cannot establish an optimal size. Its finance assumptions are
-held identical, including PCS cost, to isolate the physical configuration; they are illustrative
-and do not estimate either configuration's actual cost.
+The first declared official attempt, run `35191734263`, failed before producing a result because
+the naïve rolling mean lacked exact historical `:15`, `:30` and `:45` slots on the first
+quarter-hour delivery day. Its repair broadcasts a coarser historical interval to finer targets
+it contains. This assumes the historical hourly price is the only resolution available for those
+four target positions; it does not recover within-hour variation that was never observed. Finer
+history is not aggregated into a coarser target.
+
+The repaired Stage 10 workflow and prospective declaration are preparation, not a result. The
+preregistered 50 MW/100 MWh versus 25 MW/100 MWh run is a controlled configuration sensitivity
+on one already inspected historical window. It cannot establish an optimal size. Its finance
+assumptions are held identical, including PCS cost, to isolate the physical configuration; they
+are illustrative and do not estimate either configuration's actual cost.
 
 **What a completed study would and would not be.** A strategy's total is what that strategy's own
 policy achieved over one declared historical window under illustrative cost assumptions. It is

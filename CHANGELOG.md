@@ -6,6 +6,10 @@ All notable project changes are documented here.
 
 ### Fixed
 
+- Align causal naïve forecasts across the hourly-to-quarter-hour market transition by explicit
+  coarser-to-finer containment, while refusing undeclared finer-to-coarser aggregation. Record
+  failed official run `35191734263` and prepare a separately gated repaired declaration.
+
 - Refuse candidate tables whose copied actual prices disagree with canonical settlement prices
   or contain missing values, preventing inconsistent RMSE selection and metric coverage.
   Retained official Stage 9 inputs match exactly; the accepted result is unchanged.

@@ -1,5 +1,24 @@
 # Decision log
 
+## 2026-09-17 — Align causal naïve forecasts across the hourly-to-quarter-hour transition
+
+Authorized official run `35191734263` passed its declaration, custody and calendar gates, then
+failed before producing a study because rolling mean had no exact historical `:15`, `:30` or
+`:45` slots on 1 October 2025. Retain that failure and its diagnostic artifact. Do not shorten
+the window, remove a strategy or fill missing prices to make the run succeed.
+
+Map coarser historical price intervals to finer target starts by half-open containment while
+retaining native duration. Refuse finer-to-coarser use without a declared aggregation rule. This
+extends the existing causal methods across the market resolution transition without reading the
+target day's outcome and follows the resolution direction already accepted for point-in-time
+features. Record the limitation that an hourly broadcast cannot recover unobserved within-hour
+variation.
+
+Preserve the failed 14 September declaration. A prospective 17 September declaration keeps every
+experiment setting fixed, adds the resolution rule and pins the naïve forecaster. It requires
+review, merge, final-head CI and a new operator authorization before any retry. Publication stays
+separately gated.
+
 ## 2026-09-17 — Review the repair separately from merged release preparation
 
 Remote ancestry confirms preparation PR #78 and README cleanup PR #79 are merged. Keep

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections import deque
 from dataclasses import dataclass
 from datetime import date, timedelta
 from math import sqrt
@@ -18,6 +19,10 @@ FORECAST_METHODS = (
     "rolling_mean",
     "ensemble",
 )
+
+_FINEST_SUPPORTED_RESOLUTION_MINUTES = 15
+_HistoricalPrice = tuple[int, float]
+_RollingPrice = tuple[date, int, float]
 
 
 class ForecastInputError(ValueError):
@@ -42,7 +47,9 @@ def generate_naive_forecasts(
     """Generate walk-forward baselines using observations from prior days only.
 
     Forecasts for every interval of a target day are calculated before any
-    realized value from that target day is added to history.
+    realized value from that target day is added to history. A coarser historical
+    interval may be broadcast to a finer target interval it contains; finer history
+    is never aggregated into a coarser target without a separately declared rule.
     """
 
     selected_methods = _validate_methods(methods)
@@ -70,8 +77,11 @@ def generate_naive_forecasts(
         ["market_day", "market_slot_minutes"], sort=False
     ).cumcount()
 
-    price_lookup: dict[tuple[date, int, int], float] = {}
-    slot_history: dict[int, list[tuple[date, float]]] = {}
+    # Each native observation is indexed at every supported finer slot it contains. The
+    # stored native duration lets lookup accept coarser-to-finer broadcast while refusing
+    # the reverse: a quarter-hour price is not an hourly forecast or an aggregation rule.
+    price_lookup: dict[tuple[date, int, int], _HistoricalPrice] = {}
+    rolling_history: dict[int, deque[_RollingPrice]] = {}
     records: list[dict[str, object]] = []
 
     for market_day, day_frame in working.groupby("market_day", sort=True):
@@ -79,17 +89,28 @@ def generate_naive_forecasts(
         for row in day_frame.itertuples(index=False):
             slot = int(row.market_slot_minutes)
             occurrence = int(row.slot_occurrence)
+            duration_minutes = _duration_minutes(float(row.duration_hours))
             daily = _lookup_prior(
-                price_lookup, market_day - timedelta(days=1), slot, occurrence
+                price_lookup,
+                market_day - timedelta(days=1),
+                slot,
+                occurrence,
+                duration_minutes,
             )
             weekly = _lookup_prior(
-                price_lookup, market_day - timedelta(days=7), slot, occurrence
+                price_lookup,
+                market_day - timedelta(days=7),
+                slot,
+                occurrence,
+                duration_minutes,
             )
-            rolling_values = [
-                value
-                for history_day, value in slot_history.get(slot, [])
-                if 0 < (market_day - history_day).days <= rolling_window_days
-            ]
+            rolling_values = _rolling_prior(
+                rolling_history,
+                market_day,
+                slot,
+                duration_minutes,
+                rolling_window_days,
+            )
             rolling = float(np.mean(rolling_values)) if rolling_values else np.nan
             ensemble_values = [
                 value for value in (daily, weekly, rolling) if np.isfinite(value)
@@ -123,8 +144,19 @@ def generate_naive_forecasts(
             slot = int(row.market_slot_minutes)
             occurrence = int(row.slot_occurrence)
             price = float(row.price_eur_per_mwh)
-            price_lookup[(market_day, slot, occurrence)] = price
-            slot_history.setdefault(slot, []).append((market_day, price))
+            duration_minutes = _duration_minutes(float(row.duration_hours))
+            for contained_slot in range(
+                slot,
+                slot + duration_minutes,
+                _FINEST_SUPPORTED_RESOLUTION_MINUTES,
+            ):
+                price_lookup[(market_day, contained_slot, occurrence)] = (
+                    duration_minutes,
+                    price,
+                )
+                rolling_history.setdefault(contained_slot, deque()).append(
+                    (market_day, duration_minutes, price)
+                )
 
     forecasts = pd.DataFrame.from_records(records)
     if forecasts.empty:
@@ -224,18 +256,48 @@ def calculate_forecast_metrics(
 
 
 def _lookup_prior(
-    lookup: dict[tuple[date, int, int], float],
+    lookup: dict[tuple[date, int, int], _HistoricalPrice],
     prior_day: date,
     slot: int,
     occurrence: int,
+    target_duration_minutes: int,
 ) -> float:
     exact = lookup.get((prior_day, slot, occurrence))
-    if exact is not None:
-        return exact
+    if exact is not None and exact[0] >= target_duration_minutes:
+        return exact[1]
     # A fall-back DST day has two occurrences of one wall-clock slot. A normal
     # prior day has one, so the second target occurrence uses its rank-zero peer.
     fallback = lookup.get((prior_day, slot, 0))
-    return float(fallback) if fallback is not None else np.nan
+    if fallback is not None and fallback[0] >= target_duration_minutes:
+        return fallback[1]
+    return np.nan
+
+
+def _duration_minutes(duration_hours: float) -> int:
+    minutes = int(round(duration_hours * 60))
+    if minutes not in (15, 60):  # Defensive: canonical validation currently enforces this.
+        raise ForecastInputError(f"Unsupported forecast interval duration: {minutes} minutes")
+    return minutes
+
+
+def _rolling_prior(
+    history: dict[int, deque[_RollingPrice]],
+    market_day: date,
+    slot: int,
+    target_duration_minutes: int,
+    rolling_window_days: int,
+) -> list[float]:
+    values = history.get(slot)
+    if values is None:
+        return []
+    while values and (market_day - values[0][0]).days > rolling_window_days:
+        values.popleft()
+    return [
+        price
+        for history_day, native_duration_minutes, price in values
+        if 0 < (market_day - history_day).days <= rolling_window_days
+        and native_duration_minutes >= target_duration_minutes
+    ]
 
 
 def _validate_methods(methods: tuple[str, ...] | list[str]) -> tuple[str, ...]:

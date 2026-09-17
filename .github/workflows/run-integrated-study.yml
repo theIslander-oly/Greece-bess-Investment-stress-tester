@@ -77,7 +77,7 @@ jobs:
               "official_history_custody": "verified against the committed record",
               "source_commit": os.environ["GITHUB_SHA"],
               "evidence_class": "retrospective_aggregate_release",
-              "declaration_document": "docs/integrated_study_run_declaration_2026-09-14.md",
+              "declaration_document": "docs/integrated_study_run_declaration_2026-09-17.md",
               "declaration_document_sha256": os.environ["DECLARATION_DOCUMENT_SHA256"],
               "comparison_interpretation": "configuration sensitivity, not proof of an optimal battery size",
               "evidence_grades": ["accepted official HEnEx price history under existing custody"],

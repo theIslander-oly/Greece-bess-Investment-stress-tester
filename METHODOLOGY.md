@@ -126,6 +126,19 @@ the same physical and terminal-energy constraints.
 MAE, RMSE, bias, median absolute error, WAPE, correlation and negative-price detection are
 reported. MAPE is excluded because zero and negative prices make it misleading.
 
+### 4.0.1 Naïve forecasts across a resolution transition
+
+Naïve price-history methods align a coarser historical delivery interval to a finer target by
+half-open interval containment. An hourly price can therefore be broadcast unchanged to the four
+quarter-hours it covered. This is a declared resolution relation, not interpolation: no price is
+invented between observations. The reverse is refused; finer observations are not aggregated
+into a coarser target without a separately declared rule.
+
+Native duration is retained in the causal lookup. Daily and weekly persistence use the contained
+value from the named prior day, while rolling mean applies containment independently to each prior
+day in its window. A target day's forecasts are still completed before any realized value from
+that day is admitted, so resolution alignment does not relax the no-future-information rule.
+
 ### 4.1 Fundamentals ablation
 
 The v0.9.3 ablation answers one question — whether an independently validated exogenous input
