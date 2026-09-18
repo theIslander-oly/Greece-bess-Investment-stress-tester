@@ -19,7 +19,7 @@ from typing import Any
 import pandas as pd
 
 from ..degradation import DEGRADATION_MODEL_LABEL
-from .config import IntegratedStudyConfig, IntegratedStudyInputError
+from .config import FROZEN_SELECTION_PLANNERS, IntegratedStudyConfig, IntegratedStudyInputError
 from .runner import IntegratedStudyRun, StrategyRun
 
 #: What every integrated study result is, and what it is not. The declared study label is
@@ -83,6 +83,11 @@ def assemble_integrated_study(run: IntegratedStudyRun) -> IntegratedStudyResult:
     summaries = [
         _strategy_summary(config, strategy_run) for strategy_run in run.strategy_runs
     ]
+    if run.selection_replay is not None:
+        selected = run.selection_replay["selected_candidates"]
+        for row in summaries:
+            if row["planner"] in selected:
+                row["selected_candidate"] = selected[row["planner"]]
     strategy_summaries = pd.DataFrame.from_records(summaries)
     _refuse_shared_state(config, strategy_summaries)
 
@@ -144,6 +149,28 @@ def assemble_integrated_study(run: IntegratedStudyRun) -> IntegratedStudyResult:
             "unless the event declares commissioning energy, whose cost finance pays once"
         ),
     }
+    if run.selection_replay is not None:
+        summary["selection_replay"] = run.selection_replay
+        by_planner = {row["planner"]: row for row in summaries}
+        rmse, margin = (by_planner[planner] for planner in FROZEN_SELECTION_PLANNERS)
+        summary["selection_comparison"] = {
+            "rmse_selection_strategy_id": rmse["strategy_id"],
+            "margin_selection_strategy_id": margin["strategy_id"],
+            "difference_direction": "validation-margin selection minus validation-RMSE selection",
+            "evidence_class": run.selection_replay["evidence_class"],
+            "interpretation": (
+                "Paired historical outcomes under one declared initial battery and ageing/cost "
+                "rules; no shared evolving-state ceiling, future superiority or lifetime return"
+            ),
+            **{
+                f"difference_{field}": margin[field] - rmse[field]
+                for field in (
+                    "market_cash_margin_eur", "npv_eur", "equivalent_full_cycles",
+                    "final_usable_energy_mwh", "undiscounted_project_cash_flow_eur",
+                )
+            },
+            "equivalent_full_cycles_basis": "cell discharge divided by initial nominal energy",
+        }
     return IntegratedStudyResult(
         daily_results=daily,
         strategy_summaries=strategy_summaries,

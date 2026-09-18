@@ -7,6 +7,11 @@ in [`docs/history/plan_log_through_2026-09-11.md`](docs/history/plan_log_through
 The staged plan in [`Greek_BESS_Execution_Plan.md`](Greek_BESS_Execution_Plan.md) is active and
 authoritative. Only one stage moves at a time, and no stage is renumbered.
 
+**18 September continuation:** the operator confirmed the Stage 10 report was not published
+and instructed continuation of the next research unit. Stage 10 remains in publication review;
+the sole active development unit is frozen ML selection integration below. The original ten
+stages are not renumbered or retrospectively marked published.
+
 ## GitHub milestone workflow
 
 Every new milestone uses a feature branch, validation, diff review and one pull request. The
@@ -94,10 +99,27 @@ Run `35252229873` succeeded. The [continuation report](docs/history/implementati
 records independent reconciliation of all six paths, artifact identity, manifest figures and
 byte-identical report re-rendering, together with the synthetic acceptance tests.
 
-**Next action: operator review of the completed private aggregate for publication authorization.**
+**Publication action outstanding: operator review of the completed private aggregate.**
 The private report and findings brief are retained locally. After authorization, publish through
 the applicable approved route and verify the deployed bytes before calling Stage 10 complete.
 No new numerical study outcome is included in this documentation change.
+
+## Active research unit — integrate frozen ML selection with ageing and costs
+
+Branch: `codex/integrate-frozen-ml-policies`. The [design](docs/frozen_selection_study_design.md)
+connects both existing Stage 9 selections to the integrated runner without refitting, retuning
+or replacing the original forecasts. The accepted source index pins every consumed file.
+Regression checks compare zero-fade replay to fixed-battery dispatch and preserve separate
+ageing states, causal information, complete calendars and manifest provenance.
+
+Two configurations are prepared: a zero-fade/zero-operating-cost reproduction baseline and
+the same frozen policies with the existing illustrative physical-fade and operating-cost inputs.
+This implementation does not create a new official empirical result. The original inspected
+window remains retrospective supplementary evidence.
+
+**Next action: review the integration and its final-head CI, then prepare the digest-pinned
+official experiment declaration.** Do not rerun candidate training or select a different pair
+because of an observed outcome. The separate Stage 10 publication action stays open.
 
 ## Reassess model additions only afterwards
 
@@ -111,7 +133,8 @@ the proposed order: couple existing ML selection to ageing/costs, test the oppor
 remaining battery life, and compare a limited forecast challenger set on untouched or prospective
 data. Assess a calibrated LFP degradation model only with suitable validation data. Additional
 markets require independent data and settlement validation. These remain backlog items;
-Stage 10 is the sole active stage and its experiment is unchanged.
+The first item is now the active unit above; Stage 10's experiment remains unchanged and its
+public release remains in review. Remaining items stay in the backlog.
 
 ## Open gates
 

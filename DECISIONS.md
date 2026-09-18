@@ -1,5 +1,30 @@
 # Decision log
 
+## 2026-09-18 — Integrate accepted frozen selections without refitting
+
+The operator instructed continuation and clarified that the Stage 10 report was not published.
+Documentation PR #82 and its CI are complete; public deployment remains open. Proceed with the
+next development unit while preserving that distinction, rather than treating the merged
+documentation as a published report or changing the original ten stages.
+
+Adopt [the frozen-selection integration design](docs/frozen_selection_study_design.md).
+Replay the original selected forecast columns under a declared accepted evidence-index digest.
+Require both objectives exactly once, the exact evaluation window, canonical UTC coverage,
+consistent realized prices, durations and market days, intact selection seal and source identity.
+Each arm keeps its own physical and stored-energy state. Record signed paired outcomes in the
+results module, not in the renderer. No fresh fit, reselection, source or model family is added.
+
+The retained Stage 9 semantic forecast digest used Linux CSV line endings. File-level hashes
+verify the original bytes, while semantic verification explicitly reconstructs LF and CRLF,
+requires one match and records it. This supports the legacy producer's platform convention
+without changing values, precision, source acceptance or the original recorded digest.
+
+Prepare zero-fade/zero-operating-cost and existing illustrative ageing/cost configurations.
+The latter transfers the Stage 10 assumptions, not an OEM calibration. A new official
+measurement follows reviewed implementation, successful CI and a concrete pinned declaration;
+source admission alone is not a scientific result. Record the dispatch explanation, including
+efficiency losses and the distinction between dispatch penalties and finance-only costs.
+
 ## 2026-09-17 — Continue the declared study and preserve the research agenda
 
 After PR #81 merged as `76d48d5aea505fefe51ca948cc901d6fbda594a0` and merge CI

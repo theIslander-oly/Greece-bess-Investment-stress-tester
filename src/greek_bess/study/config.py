@@ -28,8 +28,12 @@ from ..forecast import FORECAST_METHODS
 #: states have diverged (design §5.2).
 PERFECT_FORESIGHT_PLANNER = "perfect_foresight"
 
+FROZEN_SELECTION_PLANNERS = ("frozen_validation_rmse", "frozen_validation_margin")
+
 #: Every planner a strategy may declare.
-STUDY_PLANNERS: tuple[str, ...] = (*FORECAST_METHODS, PERFECT_FORESIGHT_PLANNER)
+STUDY_PLANNERS: tuple[str, ...] = (
+    *FORECAST_METHODS, PERFECT_FORESIGHT_PLANNER, *FROZEN_SELECTION_PLANNERS,
+)
 
 #: Which information set each planner reads, as the declaration a strategy must make about
 #: itself. A strategy states what it may read; this mapping is what makes that statement
@@ -37,6 +41,7 @@ STUDY_PLANNERS: tuple[str, ...] = (*FORECAST_METHODS, PERFECT_FORESIGHT_PLANNER)
 DECISION_INFORMATION_SETS: dict[str, tuple[str, ...]] = {
     "price_history_before_delivery_day": FORECAST_METHODS,
     "realized_delivery_day_prices": (PERFECT_FORESIGHT_PLANNER,),
+    "accepted_frozen_causal_forecasts": FROZEN_SELECTION_PLANNERS,
 }
 
 #: Recorded, never inferred. A study on synthetic prices is a demonstration and says so.
@@ -48,6 +53,7 @@ PRICE_SOURCES = ("official", "synthetic")
 OPERATING_MARGIN_CASE_BY_PLANNER: dict[str, str] = {
     PERFECT_FORESIGHT_PLANNER: "daily_policy_degraded_simulation",
     **{method: "historical_forecast_backtest" for method in FORECAST_METHODS},
+    **{method: "historical_forecast_backtest" for method in FROZEN_SELECTION_PLANNERS},
 }
 
 STUDY_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
@@ -234,6 +240,7 @@ class IntegratedStudyConfig:
     result_label: str
     rolling_window_days: int = 28
     synthetic_price_generation: SyntheticPriceGenerationConfig | None = None
+    selection_evidence_index_sha256: str | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.study_id, str) or not STUDY_ID_PATTERN.match(self.study_id):
@@ -274,6 +281,23 @@ class IntegratedStudyConfig:
         if len(identifiers) != len(set(identifiers)):
             raise IntegratedStudyInputError("strategy_id values must be unique")
         object.__setattr__(self, "strategies", strategies)
+
+        frozen = set(self.planners) & set(FROZEN_SELECTION_PLANNERS)
+        pin = self.selection_evidence_index_sha256
+        if frozen:
+            if frozen != set(FROZEN_SELECTION_PLANNERS) or any(
+                sum(strategy.planner == planner for strategy in strategies) != 1
+                for planner in FROZEN_SELECTION_PLANNERS
+            ):
+                raise IntegratedStudyInputError(
+                    "Both frozen selection planners must be declared exactly once"
+                )
+            if not isinstance(pin, str) or re.fullmatch(r"[0-9a-f]{64}", pin) is None:
+                raise IntegratedStudyInputError(
+                    "Frozen selection requires a declared selection_evidence_index_sha256"
+                )
+        elif pin is not None:
+            raise IntegratedStudyInputError("Selection evidence requires frozen selection planners")
 
         if not isinstance(self.result_label, str) or not self.result_label.strip():
             raise IntegratedStudyInputError(
@@ -337,7 +361,7 @@ class IntegratedStudyConfig:
         """The naive forecast methods this study must be able to produce for every day."""
 
         return tuple(
-            planner for planner in self.planners if planner != PERFECT_FORESIGHT_PLANNER
+            planner for planner in self.planners if planner in FORECAST_METHODS
         )
 
     @property
@@ -362,7 +386,9 @@ class IntegratedStudyConfig:
             "finance",
             "result_label",
         }
-        optional = {"rolling_window_days", "synthetic_price_generation"}
+        optional = {
+            "rolling_window_days", "synthetic_price_generation", "selection_evidence_index_sha256",
+        }
         unknown = sorted(set(payload) - required - optional)
         missing = sorted(required - set(payload))
         if unknown:
@@ -390,6 +416,7 @@ class IntegratedStudyConfig:
             finance=FinanceConfig.from_dict(payload["finance"]),
             result_label=str(payload["result_label"]),
             rolling_window_days=int(payload.get("rolling_window_days", 28)),
+            selection_evidence_index_sha256=payload.get("selection_evidence_index_sha256"),
             synthetic_price_generation=(
                 SyntheticPriceGenerationConfig.from_dict(payload["synthetic_price_generation"])
                 if payload.get("synthetic_price_generation") is not None
@@ -413,6 +440,8 @@ class IntegratedStudyConfig:
         }
         if self.synthetic_price_generation is not None:
             payload["synthetic_price_generation"] = self.synthetic_price_generation.to_dict()
+        if self.selection_evidence_index_sha256 is not None:
+            payload["selection_evidence_index_sha256"] = self.selection_evidence_index_sha256
         return payload
 
 

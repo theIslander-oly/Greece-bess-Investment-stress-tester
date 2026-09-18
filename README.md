@@ -31,7 +31,8 @@ greek-bess run-integrated-study --study-config examples/integrated_study_synthet
 ```
 
 This configuration declares its synthetic history and all study assumptions. The integrated
-runner currently supports naive planners and perfect foresight; ML and weather benchmarks are
+runner supports naive planners, perfect foresight and replay of both accepted frozen Stage 9 ML
+selections under a pinned evidence index. Fresh ML training and weather benchmarks remain
 separate commands. See the [command reference](docs/command_reference.md) for all workflows and
 [configuration guide](config/README.md) for declared inputs.
 
@@ -116,6 +117,9 @@ merge CI passed. The authorized retry, run `35252229873`, uses the unchanged rep
 declaration and completed successfully. Independent reconciliation and byte-identical report
 re-rendering passed. Stage 10 remains in review pending publication authorization and verification
 of the published report. Numerical study results remain in the private review bundle.
+The documentation was merged in PR #82; public deployment has not occurred. The next authorized
+unit connects the existing frozen ML policies to ageing and costs, with source-admission and
+synthetic regression checks. A new official result has not been produced by that integration.
 [STATUS.md](STATUS.md) records the current evidence and external blockers;
 [PLAN.md](PLAN.md) owns the next steps.
 
@@ -123,6 +127,11 @@ The [model assessment and research agenda](docs/model_assessment_and_research_ag
 records the accepted findings, the limits of the current mathematical models and the proposed
 sequence after Stage 10: test selection gains after ageing and costs, value remaining battery
 life, then benchmark forecast challengers on untouched data. No model is established as best.
+
+The [dispatch explanation](docs/frozen_selection_study_design.md#how-charging-and-discharging-are-chosen)
+describes the buy/sell rule: optimize the whole next-day forecast schedule subject to efficiency,
+SOC, power, cycle and terminal-energy limits, then settle on realized prices. The current model
+does not submit live bids or simulate bid acceptance.
 
 ## Data policy
 

@@ -32,3 +32,15 @@ The operator-approved v0.9 declarations are `decision_cutoff.json`,
 pre-registered benchmark choices are recorded in
 `docs/fundamentals_declarations_2026-09-03.md`. Committing a declaration does not accept a feature
 table or validate its cited primary evidence; those are separate v0.9.5 gates.
+
+`integrated_study_frozen_selection_zero_fade.json` and
+`integrated_study_frozen_selection_with_costs.json` prepare the next retrospective comparison.
+Both pin the original accepted Stage 9 evidence index and replay the same selected columns.
+The first disables physical fade and operating costs to check fixed-battery reproduction;
+the second transfers the existing illustrative Stage 10 degradation and finance assumptions.
+Initial CAPEX remains declared in both; the baseline is not a zero-investment project. No
+official run is authorized merely by committing these configurations.
+
+Supply the original accepted bundle with `--selection-evidence-dir`. Every indexed file must
+be present and match; no newly fitted forecast table may replace it. A digest copied from an
+unaccepted bundle does not establish independent acceptance or causal forecasting.

@@ -34,6 +34,13 @@ All notable project changes are documented here.
 
 ### Added
 
+- Replay both accepted frozen Stage 9 ML selections in an integrated study using a declared
+  evidence-index digest and `--selection-evidence-dir`. Verify original files, selection seal,
+  native UTC calendars, actual-price identity and forecast digests before dispatch. Preserve
+  independent ageing and finance states and record signed paired outcomes and source provenance.
+- Prepare zero-fade and illustrative ageing/cost configurations, and document the daily buy/sell
+  optimization rule. No new official comparison or public deployment is implied by this feature.
+
 - Begin Stage 10's portfolio release layer. `run-integrated-study` can generate a deterministic
   synthetic history from fully declared configuration inputs and render its verified manifest in
   the same command. Automatic provenance records the exact configuration and supplied-price or
