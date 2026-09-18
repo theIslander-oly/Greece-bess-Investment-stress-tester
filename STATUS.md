@@ -1,7 +1,7 @@
 # Project status
 
 **Version:** 0.9.7
-**Updated:** 17 September 2026
+**Updated:** 18 September 2026
 **Validation:** [Current CI](https://github.com/theIslander-oly/Greece-bess-Investment-stress-tester/actions/workflows/tests.yml) runs Python 3.12 and 3.13. Dated implementation reports record suite counts.
 
 This page states where the work stands today. The dated record of how it got here is in
@@ -38,8 +38,19 @@ is not yet authorized or complete.
 Stages 1–9 have recorded completion evidence. Stage 8's implementation and synthetic validation
 are now supplemented by the privately reconciled official-history run `35252229873`.
 Stage 9 result PR #77 merged as `abfac6a`; CI run `34824236600` passed on Python 3.12 and 3.13.
-Stage 10 is in review on
-`codex/stage10-study-results` for the result continuation. Nothing is renumbered.
+Stage 10 is in publication review. Documentation PR #82 merged as `a294ab2` and merge CI
+`35254232678` passed. The operator confirmed that no public report was deployed. Nothing is
+renumbered or marked published.
+
+The authorized next development unit is on `codex/integrate-frozen-ml-policies`: replay both
+accepted frozen Stage 9 selections through separate ageing and finance states. It adds no
+forecast refit or new model family. The [design](docs/frozen_selection_study_design.md) also
+explains how the optimizer chooses charging and discharging. Source admission verifies the
+retained accepted bundle, including the original selected columns and complete evaluation
+calendar. No new official ageing/cost comparison has run; its measurement requires the
+reviewed implementation and a separate concrete run declaration.
+The [implementation record](docs/history/implementation_report_frozen_selection_study_2026-09-18.md)
+documents replay checks and preservation of the completed run's immutable declaration.
 
 The Stage 10 release layer now lets one configuration declare deterministic synthetic generation,
 run the integrated study and render its verified manifest in one command. Repeated runs of the
@@ -59,15 +70,16 @@ was `stage10-resolution-transition-repair`. Review, merge and CI are complete; t
 to continue authorized retry `35252229873` against the unchanged declaration. Both configurations
 completed, all 18 indexed evidence files verified, and all six strategy paths reconciled for
 calendar coverage, daily energy, cell/grid throughput, capacity fade and dated finance. The
-report re-renders byte identically. The next action is operator review of the private aggregate
-for publication authorization; publication and deployed-byte verification remain outstanding.
+report re-renders byte identically. Operator review of the private aggregate for publication
+authorization and deployed-byte verification remain outstanding. The active development next
+action is review of the frozen-selection integration and its final-head CI, as recorded in PLAN.
 
 The [continuation report](docs/history/implementation_report_stage10_private_study_2026-09-17.md)
 records the acceptance matrix and retained evidence. It publishes no new numerical study outcome.
 
 The [model assessment and research agenda](docs/model_assessment_and_research_agenda_2026-09-17.md)
-preserves the accepted findings and proposed model improvements. It introduces no new method,
-source or active stage and makes no claim that the current models are best.
+preserves the accepted findings and proposed model improvements. Its first proposed extension
+is now the active integration unit; it makes no claim that the current models are best.
 
 The tool retrieves an official Greek DAM price history, records and renders it under custody and
 manifest gates, optimizes perfect-foresight dispatch against it, backtests naive and ML forecasts

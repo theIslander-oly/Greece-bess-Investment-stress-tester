@@ -31,6 +31,10 @@ from ._support import _read_canonical_csv, _write_json, _write_plain_csv
 
 def configure_run_integrated_study(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
+        "--selection-evidence-dir", type=Path,
+        help="Accepted Stage 9 bundle pinned by selection_evidence_index_sha256 in the study",
+    )
+    parser.add_argument(
         "prices",
         nargs="?",
         type=Path,
@@ -71,7 +75,11 @@ def run_run_integrated_study(args: argparse.Namespace) -> int:
     config = read_integrated_study_config(args.study_config)
     prices, price_inputs = _prices_and_provenance(args.prices, config)
     declared_inputs = _declared_inputs(args, config, price_inputs)
-    result = assemble_integrated_study(run_integrated_study(prices, config))
+    result = assemble_integrated_study(run_integrated_study(
+        prices, config, selection_evidence_dir=args.selection_evidence_dir,
+    ))
+    if "selection_replay" in result.summary:
+        declared_inputs["selection_replay"] = result.summary["selection_replay"]
 
     # Every artifact is named after the declared study, so a directory holding several
     # studies stays readable and no artifact can be attributed to the wrong one.
@@ -197,7 +205,7 @@ def _declared_inputs(
     extra = json.loads(args.declared_inputs.read_text(encoding="utf-8"))
     if not isinstance(extra, dict):
         raise IntegratedStudyInputError("--declared-inputs must contain one JSON object")
-    collisions = sorted(set(extra) & set(automatic))
+    collisions = sorted(set(extra) & (set(automatic) | {"selection_replay"}))
     if collisions:
         raise IntegratedStudyInputError(
             "Additional declared inputs cannot replace automatic provenance: "

@@ -91,7 +91,22 @@ class Stage10WorkflowTests(unittest.TestCase):
         os.chdir(self.root)
         self.addCleanup(os.chdir, previous)
 
-    def test_committed_declaration_passes_without_reading_official_prices(self) -> None:
+    def test_completed_run_declaration_refuses_changed_current_implementation(self) -> None:
+        # The accepted run's declaration is historical evidence, not a movable source pin.
+        with self.assertRaisesRegex(ValueError, "Declared input changed"):
+            RUN.guard()
+        self.assertFalse(Path("private/prices.csv").exists())
+
+    def test_prospective_fixture_passes_without_reading_official_prices(self) -> None:
+        # Exercise the guard with current bytes only in the disposable test directory.
+        # This fixture is not an official-run declaration or authorization.
+        document = Path(str(DOCUMENT.relative_to(ROOT)))
+        declared = _declared()
+        declared["input_sha256"] = {
+            name: RUN.digest(Path(name)) for name in declared["input_sha256"]
+        }
+        document.write_text("```json\n" + json.dumps(declared) + "\n```\n", encoding="utf-8")
+        os.environ["DECLARATION_DOCUMENT_SHA256"] = RUN.digest(document)
         declared = RUN.guard()
         self.assertEqual(declared["evidence_class"], "retrospective_aggregate_release")
         self.assertFalse(Path("private/prices.csv").exists())

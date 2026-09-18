@@ -1,6 +1,7 @@
 """The per-day loop that connects forecasting, ageing, settlement and cash flows.
 
-This module implements section 4 of `docs/integrated_study_design.md` and nothing else. It
+This module implements section 4 of `docs/integrated_study_design.md` and the accepted replay
+contract in `docs/frozen_selection_study_design.md`. It
 computes no new arithmetic: every step is an existing contract, called in the one order that
 makes the join safe.
 
@@ -13,16 +14,17 @@ cautious strategy silently pays for an aggressive one's throughput. States are t
 in a per-strategy mapping, advanced only by that strategy's own settled discharge, and the
 declaration order of the strategies cannot reach any of them.
 
-**No day may read its own outcome.** A planner other than `perfect_foresight` sees only prices
-from days strictly before the delivery day, which the causal forecast generator already
-guarantees; prices after the declared window are discarded before a forecast is generated at
-all, so a longer history cannot enter through the window's last days.
+**No causal planner may read its own outcome.** Naive planners use prices strictly before
+delivery, with prices after the window discarded before generation. Frozen planners replay
+independently accepted causal forecasts; the adapter verifies their identity and calendar,
+while causal construction remains a property of the accepted upstream experiment.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
 from datetime import date
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -53,6 +55,7 @@ from .config import (
     IntegratedStudyInputError,
     StrategySpec,
 )
+from .frozen_selection import read_frozen_selection
 
 TOLERANCE = 1e-9
 
@@ -75,15 +78,27 @@ class IntegratedStudyRun:
     config: IntegratedStudyConfig
     strategy_runs: tuple[StrategyRun, ...]
     coverage: dict[str, Any]
+    selection_replay: dict[str, Any] | None = None
 
 
 def run_integrated_study(
-    prices: pd.DataFrame, config: IntegratedStudyConfig
+    prices: pd.DataFrame, config: IntegratedStudyConfig,
+    *, selection_evidence_dir: Path | None = None,
 ) -> IntegratedStudyRun:
     """Run every declared strategy over the declared window, or refuse to run at all."""
 
     data, coverage = _window_prices(prices, config)
     forecasts = _window_forecasts(data, config)
+    selection_replay = None
+    if config.selection_evidence_index_sha256 is not None:
+        if selection_evidence_dir is None:
+            raise IntegratedStudyInputError(
+                "Frozen planners require a selection evidence directory"
+            )
+        frozen, selection_replay = read_frozen_selection(selection_evidence_dir, data, config)
+        forecasts = frozen if forecasts.empty else forecasts.join(frozen, how="left")
+    elif selection_evidence_dir is not None:
+        raise IntegratedStudyInputError("Selection evidence supplied without frozen planners")
     day_frames = _day_frames(data, config)
 
     states = {
@@ -221,7 +236,8 @@ def run_integrated_study(
             )
         )
     return IntegratedStudyRun(
-        config=config, strategy_runs=tuple(strategy_runs), coverage=coverage
+        config=config, strategy_runs=tuple(strategy_runs), coverage=coverage,
+        selection_replay=selection_replay,
     )
 
 

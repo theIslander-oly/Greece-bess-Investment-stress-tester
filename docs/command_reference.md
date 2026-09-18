@@ -1226,6 +1226,27 @@ digest and either the supplied price-file digest or the synthetic-generation dig
 `--declared-inputs provenance.json` may add custody, evidence-grade, workflow, commit and
 declaration identity for a controlled run. It cannot replace an automatically recorded key.
 
+For replay of an accepted Stage 9 selection bundle, declare both `frozen_validation_rmse` and
+`frozen_validation_margin` planners under `accepted_frozen_causal_forecasts`, and pin the accepted
+`selection_evidence_index_sha256` in the study configuration. Supply its original evidence files:
+
+```bash
+greek-bess run-integrated-study private/accepted-selection/prices.csv \
+  --study-config config/integrated_study_frozen_selection_zero_fade.json \
+  --selection-evidence-dir private/accepted-selection \
+  --output-dir outputs/frozen-selection-zero-fade \
+  --report outputs/frozen-selection-zero-fade.html
+```
+
+This is an invocation pattern, not permission to bypass the official experiment declaration.
+The paired configuration with ageing/costs is
+`config/integrated_study_frozen_selection_with_costs.json`. Both use the original selected
+forecasts and exact evaluation window. The adapter checks every indexed file, selection seal,
+forecast identity and complete calendar; it refuses missing data and never refits or reselects.
+The source must already have independent acceptance: an arbitrary self-pinned table is not
+evidence of causal forecasting. Automatic selection provenance cannot be replaced through
+`--declared-inputs`. See [the design](frozen_selection_study_design.md).
+
 This writes five artifacts, all named after the declared `study_id`:
 
 - `<study_id>.daily.csv`, one row per strategy per delivery day;

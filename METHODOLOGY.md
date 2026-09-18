@@ -830,6 +830,25 @@ The static renderer lays an integrated study's strategies out as one column per 
 row per recorded field. It reads only the verified manifest, retains exact values and derives no
 ranking, cross-configuration statistic or shared ceiling.
 
+## Frozen-selection study replay
+
+The integrated study can consume both selected candidate columns from a previously accepted
+Stage 9 bundle. The declared evidence-index SHA-256 anchors the original bytes; every indexed
+file, frozen selection seal and semantic forecast digest verifies before use. Legacy semantic
+digests used producer-native CSV line endings, so the reader explicitly checks LF and CRLF and
+records the matching convention. It changes neither values nor the accepted source identity.
+Hashes establish identity, while causal training and validation-only selection evidence are
+inherited from the independently accepted upstream experiment.
+
+The study must use the complete original evaluation window. Forecast keys, market days,
+durations, sources and copied realized prices must agree with canonical data. Selection is
+never repeated and forecasts are never refitted. Both objectives occur exactly once and retain
+separate ageing states. The results module records signed margin-selection-minus-RMSE-selection
+differences in cash margin, NPV, cell-based EFC, final capacity and undiscounted cash flow under
+one declared initial configuration. They are retrospective outcomes, not future superiority or
+a lifetime optimum. See `docs/frozen_selection_study_design.md` for the admission contract and
+the buy/sell equations. This implementation has not yet produced an official coupled ML result.
+
 ## Selection input consistency
 
 Validation price-error selection and dispatch settlement must refer to the same realized prices.

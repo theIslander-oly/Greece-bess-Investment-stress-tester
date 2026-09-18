@@ -25,6 +25,9 @@ local location of that bundle. Before reading forecast values, verify the pinned
 and every indexed file, refusing missing files, digest mismatches or paths outside the bundle.
 Require the original selection summary, forecasts and frozen selection seal. Check that the
 summary, seal and evidence index agree, and that the candidate-forecast semantic digest matches.
+The legacy producer used platform-native CSV line endings for that semantic digest. Reconstruct
+LF and CRLF explicitly, require exactly one match and record which matched. The independently
+pinned source files still require exact byte identity; forecast values and precision never change.
 This unit accepts retrospective supplementary evidence only; it cannot promote an already
 inspected evaluation window into confirmatory evidence.
 
@@ -46,6 +49,9 @@ the non-cash wear penalty and cash operating/augmentation costs retain their sep
 Record source run/commit, pinned evidence index, frozen seal, candidate forecast identity,
 selected candidates and evidence class in the study summary and manifest provenance. The existing
 renderer consumes those records without deriving a shared ceiling or cross-configuration figure.
+The results module records signed margin-selection-minus-RMSE-selection differences in cash
+margin, NPV, cell-based EFC, final capacity and undiscounted project cash flow. Both planners
+must occur exactly once so the paired comparison cannot silently choose among duplicate arms.
 Legacy study summaries and configuration serialization remain unchanged when no replay is declared.
 
 ## Acceptance
