@@ -417,11 +417,13 @@ the daily differences.
 
 **Scope.** Planners include naïve methods, perfect foresight and replay of both previously accepted
 frozen Stage 9 ML selections. Fresh training, reselection and fundamentals integration are not
-part of that adapter. The adapter is implementation work with synthetic checks and accepted-source
-admission; it has not produced a new official ageing/cost comparison. Identity hashes do not
-independently prove causality: the source bundle must already be accepted under its upstream
-training and selection protocol. All strategies share one declared battery and one declared degradation
-model, instantiated separately — a comparison of differently sized batteries is not expressible.
+part of that adapter. One privately retained official-history ageing/cost comparison has completed
+under the 19 September declaration, but its aggregate findings are not published. A completed
+retrospective comparison remains one inspected window, not evidence of recurring advantage.
+Identity hashes do not independently prove causality: the source bundle must already be accepted
+under its upstream training and selection protocol. All strategies share one declared battery and
+one declared degradation model, instantiated separately — a comparison of differently sized
+batteries is not expressible.
 Multi-year extrapolation, a terminal-value model beyond the configured residual, intraday or
 ancillary revenue, revenue stacking and any lifetime-optimal dispatch policy remain excluded, each
 a scope change requiring its own decision.

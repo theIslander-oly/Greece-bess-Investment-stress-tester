@@ -48,8 +48,10 @@ accepted frozen Stage 9 selections through separate ageing and finance states. I
 forecast refit or new model family. The [design](docs/frozen_selection_study_design.md) also
 explains how the optimizer chooses charging and discharging. Source admission verifies the
 retained accepted bundle, including the original selected columns and complete evaluation
-calendar. No new official ageing/cost comparison has run; its measurement requires the
-reviewed implementation and a separate concrete run declaration.
+calendar. Declaration PR #84 merged as `4d051ef`; merge CI `35444486512` passed on Python 3.12
+and 3.13. The authorized private experiment then completed under the reviewed declaration.
+Zero-fade reproduction passed before the unchanged ageing/cost case ran, and both cases
+independently reconcile. Aggregate findings remain private pending separate publication review.
 The [implementation record](docs/history/implementation_report_frozen_selection_study_2026-09-18.md)
 documents replay checks and preservation of the completed run's immutable declaration.
 
@@ -57,7 +59,9 @@ The [19 September experiment declaration](docs/frozen_selection_run_declaration_
 pins the original forecasts, full implementation tree, two configurations and numerical runtime.
 It requires zero-fade reproduction before the ageing/cost case and retains all valid outcome signs.
 Its read-only identity verifier and regression checks prepare review; no official experiment or
-publication is authorized or performed by that preparation.
+publication was authorized or performed by that preparation. The subsequent private execution is
+recorded in the [private-result report](docs/history/implementation_report_frozen_selection_private_result_2026-09-19.md),
+without publishing its aggregate figures or outcome signs.
 The [preparation report](docs/history/implementation_report_frozen_selection_declaration_2026-09-19.md)
 records the protocol choices and validation scope.
 
@@ -80,8 +84,9 @@ to continue authorized retry `35252229873` against the unchanged declaration. Bo
 completed, all 18 indexed evidence files verified, and all six strategy paths reconciled for
 calendar coverage, daily energy, cell/grid throughput, capacity fade and dated finance. The
 report re-renders byte identically. Operator review of the private aggregate for publication
-authorization and deployed-byte verification remain outstanding. The active development next
-action is review of the concrete frozen-selection experiment declaration, as recorded in PLAN.
+authorization and deployed-byte verification remain outstanding. The active research unit has
+also completed its private frozen-selection measurement; its publication review is now the next
+gate recorded in PLAN.
 
 The [continuation report](docs/history/implementation_report_stage10_private_study_2026-09-17.md)
 records the acceptance matrix and retained evidence. It publishes no new numerical study outcome.

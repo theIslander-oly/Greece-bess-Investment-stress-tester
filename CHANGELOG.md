@@ -19,6 +19,11 @@ All notable project changes are documented here.
 
 ### Maintenance
 
+- Complete the declared frozen-selection private experiment after PR #84 and successful merge
+  CI. The zero-fade gate reproduced both accepted policies before the ageing/cost case ran; both
+  cases, manifests, physical states, cash flows and dated NPVs independently reconcile. Retain
+  the sealed result privately and keep aggregate publication separately gated.
+
 - Prepare the frozen-selection official experiment declaration after PR #83 and successful merge
   CI. Pin source, evidence, configurations and runtime; require zero-fade reproduction before
   ageing/cost measurement. Add a read-only identity verifier and mutation regressions. No new
