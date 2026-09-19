@@ -7,10 +7,10 @@ in [`docs/history/plan_log_through_2026-09-11.md`](docs/history/plan_log_through
 The staged plan in [`Greek_BESS_Execution_Plan.md`](Greek_BESS_Execution_Plan.md) is active and
 authoritative. Only one stage moves at a time, and no stage is renumbered.
 
-**18 September continuation:** the operator confirmed the Stage 10 report was not published
-and instructed continuation of the next research unit. Stage 10 remains in publication review;
-the sole active development unit is frozen ML selection integration below. The original ten
-stages are not renumbered or retrospectively marked published.
+**19 September continuation:** the operator authorized and continued the declared private
+frozen-selection experiment after PR #84 merged. The experiment completed and independently
+reconciles. Stage 10 and the new frozen-selection result each remain in separate publication
+review; the original ten stages are not renumbered or retrospectively marked published.
 
 ## GitHub milestone workflow
 
@@ -104,10 +104,10 @@ The private report and findings brief are retained locally. After authorization,
 the applicable approved route and verify the deployed bytes before calling Stage 10 complete.
 No new numerical study outcome is included in this documentation change.
 
-## Active research unit — integrate frozen ML selection with ageing and costs
+## Active research unit — frozen ML selection with ageing and costs
 
 Implementation merged in PR #83 (`d57125e`), with successful merge CI `35316480803`.
-Declaration branch: `codex/frozen-selection-run-declaration`. The [design](docs/frozen_selection_study_design.md)
+Declaration PR #84 merged as `4d051ef`, with successful merge CI `35444486512`. The [design](docs/frozen_selection_study_design.md)
 connects both existing Stage 9 selections to the integrated runner without refitting, retuning
 or replacing the original forecasts. The accepted source index pins every consumed file.
 Regression checks compare zero-fade replay to fixed-battery dispatch and preserve separate
@@ -115,15 +115,15 @@ ageing states, causal information, complete calendars and manifest provenance.
 
 Two configurations are prepared: a zero-fade/zero-operating-cost reproduction baseline and
 the same frozen policies with the existing illustrative physical-fade and operating-cost inputs.
-This implementation does not create a new official empirical result. The original inspected
-window remains retrospective supplementary evidence.
+The original inspected window remains retrospective supplementary evidence.
 
-**Next action: review the [19 September declaration](docs/frozen_selection_run_declaration_2026-09-19.md)
-and final-head CI, then authorize its exact digest before the private experiment.**
-The declaration fixes zero-fade reproduction before ageing/cost measurement, source and runtime
-identities, numerical tolerances and private evidence retention. Preparation runs no official study.
-Do not rerun candidate training or select a different pair
-because of an observed outcome. The separate Stage 10 publication action stays open.
+**Private measurement complete; publication review is next.** The reviewed declaration fixed
+zero-fade reproduction before ageing/cost measurement, source and runtime identities, numerical
+tolerances and private evidence retention. The reproduction gate passed, the unchanged second
+case ran, and independent physical and financial checks passed. The private evidence index seals
+33 retained files and keeps `publication_authorized` false. No aggregate figure or outcome sign
+is added here. Do not rerun candidate training or select a different pair because of the observed
+outcome. The separate Stage 10 publication action stays open.
 
 ## Reassess model additions only afterwards
 
@@ -137,8 +137,9 @@ the proposed order: couple existing ML selection to ageing/costs, test the oppor
 remaining battery life, and compare a limited forecast challenger set on untouched or prospective
 data. Assess a calibrated LFP degradation model only with suitable validation data. Additional
 markets require independent data and settlement validation. These remain backlog items;
-The first item is now the active unit above; Stage 10's experiment remains unchanged and its
-public release remains in review. Remaining items stay in the backlog.
+The first item has completed private measurement and is in publication review; Stage 10's
+experiment remains unchanged and its public release is also in review. Remaining items stay in
+the backlog until those gates are resolved.
 
 ## Open gates
 

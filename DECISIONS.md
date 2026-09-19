@@ -1,5 +1,23 @@
 # Decision log
 
+## 2026-09-19 — Complete the frozen-selection experiment privately
+
+After declaration PR #84 merged as `4d051ef` and CI `35444486512` passed on Python 3.12 and
+3.13, the operator authorized and continued the private experiment under declaration SHA-256
+`178ed1903a6072acc3a7c0ca95b62aedbeb46e5ac6878ecd9e92c1e9c468819f`.
+
+Provision the exact recorded numerical runtime rather than amend the declaration. Verify official
+history custody and the accepted Stage 9 evidence before dispatch. Run the zero-fade case first;
+only its successful independent daily and aggregate reproduction opens the ageing/cost gate. The
+unchanged second case then runs with separate physical states and independent cash-flow and NPV
+reconciliation. Both manifests verify and both report HTML files re-render byte identically.
+
+Seal the 33 retained private files under evidence-index SHA-256
+`f7cb1203898844a1539c0dd63e28415ac96252753b0c5c5c150b755f09ae4a4c` with
+`publication_authorized` false. Record completion and validation publicly, but do not publish
+aggregate figures or outcome signs without separate authorization. The result remains
+retrospective supplementary evidence and does not change the shipped selection policy.
+
 ## 2026-09-19 — Preregister frozen-selection measurement after integration merge
 
 PR #83 merged as `d57125e`, with successful merge CI `35316480803`. Prepare the
