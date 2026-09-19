@@ -19,6 +19,11 @@ All notable project changes are documented here.
 
 ### Maintenance
 
+- Prepare the frozen-selection official experiment declaration after PR #83 and successful merge
+  CI. Pin source, evidence, configurations and runtime; require zero-fade reproduction before
+  ageing/cost measurement. Add a read-only identity verifier and mutation regressions. No new
+  official result or public deployment is produced.
+
 - Record the model assessment, accepted presentation findings and an ordered post-Stage-10
   research agenda. Continue the unchanged repaired official study after PR #81 merge and
   successful CI. Reconcile completed private run `35252229873`, close Stage 8's official-history

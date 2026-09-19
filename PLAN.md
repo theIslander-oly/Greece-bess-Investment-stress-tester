@@ -106,7 +106,8 @@ No new numerical study outcome is included in this documentation change.
 
 ## Active research unit — integrate frozen ML selection with ageing and costs
 
-Branch: `codex/integrate-frozen-ml-policies`. The [design](docs/frozen_selection_study_design.md)
+Implementation merged in PR #83 (`d57125e`), with successful merge CI `35316480803`.
+Declaration branch: `codex/frozen-selection-run-declaration`. The [design](docs/frozen_selection_study_design.md)
 connects both existing Stage 9 selections to the integrated runner without refitting, retuning
 or replacing the original forecasts. The accepted source index pins every consumed file.
 Regression checks compare zero-fade replay to fixed-battery dispatch and preserve separate
@@ -117,8 +118,11 @@ the same frozen policies with the existing illustrative physical-fade and operat
 This implementation does not create a new official empirical result. The original inspected
 window remains retrospective supplementary evidence.
 
-**Next action: review the integration and its final-head CI, then prepare the digest-pinned
-official experiment declaration.** Do not rerun candidate training or select a different pair
+**Next action: review the [19 September declaration](docs/frozen_selection_run_declaration_2026-09-19.md)
+and final-head CI, then authorize its exact digest before the private experiment.**
+The declaration fixes zero-fade reproduction before ageing/cost measurement, source and runtime
+identities, numerical tolerances and private evidence retention. Preparation runs no official study.
+Do not rerun candidate training or select a different pair
 because of an observed outcome. The separate Stage 10 publication action stays open.
 
 ## Reassess model additions only afterwards

@@ -36,6 +36,11 @@ selections under a pinned evidence index. Fresh ML training and weather benchmar
 separate commands. See the [command reference](docs/command_reference.md) for all workflows and
 [configuration guide](config/README.md) for declared inputs.
 
+The next experiment is prepared in the
+[frozen-selection run declaration](docs/frozen_selection_run_declaration_2026-09-19.md): reproduce
+the original selections without fade, then measure their outcomes with illustrative ageing and
+costs. Integration is merged; the new measurement awaits declaration review and authorization.
+
 ## Accepted official-history findings
 
 These are **historical replay and backtest results, not expected revenue, a forecast or
