@@ -1,5 +1,23 @@
 # Decision log
 
+## 2026-09-19 — Preregister frozen-selection measurement after integration merge
+
+PR #83 merged as `d57125e`, with successful merge CI `35316480803`. Prepare the
+[concrete experiment declaration](docs/frozen_selection_run_declaration_2026-09-19.md) on
+`codex/frozen-selection-run-declaration`. Pin the entire package source tree, existing
+configurations, accepted source identities and original numerical runtime. Require reproduction
+of original selected forecasts through the zero-fade case before measuring ageing and costs.
+
+Use daily absolute tolerances of `1e-6` EUR for cash and `1e-6` MWh for energy and
+aggregate tolerances of `329e-6`, with zero relative tolerance. Cell-based ageing EFC and the
+original grid-based EFC must retain their distinct definitions. Compare both paired cash-margin
+and NPV signs; positive performance is not an acceptance criterion. Changing fade and OPEX
+together measures a combined effect, not their separate contributions.
+
+The continuation instruction authorizes preparation and validation. The exact declaration is
+now available for review before official execution; publication remains a separate gate.
+Neither source admission nor this read-only identity verifier supplies run authorization.
+
 ## 2026-09-18 — Integrate accepted frozen selections without refitting
 
 The operator instructed continuation and clarified that the Stage 10 report was not published.

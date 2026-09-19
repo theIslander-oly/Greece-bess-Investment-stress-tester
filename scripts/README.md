@@ -15,6 +15,19 @@ Current ingestion entry points are exposed through the `greek-bess` CLI and docu
 README. Manual GitHub retrieval workflows are in `.github/workflows/fetch-entsoe.yml` and
 `.github/workflows/fetch-official-history.yml`.
 
+## Frozen-selection declaration identity
+
+`verify_frozen_study_declaration.py` checks the reviewed document digest, pinned inputs and the
+complete package source tree without running a study or reading private data:
+
+```bash
+python scripts/verify_frozen_study_declaration.py docs/frozen_selection_run_declaration_2026-09-19.md --sha256 REVIEWED_DOCUMENT_SHA256
+```
+
+Supply the independently reviewed whole-document SHA-256. Successful verification establishes
+identity only; follow the declaration's custody, authorization and reproduction gates before
+official measurement.
+
 ## Synthetic dispatch throughput benchmark
 
 `benchmark_dispatch.py` measures the relaxation-first daily dispatch path without official data:
