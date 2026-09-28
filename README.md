@@ -36,10 +36,10 @@ selections under a pinned evidence index. Fresh ML training and weather benchmar
 separate commands. See the [command reference](docs/command_reference.md) for all workflows and
 [configuration guide](config/README.md) for declared inputs.
 
-The next experiment is prepared in the
-[frozen-selection run declaration](docs/frozen_selection_run_declaration_2026-09-19.md): reproduce
-the original selections without fade, then measure their outcomes with illustrative ageing and
-costs. Integration is merged; the new measurement awaits declaration review and authorization.
+The [frozen-selection run declaration](docs/frozen_selection_run_declaration_2026-09-19.md) has
+now been executed privately: the original selections reproduced without fade, and the unchanged
+ageing/cost case completed with independent physical and financial reconciliation. Aggregate
+figures remain private pending separate publication review; no result is presented here.
 
 ## Accepted official-history findings
 

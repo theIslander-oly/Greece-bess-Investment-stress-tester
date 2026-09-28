@@ -68,3 +68,5 @@ No figure, run id or digest was changed in either move.
 - [Release continuation review — 17 September 2026](implementation_report_release_review_2026-09-17.md)
 
 - [Stage 10 official-run failure and resolution-transition repair — 17 September 2026](implementation_report_stage10_resolution_transition_2026-09-17.md)
+
+- [Frozen-selection private experiment — 19 September 2026](implementation_report_frozen_selection_private_result_2026-09-19.md)
