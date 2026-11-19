@@ -41,6 +41,11 @@ now been executed privately: the original selections reproduced without fade, an
 ageing/cost case completed with independent physical and financial reconciliation. Aggregate
 figures remain private pending separate publication review; no result is presented here.
 
+Stage 10's original aggregate has been recovered and verified for
+[publication review](docs/stage10_publication_review_2026-11-18.md). The local preparation
+command verifies the original ZIP and stages only its exact aggregate HTML and index.
+Publication remains separately gated.
+
 ## Accepted official-history findings
 
 These are **historical replay and backtest results, not expected revenue, a forecast or

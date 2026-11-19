@@ -19,6 +19,10 @@ All notable project changes are documented here.
 
 ### Maintenance
 
+- Recover and verify the accepted Stage 10 artifact for publication review. Add a local
+  preparation command with a pinned ZIP, evidence and manifest checks, and byte-identical
+  report reproduction. Stage only the original HTML and index without an Actions upload.
+
 - Complete the declared frozen-selection private experiment after PR #84 and successful merge
   CI. The zero-fade gate reproduced both accepted policies before the ageing/cost case ran; both
   cases, manifests, physical states, cash flows and dated NPVs independently reconcile. Retain

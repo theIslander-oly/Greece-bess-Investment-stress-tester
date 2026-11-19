@@ -1,5 +1,23 @@
 # Decision log
 
+## 2026-11-18 — Prepare the accepted Stage 10 aggregate for publication review
+
+Continue from the prior conversation and merged PR #85 rather than repeat completed experiments.
+Recover original Stage 10 artifact `10510326086` from run `35252229873`; verify the accepted
+archive and evidence index, all 18 indexed files, declaration, custody receipt, manifests and
+byte-identical report rendering. Keep the prior declaration and authorization record immutable.
+
+Prepare the review locally from the pinned original ZIP and stage only the exact original HTML
+and report index into a new review directory. Refuse changed archives or evidence, mismatched
+manifests or rendering, symlinks and existing output directories. Review files stay off GitHub
+Actions because signed-in readers of the public repository can download its artifacts.
+The publication decision remains separate from preparation.
+
+Stage 10 and frozen-selection publication remain separate. The earlier acceptance record
+identifies the frozen-selection bundle in the previous workspace; that bundle is not present
+here. Do not regenerate it or infer its outcome. Resolve publication review and the public route
+before deployment, then verify deployed bytes; do not advance the model backlog in the meantime.
+
 ## 2026-09-19 — Complete the frozen-selection experiment privately
 
 After declaration PR #84 merged as `4d051ef` and CI `35444486512` passed on Python 3.12 and

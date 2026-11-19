@@ -1,12 +1,18 @@
 # Project status
 
 **Version:** 0.9.7
-**Updated:** 19 September 2026
+**Updated:** 18 November 2026
 **Validation:** [Current CI](https://github.com/theIslander-oly/Greece-bess-Investment-stress-tester/actions/workflows/tests.yml) runs Python 3.12 and 3.13. Dated implementation reports record suite counts.
 
 This page states where the work stands today. The dated record of how it got here is in
 [`docs/history/status_log_through_2026-09-11.md`](docs/history/status_log_through_2026-09-11.md);
 the stage tracker and what happens next are in [`PLAN.md`](PLAN.md).
+
+The [18 November publication review](docs/stage10_publication_review_2026-11-18.md) recovers
+Stage 10's original artifact, verifies all 18 indexed files and reproduces its HTML exactly.
+The local preparation command verifies the original ZIP and stages only its aggregate HTML
+and index for private review. Stage 10 remains in review. The separate frozen-selection
+bundle is named in the earlier acceptance record but has not been recovered in this workspace.
 
 ## Readiness audit — 15 September 2026
 
