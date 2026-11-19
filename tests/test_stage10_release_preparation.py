@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import sys
 from pathlib import Path
+from zipfile import ZipFile
 
 import pytest
 
@@ -104,6 +106,42 @@ def test_stages_only_original_aggregate_bytes_without_modifying_source(bundle, t
     assert before == {
         p.relative_to(bundle): p.read_bytes() for p in bundle.rglob("*") if p.is_file()
     }
+
+
+@pytest.fixture
+def archive(bundle, tmp_path, monkeypatch):
+    path = tmp_path / "accepted.zip"
+    with ZipFile(path, "w") as zipped:
+        for member in sorted(bundle.rglob("*")):
+            if member.is_file():
+                zipped.write(member, member.relative_to(bundle).as_posix())
+    monkeypatch.setattr(RELEASE, "ARCHIVE_SHA256", RELEASE.digest(path))
+    return path
+
+
+def test_cli_stages_verified_archive_report(archive, bundle, tmp_path, monkeypatch, capsys):
+    output = tmp_path / "review"
+    monkeypatch.setattr(sys, "argv", [str(SCRIPT), str(archive), "--output", str(output)])
+    RELEASE.main()
+    receipt = json.loads(capsys.readouterr().out)
+    assert receipt["archive_sha256"] == RELEASE.digest(archive) == RELEASE.ARCHIVE_SHA256
+    assert receipt["publication_authorized"] is False
+    assert {p.name for p in output.iterdir()} == {"index.html", "report.index.json"}
+    assert (output / "index.html").read_bytes() == (
+        bundle / "integrated-study-report.html"
+    ).read_bytes()
+    assert (output / "report.index.json").read_bytes() == (
+        bundle / "integrated-study-report.index.json"
+    ).read_bytes()
+
+
+def test_repacked_archive_is_refused_even_when_the_bundle_matches(archive, tmp_path):
+    with ZipFile(archive, "a") as zipped:
+        zipped.comment = b"This changes only the outer archive"
+    output = tmp_path / "review"
+    with pytest.raises(ValueError, match="Unaccepted Stage 10 archive"):
+        RELEASE.prepare_archive(archive, output)
+    assert not output.exists()
 
 
 @pytest.mark.parametrize("name", ["prices.csv", "declaration.md", "integrated-study-report.html"])

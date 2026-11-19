@@ -35,15 +35,16 @@ records the scientific reconciliation and its limits.
 
 ## Prepare the review package
 
-From the repository root, with the original artifact extracted into the ignored source directory:
+Download the original ZIP from the [accepted workflow run](https://github.com/theIslander-oly/Greece-bess-Investment-stress-tester/actions/runs/35252229873)
+into the ignored `private/` directory. From the repository root, with the project installed:
 
 ```bash
-python .github/scripts/prepare_stage10_release.py private/stage10-35252229873 --output private/stage10-review
+python .github/scripts/prepare_stage10_release.py private/integrated-study-private.zip --output private/stage10-review
 ```
 
-The output directory must be new and outside the evidence bundle. The helper first verifies
-the accepted index, every indexed file, declaration, custody receipt, manifests, report index
-and byte-identical re-rendering. It then stages exactly:
+Use a new output directory. The helper verifies the pinned ZIP SHA-256 before extracting it
+to a temporary directory, then verifies the accepted index, every indexed file, declaration,
+custody receipt, manifests, report index and byte-identical re-rendering. It stages exactly:
 
 - `index.html`: the original aggregate report bytes;
 - `report.index.json`: the original machine-readable report index.
@@ -52,18 +53,16 @@ No recursive directory copy is used. Prices, forecasts, daily schedules, cash-fl
 logs, manifests and custody records stay outside the review surface. The printed receipt
 records hashes and `publication_authorized: false`; it is not publication approval.
 
-The manual **Prepare the accepted Stage 10 aggregate for review** workflow performs the same
-checks against the fixed source run and retains the aggregate and receipt as separate Actions
-artifacts. It has read-only permissions and no deployment job. Running it is preparation,
-not authorization to publish. The original source artifact expires on 16 December 2026;
-retaining the two-file aggregate does not preserve or replace the full original evidence.
+Open the staged HTML locally and retain the receipt with the review files. GitHub Actions
+artifacts are downloadable by signed-in readers of this public repository, so preparation
+runs locally. The original source artifact expires on 16 December 2026. Retaining the two
+aggregate files does not preserve or replace the full original evidence.
 
 ## Decision and remaining gates
 
 Review both configurations, all strategies, their assumptions and limitations in the exact
 HTML identified above. A publication decision must name these bytes and the intended public
-route. Approval of this code change or a successful preparation workflow does not itself
-authorize publication. After approval, deploy only the reviewed aggregate files, preserve
+route. Code review and local preparation are separate from publication approval. After approval, deploy only the reviewed aggregate files, preserve
 any existing public reports, and compare the served HTML and index with their approved
 hashes before marking Stage 10 complete.
 

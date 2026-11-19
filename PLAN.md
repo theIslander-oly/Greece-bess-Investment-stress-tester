@@ -80,7 +80,7 @@ Verify the actual published report before calling publication complete.
 **18 November continuation:** recover the original Stage 10 artifact and verify its archive,
 18 indexed files, declaration, custody, manifests and exact report re-render. The
 [publication review](docs/stage10_publication_review_2026-11-18.md) identifies the concrete
-aggregate bytes and a read-only preparation workflow. Review and authorize those files and
+aggregate bytes and a local preparation command. Review and authorize those files and
 their publication route separately; preserve existing reports and verify deployed hashes before
 closing the stage. No official experiment is repeated and no new model work starts here.
 

@@ -7,10 +7,11 @@ Recover original Stage 10 artifact `10510326086` from run `35252229873`; verify 
 archive and evidence index, all 18 indexed files, declaration, custody receipt, manifests and
 byte-identical report rendering. Keep the prior declaration and authorization record immutable.
 
-Add a read-only helper and manual preparation workflow that stage only the exact original HTML
-and report index into a new review directory. Refuse changed evidence, mismatched manifests or
-rendering, symlinks and existing output directories. No scientific result, dependency, source
-or analytical package code changes. The helper does not confer publication authority.
+Prepare the review locally from the pinned original ZIP and stage only the exact original HTML
+and report index into a new review directory. Refuse changed archives or evidence, mismatched
+manifests or rendering, symlinks and existing output directories. Review files stay off GitHub
+Actions because signed-in readers of the public repository can download its artifacts.
+The publication decision remains separate from preparation.
 
 Stage 10 and frozen-selection publication remain separate. The earlier acceptance record
 identifies the frozen-selection bundle in the previous workspace; that bundle is not present

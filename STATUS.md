@@ -10,8 +10,8 @@ the stage tracker and what happens next are in [`PLAN.md`](PLAN.md).
 
 The [18 November publication review](docs/stage10_publication_review_2026-11-18.md) recovers
 Stage 10's original artifact, verifies all 18 indexed files and reproduces its HTML exactly.
-The new manual preparation workflow stages only the aggregate HTML and index for private
-review. Stage 10 remains in review; no report was deployed. The separate frozen-selection
+The local preparation command verifies the original ZIP and stages only its aggregate HTML
+and index for private review. Stage 10 remains in review. The separate frozen-selection
 bundle is named in the earlier acceptance record but has not been recovered in this workspace.
 
 ## Readiness audit — 15 September 2026

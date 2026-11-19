@@ -8,8 +8,8 @@ the ordered experiment and separate Stage 10 publication steps; the current plan
 acceptance report establish that the frozen-selection experiment has since completed privately.
 Do not repeat either accepted experiment or start a new model unit.
 
-Branch `prepare-stage10-publication` adds a helper, a manual read-only preparation workflow,
-synthetic refusal tests and the [concrete publication review](../stage10_publication_review_2026-11-18.md).
+Branch `prepare-stage10-publication` adds a local preparation command, synthetic refusal
+tests and the [publication review](../stage10_publication_review_2026-11-18.md).
 It changes no analytical package module, dependency, configuration, historical declaration,
 accepted finding or selection rule. Neither a report nor a new numerical outcome is committed.
 Stage 10 remains in review and no deployment is performed.
@@ -34,16 +34,15 @@ remains the acceptance evidence; this continuation verifies retained identity an
 
 ## Release preparation behavior
 
-The helper admits only the pinned source run, commit, evidence index, declaration and report.
-It verifies every indexed file before reading the two manifests and their summaries, then
-requires exact HTML reproduction and a matching report index apart from its render timestamp.
-All checks pass before creating a new output directory outside the source bundle. It refuses
-symlinks and path traversal, and preserves any existing destination by refusing to overwrite it.
+The command verifies the pinned ZIP before extracting it to a temporary directory. The helper
+then verifies the source run, commit, evidence index, and every indexed file before reading
+the two manifests and their summaries. It requires exact HTML reproduction and a matching
+report index apart from its render timestamp. All checks pass before it creates the new
+output directory. It refuses symlinks and path traversal in evidence members.
 
-Only the original aggregate HTML and index are staged. The receipt carries hashes and keeps
-`publication_authorized` false. The manual workflow downloads the fixed accepted source and
-retains those two files and the receipt separately. It has no deployment job or write permission
-to repository contents or Pages. It does not repeat the official-study workflow.
+Only the original aggregate HTML and index are staged. The receipt records the archive and
+review-file hashes and keeps `publication_authorized` false. Preparation stays local because
+signed-in readers of the public repository can download its Actions artifacts.
 
 The local review surface and private brief are ignored files in `private/`. No raw prices,
 daily schedules, finance tables, logs, manifests or custody records enter the aggregate package
@@ -70,6 +69,10 @@ explicit; an aggregate package is not a backup of the full evidence.
 Local validation uses Python 3.12.14, NumPy 2.5.5, pandas 2.3.3, SciPy 1.18.1,
 scikit-learn 1.9.1 and ecCodes 2.50.1. The numerical runtime differs from the original
 experiment; no claim of scientific re-execution under the original runtime is made.
+
+The 19 November follow-up covers the local ZIP command and rejection of a repacked archive
+whose extracted files would still match. The original-artifact staging and 854-test result
+above describe the 18 November preparation.
 
 ## Remaining gates
 

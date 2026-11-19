@@ -6,11 +6,14 @@ import argparse
 import hashlib
 import json
 from pathlib import Path, PurePosixPath
+from tempfile import TemporaryDirectory
+from zipfile import ZipFile
 
 from greek_bess.reporting import read_run_manifest, render_report
 
 SOURCE_RUN = "35252229873"
 SOURCE_COMMIT = "76d48d5aea505fefe51ca948cc901d6fbda594a0"
+ARCHIVE_SHA256 = "9aaa06804b7baf3079c24d76ee7b8dbce45264f85b7dddb5f387a7d11c20f4a9"
 EVIDENCE_SHA256 = "214a4caaf52d16f9bd7cb508eb9334f94bfa3a98696cc4820b89eec612daf938"
 DECLARATION_SHA256 = "007c90444aedf17135601035c3b46a9731b7117a531692f92e4173f28cdcbe79"
 REPORT_SHA256 = "5fb8ccc56b083d9f2cc3a1fdf05b0252c86a4599da1cec29913d3bbb9bdbd342"
@@ -133,12 +136,24 @@ def prepare(root: Path, output: Path) -> dict:
     }
 
 
+def prepare_archive(archive: Path, output: Path) -> dict:
+    with archive.open("rb") as stream:
+        archive_sha256 = hashlib.file_digest(stream, "sha256").hexdigest()
+        require(archive_sha256 == ARCHIVE_SHA256, "Unaccepted Stage 10 archive")
+        stream.seek(0)
+        with TemporaryDirectory(prefix="stage10-review-") as directory, ZipFile(stream) as bundle:
+            # Extract only after verifying the complete archive against the original digest.
+            bundle.extractall(directory)
+            receipt = prepare(Path(directory), output)
+    return {**receipt, "archive_sha256": archive_sha256}
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("bundle", type=Path)
+    parser.add_argument("archive", type=Path, help="Original ZIP from the accepted workflow run")
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
-    print(json.dumps(prepare(args.bundle, args.output), indent=2))
+    print(json.dumps(prepare_archive(args.archive, args.output), indent=2))
 
 
 if __name__ == "__main__":
